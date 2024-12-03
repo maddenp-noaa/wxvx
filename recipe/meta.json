@@ -1,0 +1,32 @@
+{
+  "build": "py_0",
+  "buildnum": "0",
+  "name": "wxvx",
+  "packages": {
+    "dev": [
+      "black",
+      "docformatter",
+      "isort",
+      "jq",
+      "make",
+      "metkit =11.0.*",
+      "mypy",
+      "parsl",
+      "pip",
+      "pylint",
+      "pytest",
+      "pytest-cov",
+      "pytest-xdist",
+      "python >=3.9,<3.13",
+      "setuptools",
+      "uwtools =2.5.*"
+    ],
+    "run": [
+      "metkit =11.0.*",
+      "parsl",
+      "python >=3.9,<3.13",
+      "uwtools =2.5.*"
+    ]
+  },
+  "version": "0.1.0"
+}

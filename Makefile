@@ -1,5 +1,5 @@
 CHANNELS = $(addprefix -c ,$(shell tr '\n' ' ' <$(RECIPE_DIR)/channels)) -c local
-METADEPS = $(addprefix $(RECIPE_DIR)/,meta.yaml) src/uwtools/resources/info.json
+METADEPS = $(addprefix $(RECIPE_DIR)/,meta.yaml) src/wxvx/resources/info.json
 METAJSON = $(RECIPE_DIR)/meta.json
 TARGETS  = devshell env format lint meta package test typecheck unittest
 
