@@ -26,26 +26,14 @@ pretty = true
 warn_return_any = true
 
 [tool.pylint.main]
-extension-pkg-allow-list = ["lxml"]
 jobs = 4
 recursive = true
 
 [tool.pylint."messages control"]
-#disable = [
-#  "consider-using-f-string",
-#  "duplicate-code",
-#  "invalid-name",
-#  "missing-module-docstring",
-#  "too-few-public-methods",
-#  "too-many-arguments",
-#  "too-many-branches",
-#  "too-many-instance-attributes",
-#  "too-many-lines",
-#  "too-many-locals",
-#  "too-many-public-methods",
-#  "unnecessary-lambda-assignment",
-#  "use-dict-literal",
-#]
+disable = [
+  "missing-function-docstring",
+  "missing-module-docstring",
+]
 enable = [
   "useless-suppression",
 ]

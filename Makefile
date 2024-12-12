@@ -1,12 +1,14 @@
-CHANNELS = $(addprefix -c ,$(shell tr '\n' ' ' <$(RECIPE_DIR)/channels)) -c local
-METADEPS = $(addprefix $(RECIPE_DIR)/,meta.yaml) src/wxvx/resources/info.json
-METAJSON = $(RECIPE_DIR)/meta.json
-TARGETS  = devshell env format lint meta package test typecheck unittest
-
 export RECIPE_DIR := $(shell cd ./recipe && pwd)
 
-spec = $(call val,name)$(2)$(call val,version)$(2)$(call val,$(1))
-val  = $(shell jq -r .$(1) $(METAJSON))
+BUILDNUM := $(call val,.buildnum)
+CHANNELS := $(addprefix -c ,$(shell tr '\n' ' ' <$(RECIPE_DIR)/channels)) -c local
+INFOJSON := src/wxvx/resources/info.json
+METADEPS := $(RECIPE_DIR)/meta.yaml $(INFOJSON)
+NAME     := $(call val,.name)
+TARGETS  := devshell env format lint package test typecheck unittest
+VERSION  := $(call val,.version)
+
+val = $(shell jq -r $(1) $(INFOJSON))
 
 .PHONY: $(TARGETS)
 
@@ -17,7 +19,7 @@ devshell:
 	condev-shell || true
 
 env: package
-	conda create -y -n $(call spec,buildnum,-) $(CHANNELS) $(call spec,build,=)
+	@echo conda create -y -n $(NAME)-$(VERSION)-$(BUILDNUM) $(CHANNELS) $(NAME)=$(VERSION)=*_$(BUILDNUM)
 
 format:
 	@./format
@@ -25,9 +27,7 @@ format:
 lint:
 	recipe/run_test.sh lint
 
-meta: $(METAJSON)
-
-package: meta
+package:
 	conda build $(CHANNELS) --error-overlinking --override-channels $(RECIPE_DIR)
 
 test:
@@ -38,6 +38,3 @@ typecheck:
 
 unittest:
 	recipe/run_test.sh unittest
-
-$(METAJSON): $(METADEPS)
-	condev-meta
