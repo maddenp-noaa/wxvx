@@ -1,14 +1,15 @@
-export RECIPE_DIR := $(shell cd ./recipe && pwd)
+val = $(shell jq -r $(1) $(METAJSON))
 
-BUILDNUM := $(call val,.buildnum)
-CHANNELS := $(addprefix -c ,$(shell tr '\n' ' ' <$(RECIPE_DIR)/channels)) -c local
-INFOJSON := src/wxvx/resources/meta.json
-METADEPS := $(RECIPE_DIR)/meta.yaml $(INFOJSON)
-NAME     := $(call val,.name)
-TARGETS  := devshell env format lint package test typecheck unittest
-VERSION  := $(call val,.version)
+RECIPE_DIR = $(shell cd ./recipe && pwd)
+BUILDNUM   = $(call val,.buildnum)
+CHANNELS   = $(addprefix -c ,$(shell tr '\n' ' ' <$(RECIPE_DIR)/channels)) -c local
+NAME       = $(call val,.name)
+VERSION    = $(call val,.version)
+METADEPS   = $(RECIPE_DIR)/meta.yaml $(METAJSON)
+METAJSON   = src/wxvx/resources/meta.json
+TARGETS    = devshell env format lint package test typecheck unittest
 
-val = $(shell jq -r $(1) $(INFOJSON))
+export RECIPE_DIR := $(RECIPE_DIR)
 
 .PHONY: $(TARGETS)
 
