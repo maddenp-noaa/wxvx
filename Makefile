@@ -20,7 +20,7 @@ devshell:
 	condev-shell || true
 
 env: package
-	@echo conda create -y -n $(NAME)-$(VERSION)-$(BUILDNUM) $(CHANNELS) $(NAME)=$(VERSION)=*_$(BUILDNUM)
+	conda create -y -n $(NAME)-$(VERSION)-$(BUILDNUM) $(CHANNELS) $(NAME)=$(VERSION)=*_$(BUILDNUM)
 
 format:
 	@./format
