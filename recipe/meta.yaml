@@ -1,4 +1,4 @@
-{% set info = load_file_data("wxvx/resources/info.json") %}
+{% set info = load_file_data("wxvx/resources/meta.json") %}
 
 package:
   name: {{ info["name"] }}

@@ -2,7 +2,7 @@ export RECIPE_DIR := $(shell cd ./recipe && pwd)
 
 BUILDNUM := $(call val,.buildnum)
 CHANNELS := $(addprefix -c ,$(shell tr '\n' ' ' <$(RECIPE_DIR)/channels)) -c local
-INFOJSON := src/wxvx/resources/info.json
+INFOJSON := src/wxvx/resources/meta.json
 METADEPS := $(RECIPE_DIR)/meta.yaml $(INFOJSON)
 NAME     := $(call val,.name)
 TARGETS  := devshell env format lint package test typecheck unittest
