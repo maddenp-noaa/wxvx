@@ -7,26 +7,26 @@
       "setuptools"
     ],
     "run": [
-      "conda-build",
-      "jq",
-      "make",
-      "python >=3.9"
+      "metkit =11.0.*",
+      "parsl =2024.12.*",
+      "python >=3.9,<3.13",
+      "requests =2.32.*",
+      "uwtools =2.5.*"
     ]
   },
   "test": {
     "requires": [
-      "black",
-      "coverage",
-      "docformatter",
-      "isort",
-      "jq",
-      "make",
-      "mypy",
-      "pylint",
-      "pytest",
-      "pytest-cov",
-      "pytest-xdist"
+      "black =24.10.*",
+      "docformatter =1.7.*",
+      "isort =5.13.*",
+      "jq =1.7.*",
+      "make =4.4.*",
+      "mypy =1.12.*",
+      "pylint =3.3.*",
+      "pytest =8.3.*",
+      "pytest-cov =6.0.*",
+      "pytest-xdist =3.6.*"
     ]
   },
-  "version": "0.7.0"
+  "version": "0.1.0"
 }
