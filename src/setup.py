@@ -6,7 +6,6 @@ from setuptools import find_packages, setup  # type: ignore
 
 # Collect package metadata.
 
-recipe = os.environ.get("RECIPE_DIR", "../recipe")
 with open("wxvx/resources/meta.json", "r", encoding="utf-8") as f:
     meta = json.load(f)
 name_conda = meta["name"]
