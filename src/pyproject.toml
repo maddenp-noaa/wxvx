@@ -32,8 +32,6 @@ recursive = true
 [tool.pylint."messages control"]
 disable = [
   "consider-using-f-string",
-  "missing-function-docstring",
-  "missing-module-docstring",
 ]
 enable = [
   "useless-suppression",
