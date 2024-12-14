@@ -1,7 +1,7 @@
-{% set info = load_file_data("wxvx/resources/meta.json") %}
+{% set info = load_file_data("wxvx/resources/info.json") %}
 
 package:
-  name: {{ info["name"] }}
+  name: wxvx
   version: {{ info["version"] }}
 source:
   path: ../src
@@ -9,7 +9,27 @@ build:
   include_recipe: false
   noarch: python
   number: {{ info["buildnum"] }}
-requirements: {{ info["requirements"] }}
-test: {{ info["test"] }}
+requirements:
+  build:
+    - pip
+    - setuptools
+  run:
+    - metkit =11.0.*
+    - parsl =2024.12.*
+    - python >=3.9,<3.13
+    - requests =2.32.*
+    - uwtools =2.5.*
+test:
+  requires:
+    - black =24.10.*
+    - docformatter =1.7.*
+    - isort =5.13.*
+    - jq =1.7.*
+    - make =4.4.*
+    - mypy =1.12.*
+    - pylint =3.3.*
+    - pytest =8.3.*
+    - pytest-cov =6.0.*
+    - pytest-xdist =3.6.*
 about:
   license: APACHE

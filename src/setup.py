@@ -6,7 +6,8 @@ from setuptools import find_packages, setup  # type: ignore
 
 # Collect package metadata.
 
-with open("wxvx/resources/meta.json", "r", encoding="utf-8") as f:
+recipe = os.environ.get("RECIPE_DIR", "../recipe")
+with open(os.path.join(recipe, "meta.json"), "r", encoding="utf-8") as f:
     meta = json.load(f)
 name_conda = meta["name"]
 name_py = name_conda.replace("-", "_")
@@ -26,7 +27,7 @@ kwargs = {
 if not os.environ.get("CONDEV_SHELL"):
     kwargs["install_requires"] = [
         pkg.replace(" =", "==")
-        for pkg in meta["requirements"]["run"]
+        for pkg in meta["packages"]["run"]
         if not re.match(r"^python .*$", pkg)
     ]
 
