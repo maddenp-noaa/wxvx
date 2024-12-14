@@ -5,10 +5,11 @@ Command-line interface.
 import json
 import logging
 import sys
-import yaml
 from argparse import ArgumentParser, HelpFormatter, Namespace
 from importlib import resources
 from pathlib import Path
+
+import yaml
 
 PKGNAME = __name__.split(".", maxsplit=1)[0]
 
