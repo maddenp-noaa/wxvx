@@ -18,6 +18,7 @@
       "pytest-cov =6.0.*",
       "pytest-xdist =3.6.*",
       "python >=3.9,<3.13",
+      "pyyaml",
       "requests =2.32.*",
       "setuptools",
       "uwtools =2.5.*"
@@ -26,6 +27,7 @@
       "metkit =11.0.*",
       "parsl =2024.12.*",
       "python >=3.9,<3.13",
+      "pyyaml",
       "requests =2.32.*",
       "uwtools =2.5.*"
     ]

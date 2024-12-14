@@ -17,6 +17,7 @@ requirements:
     - metkit =11.0.*
     - parsl =2024.12.*
     - python >=3.9,<3.13
+    - pyyaml =6.0.*
     - requests =2.32.*
     - uwtools =2.5.*
 test:

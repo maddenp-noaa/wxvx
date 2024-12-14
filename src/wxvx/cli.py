@@ -5,6 +5,7 @@ Command-line interface.
 import json
 import logging
 import sys
+import yaml
 from argparse import ArgumentParser, HelpFormatter, Namespace
 from importlib import resources
 from pathlib import Path
@@ -15,7 +16,6 @@ PKGNAME = __name__.split(".", maxsplit=1)[0]
 def main() -> None:
     args = _parse_args(sys.argv[1:])
     _setup_logging(debug=args.debug)
-    logging.info(args)
 
 
 def _parse_args(raw: list[str]) -> Namespace:
@@ -25,8 +25,24 @@ def _parse_args(raw: list[str]) -> Namespace:
         formatter_class=lambda prog: HelpFormatter(prog, max_help_position=6),
     )
     optional = parser.add_argument_group("Optional arguments")
-    optional.add_argument("-d", "--debug", action="store_true", help="Print all logging messages")
-    optional.add_argument("-h", "--help", action="help", help="Show help and exit")
+    optional.add_argument(
+        "-c",
+        "--config",
+        help="Configuration file",
+        metavar="FILE",
+    )
+    optional.add_argument(
+        "-d",
+        "--debug",
+        action="store_true",
+        help="Print all logging messages",
+    )
+    optional.add_argument(
+        "-h",
+        "--help",
+        action="help",
+        help="Show help and exit",
+    )
     optional.add_argument(
         "-v",
         "--version",
