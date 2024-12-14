@@ -9,6 +9,8 @@ from argparse import ArgumentParser, HelpFormatter, Namespace
 from importlib import resources
 from pathlib import Path
 
+PKGNAME = __name__.split(".")[0]
+
 
 def main() -> None:
     """
@@ -26,7 +28,7 @@ def _parse_args(raw: list[str]) -> Namespace:
     :param raw: The raw command-line arguments to parse.
     """
     parser = ArgumentParser(
-        description="wxvx",
+        description=PKGNAME,
         add_help=False,
         formatter_class=lambda prog: HelpFormatter(prog, max_help_position=6),
     )
@@ -60,7 +62,7 @@ def _version() -> str:
     """
     Return version information.
     """
-    with resources.as_file(resources.files("wxvx.resources")) as prefix:
+    with resources.as_file(resources.files(f"{PKGNAME}.resources")) as prefix:
         with open(prefix / "info.json", "r", encoding="utf-8") as f:
             info = json.load(f)
     return "version %s build %s" % (info["version"], info["buildnum"])
