@@ -9,24 +9,16 @@ from argparse import ArgumentParser, HelpFormatter, Namespace
 from importlib import resources
 from pathlib import Path
 
-PKGNAME = __name__.split(".")[0]
+PKGNAME = __name__.split(".", maxsplit=1)[0]
 
 
 def main() -> None:
-    """
-    The main entry point.
-    """
     args = _parse_args(sys.argv[1:])
     _setup_logging(debug=args.debug)
     logging.info(args)
 
 
 def _parse_args(raw: list[str]) -> Namespace:
-    """
-    Return parsed command-line arguments.
-
-    :param raw: The raw command-line arguments to parse.
-    """
     parser = ArgumentParser(
         description=PKGNAME,
         add_help=False,
@@ -45,12 +37,7 @@ def _parse_args(raw: list[str]) -> Namespace:
     return parser.parse_args(raw)
 
 
-def _setup_logging(quiet: bool = False, debug: bool = False) -> None:
-    """
-    Set up logging.
-
-    :param debug: Log all messages.
-    """
+def _setup_logging(debug: bool = False) -> None:
     logging.basicConfig(
         datefmt="%Y-%m-%dT%H:%M:%S",
         format="[%(asctime)s] %(levelname)8s %(message)s",
@@ -59,9 +46,6 @@ def _setup_logging(quiet: bool = False, debug: bool = False) -> None:
 
 
 def _version() -> str:
-    """
-    Return version information.
-    """
     with resources.as_file(resources.files(f"{PKGNAME}.resources")) as prefix:
         with open(prefix / "info.json", "r", encoding="utf-8") as f:
             info = json.load(f)

@@ -1,3 +1,7 @@
+"""
+Package setup.
+"""
+
 import json
 import os
 import re
