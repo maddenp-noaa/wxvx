@@ -9,29 +9,29 @@ from argparse import ArgumentParser, HelpFormatter, Namespace
 from importlib import resources
 from pathlib import Path
 
-import yaml
-
 PKGNAME = __name__.split(".", maxsplit=1)[0]
 
 
 def main() -> None:
-    args = _parse_args(sys.argv[1:])
+    args = _parse_args(sys.argv)
     _setup_logging(debug=args.debug)
 
 
-def _parse_args(raw: list[str]) -> Namespace:
+def _parse_args(argv: list[str]) -> Namespace:
     parser = ArgumentParser(
         description=PKGNAME,
         add_help=False,
         formatter_class=lambda prog: HelpFormatter(prog, max_help_position=6),
     )
-    optional = parser.add_argument_group("Optional arguments")
-    optional.add_argument(
+    required = parser.add_argument_group("Required arguments")
+    required.add_argument(
         "-c",
         "--config",
         help="Configuration file",
         metavar="FILE",
+        required=True,
     )
+    optional = parser.add_argument_group("Optional arguments")
     optional.add_argument(
         "-d",
         "--debug",
@@ -49,9 +49,9 @@ def _parse_args(raw: list[str]) -> Namespace:
         "--version",
         action="version",
         help="Show version and exit",
-        version=f"{Path(sys.argv[0]).name} {_version()}",
+        version=f"{Path(argv[0]).name} {_version()}",
     )
-    return parser.parse_args(raw)
+    return parser.parse_args(argv[1:])
 
 
 def _setup_logging(debug: bool = False) -> None:
@@ -59,6 +59,7 @@ def _setup_logging(debug: bool = False) -> None:
         datefmt="%Y-%m-%dT%H:%M:%S",
         format="[%(asctime)s] %(levelname)8s %(message)s",
         level=logging.DEBUG if debug else logging.INFO,
+        stream=sys.stderr,
     )
 
 
