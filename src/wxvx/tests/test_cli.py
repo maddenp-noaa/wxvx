@@ -20,8 +20,9 @@ def test_main():
         argv = [PKGNAME, "-c", "a.yaml"]
         mocks["sys"].argv = argv
         cli.main()
-    mocks["_parse_args"].assert_called_once_with(argv)
-    mocks["_setup_logging"].assert_called_once()  # _with(debug=False)
+    _parse_args = mocks["_parse_args"]
+    _parse_args.assert_called_once_with(argv)
+    mocks["_setup_logging"].assert_called_once_with(debug=_parse_args().debug)
 
 
 @mark.parametrize("c", ["-c", "--config"])
