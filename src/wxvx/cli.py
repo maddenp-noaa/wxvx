@@ -6,20 +6,23 @@ import json
 import logging
 import sys
 from argparse import ArgumentParser, HelpFormatter, Namespace
-from importlib import resources
 from pathlib import Path
 
-PKGNAME = __name__.split(".", maxsplit=1)[0]
+from uwtools.api.config import validate
+
+from wxvx.support import pkgname, resource, resource_path
 
 
 def main() -> None:
     args = _parse_args(sys.argv)
     _setup_logging(debug=args.debug)
+    with resource_path("config.jsonschema") as schema_file:
+        validate(schema_file=schema_file, config=args.config)  # PM need unit tests
 
 
 def _parse_args(argv: list[str]) -> Namespace:
     parser = ArgumentParser(
-        description=PKGNAME,
+        description=pkgname,
         add_help=False,
         formatter_class=lambda prog: HelpFormatter(prog, max_help_position=6),
     )
@@ -30,6 +33,7 @@ def _parse_args(argv: list[str]) -> Namespace:
         help="Configuration file",
         metavar="FILE",
         required=True,
+        type=Path,
     )
     optional = parser.add_argument_group("Optional arguments")
     optional.add_argument(
@@ -64,7 +68,6 @@ def _setup_logging(debug: bool = False) -> None:
 
 
 def _version() -> str:
-    with resources.as_file(resources.files(f"{PKGNAME}.resources")) as prefix:
-        with open(prefix / "info.json", "r", encoding="utf-8") as f:
-            info = json.load(f)
+    with resource("info.json") as f:
+        info = json.load(f)
     return "version %s build %s" % (info["version"], info["buildnum"])

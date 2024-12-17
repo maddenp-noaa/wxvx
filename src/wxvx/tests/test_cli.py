@@ -6,18 +6,18 @@ Tests for wxvx.cli.
 
 import logging
 import re
+from pathlib import Path
 from unittest.mock import ANY, DEFAULT, patch
 
 from pytest import mark, raises
 
 from wxvx import cli
-
-PKGNAME = __name__.split(".", maxsplit=1)[0]
+from wxvx.support import pkgname
 
 
 def test_main():
     with patch.multiple(cli, _parse_args=DEFAULT, _setup_logging=DEFAULT, sys=DEFAULT) as mocks:
-        argv = [PKGNAME, "-c", "a.yaml"]
+        argv = [pkgname, "-c", "a.yaml"]
         mocks["sys"].argv = argv
         cli.main()
     _parse_args = mocks["_parse_args"]
@@ -28,15 +28,17 @@ def test_main():
 @mark.parametrize("c", ["-c", "--config"])
 @mark.parametrize("d", ["-d", "--debug", None])
 def test__parse_args(c, d):
-    args = cli._parse_args([PKGNAME, c, "a.yaml"] + ([d] if d else []))
-    assert args.config == "a.yaml"
+    fn = "a.yaml"
+    args = cli._parse_args([pkgname, c, fn] + ([d] if d else []))
+    assert isinstance(args.config, Path)
+    assert str(args.config) == fn
     assert args.debug is bool(d)
 
 
 @mark.parametrize("h", ["-h", "--help"])
 def test__parse_args_help(capsys, h):
     with raises(SystemExit) as e:
-        cli._parse_args([PKGNAME, h])
+        cli._parse_args([pkgname, h])
     assert e.value.code == 0
     assert capsys.readouterr().out.startswith("usage:")
 
@@ -44,14 +46,14 @@ def test__parse_args_help(capsys, h):
 @mark.parametrize("v", ["-v", "--version"])
 def test__parse_args_version(capsys, v):
     with raises(SystemExit) as e:
-        cli._parse_args([PKGNAME, v])
+        cli._parse_args([pkgname, v])
     assert e.value.code == 0
     assert re.match(r"^\w+ version \d+\.\d+\.\d+ build \d+$", capsys.readouterr().out.strip())
 
 
 def test__parse_args_required_arg_missing():
     with raises(SystemExit) as e:
-        cli._parse_args([PKGNAME])
+        cli._parse_args([pkgname])
     assert e.value.code == 2
 
 
