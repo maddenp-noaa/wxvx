@@ -13,6 +13,7 @@
       "mypy =1.12.*",
       "parsl =2024.12.*",
       "pip",
+      "pyfakefs =5.7.*",
       "pylint =3.3.*",
       "pytest =8.3.*",
       "pytest-cov =6.0.*",
