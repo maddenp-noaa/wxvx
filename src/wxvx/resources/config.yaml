@@ -1,9 +1,9 @@
 cycles:
-  start: 2024-04-01T01:00:00
-  stop: 2024-04-07T22:00:00
-  step: 1:00:00
+  start: 2024-04-01T01:00:00.000Z
+  step: '1:00:00'
+  stop: 2024-04-07T22:00:00.000Z
 leadtimes:
   start: 1
+  step: '1:00:00'
   stop: 1
-  step: 1:00:00
 target: https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.{yyyymmdd}/conus/hrrr.t{hh}z.wrfprsf{ff}.grib2
