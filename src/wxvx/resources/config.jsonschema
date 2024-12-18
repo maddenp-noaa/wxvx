@@ -1,0 +1,49 @@
+{
+  "$defs": {
+    "datetime": {
+      "pattern": "^[0-9]{4}-[0-9]{2-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}$",
+      "type": "string"
+    },
+    "timedelta": {
+      "pattern": "^[0-9]{2}:[0-9]{2}:[0-9]{2}$",
+      "type": "string"
+    }
+  },
+  "additionalproperties": false,
+  "properties": {
+    "cycles": {
+      "additionalProperties": false,
+      "properties": {
+        "start": {
+          "$ref": "#/$defs/datetime"
+        },
+        "step": {
+          "$ref": "#/$defs/timedelta"
+        },
+        "stop": {
+          "$ref": "#/$defs/datetime"
+        }
+      },
+      "type": "object"
+    },
+    "leadtimes": {
+      "additionalProperties": false,
+      "properties": {
+        "start": {
+          "type": "integer"
+        },
+        "step": {
+          "$ref": "#/$defs/timedelta"
+        },
+        "stop": {
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "target": {
+      "type": "string"
+    }
+  },
+  "type": "object"
+}
