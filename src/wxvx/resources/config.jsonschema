@@ -24,6 +24,11 @@
           "$ref": "#/$defs/datetime"
         }
       },
+      "required": [
+        "start",
+        "step",
+        "stop"
+      ],
       "type": "object"
     },
     "leadtimes": {
@@ -39,11 +44,21 @@
           "type": "integer"
         }
       },
+      "required": [
+        "start",
+        "step",
+        "stop"
+      ],
       "type": "object"
     },
     "target": {
       "type": "string"
     }
   },
+  "required": [
+    "cycles",
+    "leadtimes",
+    "target"
+  ],
   "type": "object"
 }

@@ -9,7 +9,7 @@ import re
 from pathlib import Path
 from unittest.mock import ANY
 from unittest.mock import DEFAULT as D
-from unittest.mock import patch, Mock
+from unittest.mock import Mock, patch
 
 from pytest import mark, raises
 
@@ -29,12 +29,13 @@ def test_cli_main():
 
 def test_cli_main_bad_config(fs):
     with resource_path("") as resources_dir:
-        path = fs.create_file(Path(resources_dir, "test.yaml"), contents="{}").path
-    breakpoint()
+        config_file = Path(fs.create_file(resources_dir / "test.yaml", contents="{}").path)
+        fs.add_real_file(resources_dir / "config.jsonschema")
     with patch.multiple(cli, _parse_args=D, _setup_logging=D) as mocks:
-        mocks["_parse_args"].return_value = Mock(debug=False, config=path)
+        mocks["_parse_args"].return_value = Mock(debug=False, config=config_file)
         with raises(SystemExit) as e:
             cli.main()
+    assert e.value.code == 1
 
 
 @mark.parametrize("c", ["-c", "--config"])

@@ -17,7 +17,8 @@ def main() -> None:
     args = _parse_args(sys.argv)
     _setup_logging(debug=args.debug)
     with resource_path("config.jsonschema") as schema_file:
-        validate(schema_file=schema_file, config=args.config)
+        if not validate(schema_file=schema_file, config=args.config):
+            sys.exit(1)
 
 
 def _parse_args(argv: list[str]) -> Namespace:
