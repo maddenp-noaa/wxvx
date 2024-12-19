@@ -14,10 +14,12 @@ from uwtools.api.config import validate
 from wxvx.time import validtimes
 from wxvx.util import pkgname, resource, resource_path
 
+# Public
+
 
 def main() -> None:
-    args = parse_args(sys.argv)
-    setup_logging(debug=args.debug)
+    args = _parse_args(sys.argv)
+    _setup_logging(debug=args.debug)
     with open(args.config, "r", encoding="utf-8") as f:
         config = yaml.safe_load(f.read())
     with resource_path("config.jsonschema") as schema_file:
@@ -30,7 +32,10 @@ def go(config: dict) -> None:
     print(sorted(validtimes(config)))
 
 
-def parse_args(argv: list[str]) -> Namespace:
+# Private
+
+
+def _parse_args(argv: list[str]) -> Namespace:
     parser = ArgumentParser(
         description=pkgname,
         add_help=False,
@@ -63,12 +68,12 @@ def parse_args(argv: list[str]) -> Namespace:
         "--version",
         action="version",
         help="Show version and exit",
-        version=f"{Path(argv[0]).name} {version()}",
+        version=f"{Path(argv[0]).name} {_version()}",
     )
     return parser.parse_args(argv[1:])
 
 
-def setup_logging(debug: bool = False) -> None:
+def _setup_logging(debug: bool = False) -> None:
     logging.basicConfig(
         datefmt="%Y-%m-%dT%H:%M:%S",
         format="[%(asctime)s] %(levelname)8s %(message)s",
@@ -77,7 +82,7 @@ def setup_logging(debug: bool = False) -> None:
     )
 
 
-def version() -> str:
+def _version() -> str:
     with resource("info.json") as f:
         info = json.load(f)
     return "version %s build %s" % (info["version"], info["buildnum"])
