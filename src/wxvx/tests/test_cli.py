@@ -12,7 +12,7 @@ from unittest.mock import Mock, patch
 from pytest import mark, raises
 
 from wxvx import cli
-from wxvx.support import pkgname, resource_path
+from wxvx.util import pkgname, resource_path
 
 
 def test_cli_main():

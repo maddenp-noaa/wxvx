@@ -13,7 +13,7 @@ from pyfakefs.fake_filesystem import FakeFilesystem
 from pytest import fixture
 from uwtools.api.config import validate
 
-from wxvx.support import resource_path
+from wxvx.util import resource_path
 
 # Helpers
 

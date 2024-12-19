@@ -11,8 +11,8 @@ from pathlib import Path
 import yaml
 from uwtools.api.config import validate
 
-from wxvx.support import pkgname, resource, resource_path
 from wxvx.time import validtimes
+from wxvx.util import pkgname, resource, resource_path
 
 
 def main() -> None:

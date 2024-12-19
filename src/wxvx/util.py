@@ -1,5 +1,5 @@
 """
-Support routines.
+Utility routines.
 """
 
 from contextlib import contextmanager
