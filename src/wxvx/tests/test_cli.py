@@ -7,22 +7,34 @@ Tests for wxvx.cli.
 import logging
 import re
 from pathlib import Path
-from unittest.mock import ANY, DEFAULT, patch
+from unittest.mock import ANY
+from unittest.mock import DEFAULT as D
+from unittest.mock import patch, Mock
 
 from pytest import mark, raises
 
 from wxvx import cli
-from wxvx.support import pkgname
+from wxvx.support import pkgname, resource_path
 
 
 def test_cli_main():
-    with patch.multiple(cli, _parse_args=DEFAULT, _setup_logging=DEFAULT, sys=DEFAULT) as mocks:
+    with patch.multiple(cli, _parse_args=D, _setup_logging=D, sys=D) as mocks:
         argv = [pkgname, "-c", "a.yaml"]
         mocks["sys"].argv = argv
         cli.main()
     _parse_args = mocks["_parse_args"]
     _parse_args.assert_called_once_with(argv)
     mocks["_setup_logging"].assert_called_once_with(debug=_parse_args().debug)
+
+
+def test_cli_main_bad_config(fs):
+    with resource_path("") as resources_dir:
+        path = fs.create_file(Path(resources_dir, "test.yaml"), contents="{}").path
+    breakpoint()
+    with patch.multiple(cli, _parse_args=D, _setup_logging=D) as mocks:
+        mocks["_parse_args"].return_value = Mock(debug=False, config=path)
+        with raises(SystemExit) as e:
+            cli.main()
 
 
 @mark.parametrize("c", ["-c", "--config"])

@@ -17,7 +17,7 @@ def main() -> None:
     args = _parse_args(sys.argv)
     _setup_logging(debug=args.debug)
     with resource_path("config.jsonschema") as schema_file:
-        validate(schema_file=schema_file, config=args.config)  # PM need unit tests
+        validate(schema_file=schema_file, config=args.config)
 
 
 def _parse_args(argv: list[str]) -> Namespace:
