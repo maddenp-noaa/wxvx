@@ -6,6 +6,8 @@ from datetime import datetime, timedelta
 from itertools import product
 from typing import overload
 
+from wxvx.util import WXVXError
+
 # Public
 
 
@@ -31,7 +33,8 @@ def validtimes(config: dict) -> list[datetime]:
 def _delta(step: str) -> timedelta:
     keys = ["hours", "minutes", "seconds"]
     args = dict(zip(keys, map(int, step.split(":"))))
-    return timedelta(**args)
+    td = timedelta(**args)
+    return td
 
 
 @overload
@@ -39,6 +42,8 @@ def _enumerate(start: datetime, stop: datetime, step: timedelta) -> list[datetim
 @overload
 def _enumerate(start: timedelta, stop: timedelta, step: timedelta) -> list[timedelta]: ...
 def _enumerate(start, stop, step):
+    if stop < start:
+        raise WXVXError("Stop time %s precedes start time %s" % (stop, start))
     xs = [start]
     while (x := xs[-1]) < stop:
         xs.append(x + step)

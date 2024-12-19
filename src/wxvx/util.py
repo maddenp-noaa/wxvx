@@ -10,6 +10,9 @@ from typing import Generator, TextIO
 pkgname = __name__.split(".", maxsplit=1)[0]
 
 
+class WXVXError(Exception): ...
+
+
 @contextmanager
 def resource(relpath: str) -> Generator[TextIO, None, None]:
     with resource_path(relpath) as path:
