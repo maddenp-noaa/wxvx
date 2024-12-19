@@ -6,13 +6,13 @@ import json
 import logging
 import sys
 from argparse import ArgumentParser, HelpFormatter, Namespace
-from datetime import datetime, timedelta
 from pathlib import Path
 
 import yaml
 from uwtools.api.config import validate
 
 from wxvx.support import pkgname, resource, resource_path
+from wxvx.time import validtimes
 
 
 def main() -> None:
@@ -26,32 +26,8 @@ def main() -> None:
     go(config)
 
 
-def cycles(config: dict) -> list[datetime]:
-    start, stop = [datetime.fromisoformat(config["cycles"][key]) for key in ("start", "stop")]
-    step = delta(config["cycles"]["step"])
-    cs = [start]
-    while (c := cs[-1]) < stop:
-        cs.append(c + step)
-    return cs
-
-
-def delta(step: str) -> timedelta:
-    keys = ["hours", "minutes", "seconds"]
-    args = dict(zip(keys, map(int, step.split(":"))))
-    return timedelta(**args)
-
-
-def leadtimes(config: dict) -> list[timedelta]:
-    start, stop = [config["leadtimes"][key] for key in ("start", "stop")]
-    step = delta(config["leadtimes"]["step"])
-    lts = [start]
-    while (lt := lts[-1]) < stop:
-        lts.append(lt + step)
-    return lts
-
-
 def go(config: dict) -> None:
-    print(cycles(config))
+    print(sorted(validtimes(config)))
 
 
 def parse_args(argv: list[str]) -> Namespace:

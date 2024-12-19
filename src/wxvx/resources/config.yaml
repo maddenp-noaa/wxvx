@@ -5,5 +5,5 @@ cycles:
 leadtimes:
   start: '01:00:00'
   step: '01:00:00'
-  stop: '01:00:00'
+  stop: '03:00:00'
 target: https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.{yyyymmdd}/conus/hrrr.t{hh}z.wrfprsf{ff}.grib2
