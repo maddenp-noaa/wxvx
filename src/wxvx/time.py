@@ -24,7 +24,8 @@ def leadtimes(config: dict) -> list[timedelta]:
 
 
 def validtimes(config: dict) -> list[datetime]:
-    return [cycle + leadtime for cycle, leadtime in product(cycles(config), leadtimes(config))]
+    pairs = product(cycles(config), leadtimes(config))
+    return sorted(set(cycle + leadtime for cycle, leadtime in pairs))
 
 
 # Private
