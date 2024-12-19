@@ -108,7 +108,7 @@ def logged(caplog):
 # Tests
 
 
-def test_schema_top_level(logged, config, fs):
+def test_schema(logged, config, fs):
     ok = validator(fs)
     # Basic correctness:
     assert ok(config)
@@ -119,11 +119,11 @@ def test_schema_top_level(logged, config, fs):
     # Addional keys are not allowed:
     assert not ok(with_set(config, 42, "n"))
     assert logged("'n' was unexpected")
-    # Some keys take dict values:
+    # Some keys have dict values:
     for key in ["cycles", "leadtimes"]:
         assert not ok(with_set(config, None, key))
         assert logged("None is not of type 'object'")
-    # Some keys take str values:
+    # Some keys have str values:
     for key in ["target"]:
         assert not ok(with_set(config, None, key))
         assert logged("None is not of type 'string'")
@@ -143,5 +143,27 @@ def test_schema_cycles(logged, config, fs):
     assert logged("'n' was unexpected")
     # Some keys must match a certain regex:
     for key in ["start", "step", "stop"]:
+        assert not ok(with_set(config, "foo", key))
+        assert logged("'foo' does not match")
+
+
+def test_schema_leadtimes(logged, config, fs):
+    ok = validator(fs, "properties", "leadtimes")
+    config = config["leadtimes"]
+    # Basic correctness:
+    assert ok(config)
+    # Certain top-level keys are required:
+    for key in ["start", "step", "stop"]:
+        assert not ok(with_del(config, key))
+        assert logged(f"'{key}' is a required property")
+    # Addional keys are not allowed:
+    assert not ok(with_set(config, 42, "n"))
+    assert logged("'n' was unexpected")
+    # Some keys have integer values:
+    for key in ["start", "stop"]:
+        assert not ok(with_set(config, None, key))
+        assert logged("None is not of type 'integer'")
+    # Some keys must match a certain regex:
+    for key in ["step"]:
         assert not ok(with_set(config, "foo", key))
         assert logged("'foo' does not match")
