@@ -6,7 +6,9 @@ import json
 import logging
 import sys
 from argparse import ArgumentParser, HelpFormatter, Namespace
+from datetime import datetime, timedelta
 from pathlib import Path
+from types import SimpleNamespace as ns
 
 import yaml
 from uwtools.api.config import validate
@@ -15,16 +17,43 @@ from wxvx.support import pkgname, resource, resource_path
 
 
 def main() -> None:
-    args = _parse_args(sys.argv)
-    _setup_logging(debug=args.debug)
+    args = parse_args(sys.argv)
+    setup_logging(debug=args.debug)
     with open(args.config, "r", encoding="utf-8") as f:
         config = yaml.safe_load(f.read())
     with resource_path("config.jsonschema") as schema_file:
         if not validate(schema_file=schema_file, config=config):
             sys.exit(1)
+    go(config)
 
 
-def _parse_args(argv: list[str]) -> Namespace:
+def delta(step: str) -> timedelta:
+    keys = ["hours", "minutes", "seconds"]
+    args = dict(zip(keys, map(int, step.split(":"))))
+    return timedelta(**args)
+
+
+def specs_cycles(config: dict) -> ns:
+    start, stop = [datetime.fromisoformat(config["cycles"][key]) for key in ("start", "stop")]
+    step = delta(config["cycles"]["step"])
+    return ns(start=start, stop=stop, step=step)
+
+
+def specs_leadtimes(config: dict) -> ns:
+    start, stop = [config["leadtimes"][key] for key in ("start", "stop")]
+    step = delta(config["leadtimes"]["step"])
+    return ns(start=start, stop=stop, step=step)
+
+
+def go(config: dict) -> None:
+    sc = specs_cycles(config)
+    sl = specs_leadtimes(config)
+    print(sc, sl)
+    # breakpoint()
+    # pass
+
+
+def parse_args(argv: list[str]) -> Namespace:
     parser = ArgumentParser(
         description=pkgname,
         add_help=False,
@@ -57,12 +86,12 @@ def _parse_args(argv: list[str]) -> Namespace:
         "--version",
         action="version",
         help="Show version and exit",
-        version=f"{Path(argv[0]).name} {_version()}",
+        version=f"{Path(argv[0]).name} {version()}",
     )
     return parser.parse_args(argv[1:])
 
 
-def _setup_logging(debug: bool = False) -> None:
+def setup_logging(debug: bool = False) -> None:
     logging.basicConfig(
         datefmt="%Y-%m-%dT%H:%M:%S",
         format="[%(asctime)s] %(levelname)8s %(message)s",
@@ -71,7 +100,7 @@ def _setup_logging(debug: bool = False) -> None:
     )
 
 
-def _version() -> str:
+def version() -> str:
     with resource("info.json") as f:
         info = json.load(f)
     return "version %s build %s" % (info["version"], info["buildnum"])
