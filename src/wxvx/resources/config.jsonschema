@@ -4,6 +4,10 @@
       "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}$",
       "type": "string"
     },
+    "time": {
+      "pattern": "^[0-9]{2}:[0-9]{2}:[0-9]{2}$",
+      "type": "string"
+    },
     "timedelta": {
       "pattern": "^[0-9]{2}:[0-9]{2}:[0-9]{2}$",
       "type": "string"
@@ -35,13 +39,13 @@
       "additionalProperties": false,
       "properties": {
         "start": {
-          "type": "integer"
+          "$ref": "#/$defs/time"
         },
         "step": {
           "$ref": "#/$defs/timedelta"
         },
         "stop": {
-          "type": "integer"
+          "$ref": "#/$defs/time"
         }
       },
       "required": [

@@ -8,7 +8,6 @@ import sys
 from argparse import ArgumentParser, HelpFormatter, Namespace
 from datetime import datetime, timedelta
 from pathlib import Path
-from types import SimpleNamespace as ns
 
 import yaml
 from uwtools.api.config import validate
@@ -27,30 +26,32 @@ def main() -> None:
     go(config)
 
 
+def cycles(config: dict) -> list[datetime]:
+    start, stop = [datetime.fromisoformat(config["cycles"][key]) for key in ("start", "stop")]
+    step = delta(config["cycles"]["step"])
+    cs = [start]
+    while (c := cs[-1]) < stop:
+        cs.append(c + step)
+    return cs
+
+
 def delta(step: str) -> timedelta:
     keys = ["hours", "minutes", "seconds"]
     args = dict(zip(keys, map(int, step.split(":"))))
     return timedelta(**args)
 
 
-def specs_cycles(config: dict) -> ns:
-    start, stop = [datetime.fromisoformat(config["cycles"][key]) for key in ("start", "stop")]
-    step = delta(config["cycles"]["step"])
-    return ns(start=start, stop=stop, step=step)
-
-
-def specs_leadtimes(config: dict) -> ns:
+def leadtimes(config: dict) -> list[timedelta]:
     start, stop = [config["leadtimes"][key] for key in ("start", "stop")]
     step = delta(config["leadtimes"]["step"])
-    return ns(start=start, stop=stop, step=step)
+    lts = [start]
+    while (lt := lts[-1]) < stop:
+        lts.append(lt + step)
+    return lts
 
 
 def go(config: dict) -> None:
-    sc = specs_cycles(config)
-    sl = specs_leadtimes(config)
-    print(sc, sl)
-    # breakpoint()
-    # pass
+    print(cycles(config))
 
 
 def parse_args(argv: list[str]) -> Namespace:

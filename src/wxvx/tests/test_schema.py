@@ -80,9 +80,9 @@ def config():
             "stop": "2024-04-07T22:00:00",
         },
         "leadtimes": {
-            "start": 1,
+            "start": "01:00:00",
             "step": "01:00:00",
-            "stop": 1,
+            "stop": "01:00:00",
         },
         "target": "/".join(
             [
@@ -159,11 +159,7 @@ def test_schema_leadtimes(logged, config, fs):
     # Addional keys are not allowed:
     assert not ok(with_set(config, 42, "n"))
     assert logged("'n' was unexpected")
-    # Some keys have integer values:
-    for key in ["start", "stop"]:
-        assert not ok(with_set(config, None, key))
-        assert logged("None is not of type 'integer'")
     # Some keys must match a certain regex:
-    for key in ["step"]:
+    for key in ["start", "step", "stop"]:
         assert not ok(with_set(config, "foo", key))
         assert logged("'foo' does not match")

@@ -2,8 +2,6 @@
 Tests for wxvx.cli.
 """
 
-# pylint: disable=protected-access
-
 import logging
 import re
 from pathlib import Path

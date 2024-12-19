@@ -3,7 +3,7 @@ cycles:
   step: '01:00:00'
   stop: '2024-04-07T22:00:00'
 leadtimes:
-  start: 1
+  start: '01:00:00'
   step: '01:00:00'
-  stop: 1
+  stop: '01:00:00'
 target: https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.{yyyymmdd}/conus/hrrr.t{hh}z.wrfprsf{ff}.grib2
