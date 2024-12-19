@@ -8,6 +8,7 @@ import sys
 from argparse import ArgumentParser, HelpFormatter, Namespace
 from pathlib import Path
 
+import yaml
 from uwtools.api.config import validate
 
 from wxvx.support import pkgname, resource, resource_path
@@ -16,8 +17,10 @@ from wxvx.support import pkgname, resource, resource_path
 def main() -> None:
     args = _parse_args(sys.argv)
     _setup_logging(debug=args.debug)
+    with open(args.config, "r", encoding="utf-8") as f:
+        config = yaml.safe_load(f.read())
     with resource_path("config.jsonschema") as schema_file:
-        if not validate(schema_file=schema_file, config=args.config):
+        if not validate(schema_file=schema_file, config=config):
             sys.exit(1)
 
 

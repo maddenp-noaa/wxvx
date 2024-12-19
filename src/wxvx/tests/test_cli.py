@@ -18,13 +18,14 @@ from wxvx.support import pkgname, resource_path
 
 
 def test_cli_main():
-    with patch.multiple(cli, _parse_args=D, _setup_logging=D, sys=D) as mocks:
-        argv = [pkgname, "-c", "a.yaml"]
+    with patch.multiple(cli, _setup_logging=D, sys=D) as mocks:
+        with resource_path("config.yaml") as config_file:
+            argv = [pkgname, "-c", str(config_file)]
         mocks["sys"].argv = argv
-        cli.main()
-    _parse_args = mocks["_parse_args"]
+        with patch.object(cli, "_parse_args", wraps=cli._parse_args) as _parse_args:
+            cli.main()
     _parse_args.assert_called_once_with(argv)
-    mocks["_setup_logging"].assert_called_once_with(debug=_parse_args().debug)
+    mocks["_setup_logging"].assert_called_once_with(debug=False)
 
 
 def test_cli_main_bad_config(fs):
