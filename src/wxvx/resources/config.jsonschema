@@ -9,7 +9,7 @@
       "type": "string"
     }
   },
-  "additionalproperties": false,
+  "additionalProperties": false,
   "properties": {
     "cycles": {
       "additionalProperties": false,
