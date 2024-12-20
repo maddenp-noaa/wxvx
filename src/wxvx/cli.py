@@ -3,13 +3,13 @@ Command-line interface.
 """
 
 import json
-import logging
 import sys
 from argparse import ArgumentParser, HelpFormatter, Namespace
 from pathlib import Path
 
 import yaml
 from uwtools.api.config import validate
+from uwtools.api.logging import use_uwtools_logger
 
 from wxvx.time import validtimes
 from wxvx.util import pkgname, resource, resource_path
@@ -19,7 +19,7 @@ from wxvx.util import pkgname, resource, resource_path
 
 def main() -> None:
     args = _parse_args(sys.argv)
-    _setup_logging(debug=args.debug)
+    use_uwtools_logger(verbose=args.debug)
     with open(args.config, "r", encoding="utf-8") as f:
         config = yaml.safe_load(f.read())
     with resource_path("config.jsonschema") as schema_file:
@@ -71,15 +71,6 @@ def _parse_args(argv: list[str]) -> Namespace:
         version=f"{Path(argv[0]).name} {_version()}",
     )
     return parser.parse_args(argv[1:])
-
-
-def _setup_logging(debug: bool = False) -> None:
-    logging.basicConfig(
-        datefmt="%Y-%m-%dT%H:%M:%S",
-        format="[%(asctime)s] %(levelname)8s %(message)s",
-        level=logging.DEBUG if debug else logging.INFO,
-        stream=sys.stderr,
-    )
 
 
 def _version() -> str:
