@@ -74,6 +74,14 @@ def with_set(d: dict, val: Any, *args: Any) -> dict:
 @fixture
 def config():
     return {
+        "baseline": "/".join(
+            [
+                "https://noaa-hrrr-bdp-pds.s3.amazonaws.com",
+                "hrrr.{yyyymmdd}",
+                "conus",
+                "hrrr.t{hh}z.wrfprsf{ff}.grib2",
+            ]
+        ),
         "cycles": {
             "start": "2024-04-01T01:00:00",
             "step": "01:00:00",
@@ -84,14 +92,7 @@ def config():
             "step": "01:00:00",
             "stop": "01:00:00",
         },
-        "target": "/".join(
-            [
-                "https://noaa-hrrr-bdp-pds.s3.amazonaws.com",
-                "hrrr.{yyyymmdd}",
-                "conus",
-                "hrrr.t{hh}z.wrfprsf{ff}.grib2",
-            ]
-        ),
+        "outdir": "/tmp/outdir",
     }
 
 
@@ -113,7 +114,7 @@ def test_schema(logged, config, fs):
     # Basic correctness:
     assert ok(config)
     # Certain top-level keys are required:
-    for key in ["cycles", "leadtimes", "target"]:
+    for key in ["baseline", "cycles", "leadtimes", "outdir"]:
         assert not ok(with_del(config, key))
         assert logged(f"'{key}' is a required property")
     # Addional keys are not allowed:
@@ -124,7 +125,7 @@ def test_schema(logged, config, fs):
         assert not ok(with_set(config, None, key))
         assert logged("None is not of type 'object'")
     # Some keys have str values:
-    for key in ["target"]:
+    for key in ["baseline", "outdir"]:
         assert not ok(with_set(config, None, key))
         assert logged("None is not of type 'string'")
 

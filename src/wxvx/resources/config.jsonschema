@@ -15,6 +15,9 @@
   },
   "additionalProperties": false,
   "properties": {
+    "baseline": {
+      "type": "string"
+    },
     "cycles": {
       "additionalProperties": false,
       "properties": {
@@ -55,14 +58,15 @@
       ],
       "type": "object"
     },
-    "target": {
+    "outdir": {
       "type": "string"
     }
   },
   "required": [
     "cycles",
     "leadtimes",
-    "target"
+    "outdir",
+    "baseline"
   ],
   "type": "object"
 }
