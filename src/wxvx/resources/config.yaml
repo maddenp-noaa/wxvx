@@ -8,3 +8,28 @@ leadtimes:
   step: '01:00:00'
   stop: '03:00:00'
 outdir: /tmp/out
+variables:
+  - id: gh
+    level: 1000
+    levtype: pressure
+  - id: refc
+    level: null
+    levtype: surface
+  - id: q
+    level: 1000
+    levtype: pressure
+  - id: t
+    level: null
+    levtype: surface
+  - id: t
+    level: 1000
+    levtype: pressure
+  - id: u
+    level: 1000
+    levtype: pressure
+  - id: v
+    level: 1000
+    levtype: pressure
+  - id: w
+    level: 1000
+    levtype: pressure

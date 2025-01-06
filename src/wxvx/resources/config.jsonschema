@@ -60,13 +60,43 @@
     },
     "outdir": {
       "type": "string"
+    },
+    "variables": {
+      "items": {
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "level": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "levtype": {
+            "enum": [
+              "pressure",
+              "surface"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "level",
+          "levtype"
+        ],
+        "type": "object"
+      },
+      "type": "array",
+      "uniqueItems": true
     }
   },
   "required": [
+    "baseline",
     "cycles",
     "leadtimes",
     "outdir",
-    "baseline"
+    "variables"
   ],
   "type": "object"
 }

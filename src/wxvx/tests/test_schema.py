@@ -93,6 +93,10 @@ def config():
             "stop": "01:00:00",
         },
         "outdir": "/tmp/outdir",
+        "variables": [
+            {"id": "q", "level": 1000, "type": "pressure"},
+            {"id": "t", "level": None, "type": "surface"},
+        ],
     }
 
 
@@ -164,3 +168,10 @@ def test_schema_leadtimes(logged, config, fs):
     for key in ["start", "step", "stop"]:
         assert not ok(with_set(config, "foo", key))
         assert logged("'foo' does not match")
+
+
+def test_schema_variables(logged, config, fs):
+    ok = validator(fs, "properties", "variables")
+    config = config["variables"]
+    # Basic correctness:
+    assert ok(config)
