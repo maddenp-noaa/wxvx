@@ -35,6 +35,7 @@ disable = [
   "missing-class-docstring",
   "missing-function-docstring",
   "missing-module-docstring",
+  "use-dict-literal",
 ]
 enable = [
   "useless-suppression",

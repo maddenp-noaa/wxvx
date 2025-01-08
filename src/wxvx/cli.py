@@ -29,7 +29,7 @@ def main() -> None:
 
 def go(config: dict) -> None:
     rundir = Path(config["rundir"])
-    with workflow.run(rundir=rundir / "parsl", loader="threads"):
+    with workflow.run(rundir=rundir / "parsl", config="threads"):
         futures = [workflow.idxfile(url=f"{x}.idx", rundir=rundir) for x in truth(config)]
     for f in futures:
         idxfile = f.result()

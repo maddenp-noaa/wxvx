@@ -6,7 +6,7 @@ from typing import Optional
 import requests
 
 
-def fetch(url: str, path: Path, headers: Optional[dict[str, str]] = None) -> None:
+def fetch(url: str, path: Path, headers: Optional[dict[str, str]] = None) -> bool:
     logging.info("Fetching %s", url)
     response = requests.get(url, allow_redirects=True, timeout=3, headers=headers or {})
     expected = 206 if headers and "Range" in headers.keys() else 200
@@ -15,6 +15,9 @@ def fetch(url: str, path: Path, headers: Optional[dict[str, str]] = None) -> Non
         with open(path, "wb") as f:
             f.write(response.content)
             logging.info("Wrote %s", path)
+        return True
+    logging.error("Fetching %s failed", url)
+    return False
 
 
 # from urllib.parse import urlparse
