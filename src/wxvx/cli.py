@@ -23,7 +23,7 @@ def main() -> None:
     with open(args.config, "r", encoding="utf-8") as f:
         config = yaml.safe_load(f.read())
     with resource_path("config.jsonschema") as schema_file:
-        if not validate(schema_file=schema_file, config=config):
+        if not validate(schema_file=schema_file, config_path=config):
             sys.exit(1)
     go(config)
 
