@@ -6,6 +6,7 @@ import json
 import sys
 from argparse import ArgumentParser, HelpFormatter, Namespace
 from pathlib import Path
+from typing import Iterator
 
 import yaml
 from uwtools.api.config import validate
@@ -29,7 +30,13 @@ def main() -> None:
 
 
 def go(config: dict) -> None:
-    print(sorted(validtimes(config)))
+    for x in truth(config):
+        print(f"{x}.idx")
+
+
+def truth(config: dict) -> Iterator[str]:
+    for x in sorted(validtimes(config)):
+        yield config["baseline"].format(yyyymmdd=x.strftime("%Y%m%d"), hh=x.strftime("%H"), ff="00")
 
 
 # Private
