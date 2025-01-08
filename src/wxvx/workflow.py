@@ -49,7 +49,7 @@ def go(config: dict) -> None:
     c = configs["threads"]
     c.checkpoint_files = get_all_checkpoints(rundir)
     c.run_dir = rundir
-    # parsl.clear()
+    parsl.clear()
     parsl.load(c)
     futures = [idxfile(url=f"{x}.idx", rundir=rundir) for x in truth(config)]
     for f in futures:
