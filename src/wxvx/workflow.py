@@ -17,16 +17,16 @@ from wxvx.time import validtimes
 # Configs
 
 common: dict = dict(
-    checkpoint_mode="task_exit",
+    # checkpoint_mode="task_exit",
     initialize_logging=False,
     usage_tracking=0,
 )
 
 configs = {
-    "htx": Config(
-        **common,
-        executors=[HighThroughputExecutor(provider=LocalProvider(), worker_debug=True)],
-    ),
+    # "htx": Config(
+    #     **common,
+    #     executors=[HighThroughputExecutor(provider=LocalProvider(), worker_debug=True)],
+    # ),
     "threads": Config(
         **common,
         executors=[ThreadPoolExecutor(max_threads=4)],
