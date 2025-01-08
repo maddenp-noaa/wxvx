@@ -58,6 +58,9 @@
       ],
       "type": "object"
     },
+    "rundir": {
+      "type": "string"
+    },
     "variables": {
       "items": {
         "additionalProperties": false,
@@ -88,17 +91,14 @@
       "minItems": 1,
       "type": "array",
       "uniqueItems": true
-    },
-    "workdir": {
-      "type": "string"
     }
   },
   "required": [
     "baseline",
     "cycles",
     "leadtimes",
-    "variables",
-    "workdir"
+    "rundir",
+    "variables"
   ],
   "type": "object"
 }

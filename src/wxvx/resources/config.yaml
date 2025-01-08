@@ -32,4 +32,4 @@ variables:
   - id: w
     level: 1000
     levtype: pressure
-workdir: /tmp/work
+rundir: /tmp/work

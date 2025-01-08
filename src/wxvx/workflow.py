@@ -15,25 +15,25 @@ from wxvx.net import fetch
 configs = {
     "threads": Config(
         executors=[ThreadPoolExecutor(max_threads=4)],
+        exit_mode="wait",
         initialize_logging=False,
     )
 }
 
 
 @contextmanager
-def run(workdir: Path, loader: str) -> Generator:
+def run(rundir: Path, loader: str) -> Generator:
     config = configs[loader]
-    config.run_dir = str(workdir)
-    parsl.load(config)
-    yield
-    parsl.dfk().cleanup()
+    config.run_dir = str(rundir)
+    with parsl.load(config):
+        yield
 
 
 # Apps
 
 
 @python_app
-def idxfile(url: str, workdir: Path) -> Path:
-    path = workdir / Path(urlparse(url).path).name
+def idxfile(url: str, rundir: Path) -> Path:
+    path = rundir / Path(urlparse(url).path).name
     fetch(url=url, path=path)
     return path

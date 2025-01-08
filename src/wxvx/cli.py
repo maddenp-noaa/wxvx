@@ -24,13 +24,13 @@ def main() -> None:
     with resource_path("config.jsonschema") as schema_file:
         if not validate(schema_file=schema_file, config_path=config):
             sys.exit(1)
-    # go(config)
+    go(config)
 
 
 def go(config: dict) -> None:
-    workdir = Path(config["workdir"])
-    with workflow.run(workdir=workdir, loader="threads"):
-        futures = [workflow.idxfile(url=f"{x}.idx", workdir=workdir) for x in truth(config)]
+    rundir = Path(config["rundir"])
+    with workflow.run(rundir=rundir / "parsl", loader="threads"):
+        futures = [workflow.idxfile(url=f"{x}.idx", rundir=rundir) for x in truth(config)]
     for f in futures:
         idxfile = f.result()
         logging.info("Got %s: %s", idxfile, idxfile.is_file())
