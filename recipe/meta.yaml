@@ -16,7 +16,7 @@ requirements:
   run:
     - metkit 11.0.*
     - parsl 2024.12.*
-    - python >=3.11,<3.13
+    - python 3.10 # due to metkit python_abi pin
     - pyyaml 6.0.*
     - requests 2.32.*
     - uwtools 2.6.*

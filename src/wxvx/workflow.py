@@ -4,7 +4,7 @@ Workflow logic.
 
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Iterator, Never
+from typing import Generator
 
 import parsl
 from parsl.config import Config
@@ -19,9 +19,9 @@ configs = {
 
 
 @contextmanager
-def run(workdir: Path, loader: str) -> Iterator[Never]:
+def run(workdir: Path, loader: str) -> Generator:
     config = configs[loader]
-    config.run_dir = workdir
+    config.run_dir = str(workdir)
     parsl.load(config)
     yield
     parsl.dfk().cleanup()
