@@ -94,8 +94,8 @@ def config():
         },
         "outdir": "/tmp/outdir",
         "variables": [
-            {"id": "q", "level": 1000, "type": "pressure"},
-            {"id": "t", "level": None, "type": "surface"},
+            {"id": "q", "level": 1000, "levtype": "pressure"},
+            {"id": "t", "level": None, "levtype": "surface"},
         ],
     }
 
