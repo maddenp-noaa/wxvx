@@ -1,6 +1,6 @@
-from contextlib import contextmanager
+import logging
 from pathlib import Path
-from typing import Generator
+from typing import Iterator
 from urllib.parse import urlparse
 
 import parsl
@@ -12,6 +12,7 @@ from parsl.providers import LocalProvider
 from parsl.utils import get_all_checkpoints
 
 from wxvx.net import fetch
+from wxvx.time import validtimes
 
 # Configs
 
@@ -35,7 +36,7 @@ configs = {
 # Helpers
 
 
-class ExternalResource(Exception): ...
+class ExternalResourceError(Exception): ...
 
 
 @id_for_memo.register(Path)
@@ -43,16 +44,27 @@ def id_for_memo_path(obj: Path, output_ref: bool = False) -> bytes:
     return bytes(str(obj), encoding="utf-8")
 
 
-@contextmanager
-def run(rundir: Path, config: str) -> Generator:
-    r = str(rundir)
-    c = configs[config]
-    c.checkpoint_files = get_all_checkpoints(r)
-    c.run_dir = r
-    parsl.clear()
+def go(config: dict) -> None:
+    rundir = config["rundir"]
+    c = configs["threads"]
+    c.checkpoint_files = get_all_checkpoints(rundir)
+    c.run_dir = rundir
+    # parsl.clear()
     parsl.load(c)
-    yield
+    futures = [idxfile(url=f"{x}.idx", rundir=rundir) for x in truth(config)]
+    for f in futures:
+        try:
+            path = f.result()
+        except ExternalResourceError:
+            pass
+        else:
+            logging.info("Got %s: %s", path, path.is_file())
     parsl.dfk().cleanup()
+
+
+def truth(config: dict) -> Iterator[str]:
+    for x in sorted(validtimes(config)):
+        yield config["baseline"].format(yyyymmdd=x.strftime("%Y%m%d"), hh=x.strftime("%H"), ff="00")
 
 
 # Apps
@@ -60,7 +72,7 @@ def run(rundir: Path, config: str) -> Generator:
 
 @python_app(cache=True)
 def idxfile(url: str, rundir: Path) -> Path:
-    path = rundir / Path(urlparse(url).path).name
+    path = Path(rundir, Path(urlparse(url).path).name)
     if not fetch(url=url, path=path):
-        raise ExternalResource()
+        raise ExternalResourceError()
     return path

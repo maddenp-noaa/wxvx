@@ -1,16 +1,13 @@
 import json
-import logging
 import sys
 from argparse import ArgumentParser, HelpFormatter, Namespace
 from pathlib import Path
-from typing import Iterator
 
 import yaml
 from uwtools.api.config import validate
 from uwtools.api.logging import use_uwtools_logger
 
 from wxvx import workflow
-from wxvx.time import validtimes
 from wxvx.util import pkgname, resource, resource_path
 
 # Public
@@ -24,21 +21,7 @@ def main() -> None:
     with resource_path("config.jsonschema") as schema_file:
         if not validate(schema_file=schema_file, config_path=config):
             sys.exit(1)
-    go(config)
-
-
-def go(config: dict) -> None:
-    rundir = Path(config["rundir"])
-    with workflow.run(rundir=rundir / "parsl", config="threads"):
-        futures = [workflow.idxfile(url=f"{x}.idx", rundir=rundir) for x in truth(config)]
-    for f in futures:
-        idxfile = f.result()
-        logging.info("Got %s: %s", idxfile, idxfile.is_file())
-
-
-def truth(config: dict) -> Iterator[str]:
-    for x in sorted(validtimes(config)):
-        yield config["baseline"].format(yyyymmdd=x.strftime("%Y%m%d"), hh=x.strftime("%H"), ff="00")
+    workflow.go(config)
 
 
 # Private
