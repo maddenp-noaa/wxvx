@@ -8,6 +8,7 @@ from parsl.app.app import python_app
 from parsl.config import Config
 from parsl.dataflow.memoization import id_for_memo
 from parsl.executors import ThreadPoolExecutor
+from parsl.utils import get_all_checkpoints
 
 from wxvx.net import fetch
 
@@ -15,6 +16,7 @@ from wxvx.net import fetch
 
 configs = {
     "threads": Config(
+        checkpoint_mode="task_exit",
         executors=[ThreadPoolExecutor(max_threads=4)],
         exit_mode="wait",
         initialize_logging=False,
@@ -31,8 +33,10 @@ def id_for_memo_Path(obj: Path, output_ref: bool = False) -> bytes:
 
 @contextmanager
 def run(rundir: Path, loader: str) -> Generator:
+    r = str(rundir)
     config = configs[loader]
-    config.run_dir = str(rundir)
+    config.checkpoint_files = get_all_checkpoints(r)
+    config.run_dir = r
     with parsl.load(config):
         yield
 
