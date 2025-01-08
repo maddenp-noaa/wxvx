@@ -33,7 +33,7 @@ def validator(fs: FakeFilesystem, *args: Any) -> Callable:
         schema = schema[arg]
     schema.update({"$defs": defs})
     schema_file = str(fs.create_file("test.schema", contents=json.dumps(schema)).path)
-    return lambda config: validate(schema_file=schema_file, config_path=config)
+    return lambda c: validate(schema_file=schema_file, config_data=c)
 
 
 def with_del(d: dict, *args: Any) -> dict:
@@ -175,3 +175,4 @@ def test_schema_variables(logged, config, fs):
     config = config["variables"]
     # Basic correctness:
     assert ok(config)
+    assert logged
