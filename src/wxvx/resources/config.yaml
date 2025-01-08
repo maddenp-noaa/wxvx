@@ -7,7 +7,6 @@ leadtimes:
   start: '01:00:00'
   step: '01:00:00'
   stop: '01:00:00' # '03:00:00'
-outdir: /tmp/out
 variables:
   - id: gh
     level: 1000
@@ -33,3 +32,4 @@ variables:
   - id: w
     level: 1000
     levtype: pressure
+workdir: /tmp/work

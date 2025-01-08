@@ -92,11 +92,11 @@ def config():
             "step": "01:00:00",
             "stop": "01:00:00",
         },
-        "outdir": "/tmp/outdir",
         "variables": [
             {"id": "q", "level": 1000, "levtype": "pressure"},
             {"id": "t", "level": None, "levtype": "surface"},
         ],
+        "workdir": "/tmp/workdir",
     }
 
 
@@ -118,7 +118,7 @@ def test_schema(logged, config, fs):
     # Basic correctness:
     assert ok(config)
     # Certain top-level keys are required:
-    for key in ["baseline", "cycles", "leadtimes", "outdir"]:
+    for key in ["baseline", "cycles", "leadtimes", "workdir"]:
         assert not ok(with_del(config, key))
         assert logged(f"'{key}' is a required property")
     # Addional keys are not allowed:
@@ -129,7 +129,7 @@ def test_schema(logged, config, fs):
         assert not ok(with_set(config, None, key))
         assert logged("None is not of type 'object'")
     # Some keys have str values:
-    for key in ["baseline", "outdir"]:
+    for key in ["baseline", "workdir"]:
         assert not ok(with_set(config, None, key))
         assert logged("None is not of type 'string'")
 

@@ -12,6 +12,7 @@ import yaml
 from uwtools.api.config import validate
 from uwtools.api.logging import use_uwtools_logger
 
+from wxvx import workflow
 from wxvx.time import validtimes
 from wxvx.util import pkgname, resource, resource_path
 
@@ -30,8 +31,9 @@ def main() -> None:
 
 
 def go(config: dict) -> None:
-    for x in truth(config):
-        print(f"{x}.idx")
+    with workflow.run(workdir=Path(config["workdir"]), loader="threads"):
+        for x in truth(config):
+            print(f"{x}.idx")
 
 
 def truth(config: dict) -> Iterator[str]:
