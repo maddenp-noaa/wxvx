@@ -27,7 +27,7 @@ configs = {
 
 
 @id_for_memo.register(Path)
-def id_for_memo_Path(obj: Path, output_ref: bool = False) -> bytes:
+def id_for_memo_path(obj: Path, output_ref: bool = False) -> bytes:
     return bytes(str(obj), encoding="utf-8")
 
 
@@ -37,8 +37,9 @@ def run(rundir: Path, loader: str) -> Generator:
     config = configs[loader]
     config.checkpoint_files = get_all_checkpoints(r)
     config.run_dir = r
-    with parsl.load(config):
-        yield
+    parsl.load(config)
+    yield
+    parsl.dfk().cleanup()
 
 
 # Apps
