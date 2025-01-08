@@ -173,6 +173,22 @@ def test_schema_leadtimes(logged, config, fs):
 def test_schema_variables(logged, config, fs):
     ok = validator(fs, "properties", "variables")
     config = config["variables"]
+    entry = config[0]
     # Basic correctness:
     assert ok(config)
-    assert logged
+    # Must be an array:
+    assert not ok({})
+    assert logged("is not of type 'array'")
+    # At least one array entry is requried:
+    assert not ok([])
+    assert logged("should be non-empty")
+    # Array entries must be unique:
+    assert not ok([entry] * 2)
+    assert logged("has non-unique elements")
+    # Array entries must have the correct keys:
+    for key in ("id", "level", "levtype"):
+        assert not ok([with_del(entry, key)])
+        assert logged(f"'{key}' is a required property")
+    # Additional keys in entries are not allowed:
+    assert not ok([{**entry, "foo": "bar"}])
+    assert logged("Additional properties are not allowed")
