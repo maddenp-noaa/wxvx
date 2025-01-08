@@ -1,7 +1,3 @@
-"""
-Routines for computing cycles, leadtimes, etc.
-"""
-
 from datetime import datetime, timedelta
 from itertools import product
 from typing import overload

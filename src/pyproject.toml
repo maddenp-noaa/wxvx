@@ -34,6 +34,7 @@ disable = [
   "consider-using-f-string",
   "missing-class-docstring",
   "missing-function-docstring",
+  "missing-module-docstring",
 ]
 enable = [
   "useless-suppression",

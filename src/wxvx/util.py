@@ -1,7 +1,3 @@
-"""
-Utility routines.
-"""
-
 from contextlib import contextmanager
 from importlib import resources
 from pathlib import Path

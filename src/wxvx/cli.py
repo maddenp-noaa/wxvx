@@ -1,8 +1,5 @@
-"""
-Command-line interface.
-"""
-
 import json
+import logging
 import sys
 from argparse import ArgumentParser, HelpFormatter, Namespace
 from pathlib import Path
@@ -27,13 +24,16 @@ def main() -> None:
     with resource_path("config.jsonschema") as schema_file:
         if not validate(schema_file=schema_file, config_path=config):
             sys.exit(1)
-    go(config)
+    # go(config)
 
 
 def go(config: dict) -> None:
-    with workflow.run(workdir=Path(config["workdir"]), loader="threads"):
-        for x in truth(config):
-            print(f"{x}.idx")
+    workdir = Path(config["workdir"])
+    with workflow.run(workdir=workdir, loader="threads"):
+        futures = [workflow.idxfile(url=f"{x}.idx", workdir=workdir) for x in truth(config)]
+    for f in futures:
+        idxfile = f.result()
+        logging.info("Got %s: %s", idxfile, idxfile.is_file())
 
 
 def truth(config: dict) -> Iterator[str]:
