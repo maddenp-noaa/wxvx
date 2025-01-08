@@ -6,11 +6,12 @@ from urllib.parse import urlparse
 import parsl
 from parsl.app.app import python_app
 from parsl.config import Config
+from parsl.dataflow.memoization import id_for_memo
 from parsl.executors import ThreadPoolExecutor
 
 from wxvx.net import fetch
 
-# Helpers
+# Configs
 
 configs = {
     "threads": Config(
@@ -19,6 +20,13 @@ configs = {
         initialize_logging=False,
     )
 }
+
+# Helpers
+
+
+@id_for_memo.register(Path)
+def id_for_memo_Path(obj: Path, output_ref: bool = False) -> bytes:
+    return bytes(str(obj), encoding="utf-8")
 
 
 @contextmanager
@@ -32,7 +40,7 @@ def run(rundir: Path, loader: str) -> Generator:
 # Apps
 
 
-@python_app
+@python_app(cache=True)
 def idxfile(url: str, rundir: Path) -> Path:
     path = rundir / Path(urlparse(url).path).name
     fetch(url=url, path=path)
