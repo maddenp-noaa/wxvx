@@ -7,8 +7,7 @@ import parsl
 from parsl.app.app import python_app
 from parsl.config import Config
 from parsl.dataflow.memoization import id_for_memo
-from parsl.executors import HighThroughputExecutor, ThreadPoolExecutor
-from parsl.providers import LocalProvider
+from parsl.executors import ThreadPoolExecutor
 from parsl.utils import get_all_checkpoints
 
 from wxvx.net import fetch
@@ -17,16 +16,12 @@ from wxvx.time import validtimes
 # Configs
 
 common: dict = dict(
-    # checkpoint_mode="task_exit",
+    checkpoint_mode="task_exit",
     initialize_logging=False,
     usage_tracking=0,
 )
 
 configs = {
-    # "htx": Config(
-    #     **common,
-    #     executors=[HighThroughputExecutor(provider=LocalProvider(), worker_debug=True)],
-    # ),
     "threads": Config(
         **common,
         executors=[ThreadPoolExecutor(max_threads=4)],
@@ -63,7 +58,7 @@ def go(config: dict) -> None:
 
 
 def truth(config: dict) -> Iterator[str]:
-    for x in sorted(validtimes(config)):
+    for x in validtimes(config):
         yield config["baseline"].format(yyyymmdd=x.strftime("%Y%m%d"), hh=x.strftime("%H"), ff="00")
 
 
