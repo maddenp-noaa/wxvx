@@ -1,20 +1,21 @@
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Iterator, Optional
 from urllib.parse import urlparse
 
 import parsl
 from parsl.app.app import python_app
-from parsl.app.futures import DataFuture
 from parsl.config import Config
 from parsl.data_provider.files import File
+from parsl.dataflow.futures import AppFuture
 from parsl.dataflow.memoization import id_for_memo
 from parsl.executors import ThreadPoolExecutor
-from parsl.utils import get_all_checkpoints
 
 from wxvx.net import fetch
-from wxvx.time import timecoords, validtimes
+from wxvx.time import TimeCoords, validtimes
+
+# from parsl.utils import get_all_checkpoints
+
 
 # Configs
 
@@ -43,7 +44,8 @@ def go(config: dict) -> None:
     c.run_dir = rundir
     parsl.clear()
     parsl.load(c)
-    for k, v in idxfiles(config, validtimes(config)).items():
+    tcs = list(map(TimeCoords, validtimes(config)))
+    for k, v in idxfiles(config, tcs).items():
         logging.info("@@@ %s %s", k, v.outputs[0].result().filepath)
     parsl.dfk().cleanup()
 
@@ -51,45 +53,35 @@ def go(config: dict) -> None:
 # Helpers
 
 
+def genpath(config: dict, tc: TimeCoords) -> str:
+    fn = Path(urlparse(genurl(config, tc)).path).name
+    return str(Path(config["rundir"], "truth", tc.yyyymmdd, tc.hh, fn))
+
+
+def genurl(config: dict, tc: TimeCoords) -> str:
+    return str(config["baseline"].format(yyyymmdd=tc.yyyymmdd, hh=tc.hh, ff="00"))
+
+
 @id_for_memo.register(Path)
 def id_for_memo_path(obj: Path, output_ref: bool = False) -> bytes:
     return bytes(str(obj), encoding="utf-8")
 
 
-def idxfiles(config: dict, validtimes: list[datetime]) -> dict[datetime, DataFuture]:
+def idxfiles(config: dict, tcs: list[TimeCoords]) -> dict[datetime, AppFuture]:
     return {
-        validtime: idxfile(
-            url=url(config, validtime) + ".idx",
-            outputs=[File(path(config, validtime) + ".idx")],
+        tc.dt: idxfile(
+            url=genurl(config, tc) + ".idx", outputs=[File(genpath(config, tc) + ".idx")]
         )
-        for validtime in validtimes
+        for tc in tcs
     }
-
-
-def path(config: dict, validtime: datetime) -> str:
-    tc = timecoords(validtime)
-    return str(
-        Path(
-            config["rundir"],
-            "truth",
-            tc.yyyymmdd,
-            tc.hh,
-            Path(urlparse(url(config, validtime)).path).name,
-        )
-    )
-
-
-def url(config: dict, validtime: datetime) -> str:
-    tc = timecoords(validtime)
-    return config["baseline"].format(yyyymmdd=tc.yyyymmdd, hh=tc.hh, ff="00")
 
 
 # Apps
 
 
 @python_app  # (cache=True)
-def gribfile(url: str, idxfile: File, outputs: list[File]) -> None:
-    logging.info("Would use idxfile %s", idxfile.filepath)
+def gribfile(url: str, idx: File, outputs: list[File]) -> None:
+    logging.info("Would use idxfile %s", idx.filepath)
     fetch(url=url, path=Path(outputs[0]))
 
 

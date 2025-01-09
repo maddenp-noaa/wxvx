@@ -1,11 +1,28 @@
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from itertools import product
-from types import SimpleNamespace as ns
 from typing import overload
 
 from wxvx.util import WXVXError
 
 # Public
+
+
+@dataclass
+class TimeCoords:
+    dt: datetime
+
+    @property
+    def hh(self) -> str:
+        return self.dt.strftime("%H")
+
+    @property
+    def iso(self) -> str:
+        return self.dt.isoformat()
+
+    @property
+    def yyyymmdd(self) -> str:
+        return self.dt.strftime("%Y%m%d")
 
 
 def cycles(config: dict) -> list[datetime]:
@@ -18,10 +35,6 @@ def leadtimes(config: dict) -> list[timedelta]:
     start, stop = [_delta(config["leadtimes"][key]) for key in ("start", "stop")]
     step = _delta(config["leadtimes"]["step"])
     return _enumerate(start, stop, step)
-
-
-def timecoords(dt: datetime) -> ns:
-    return ns(yyyymmdd=dt.strftime("%Y%m%d"), hh=dt.strftime("%H"), iso=dt.isoformat())
 
 
 def validtimes(config: dict) -> list[datetime]:
