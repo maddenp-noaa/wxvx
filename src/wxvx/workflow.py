@@ -1,18 +1,21 @@
 import logging
+from datetime import datetime
 from pathlib import Path
 from typing import Iterator, Optional
 from urllib.parse import urlparse
 
 import parsl
 from parsl.app.app import python_app
+from parsl.app.futures import DataFuture
 from parsl.config import Config
+from parsl.data_provider.files import File
 from parsl.dataflow.memoization import id_for_memo
 from parsl.executors import ThreadPoolExecutor
 from parsl.utils import get_all_checkpoints
-from parsl.data_provider.files import File
+
 from wxvx.net import fetch
-from wxvx.time import validtimes
-from parsl.app.futures import DataFuture
+from wxvx.time import timecoords, validtimes
+
 # Configs
 
 common: dict = dict(
@@ -28,15 +31,9 @@ configs = {
     ),
 }
 
-# Helpers
+# Main
 
-
-class ExternalResourceError(Exception): ...
-
-
-@id_for_memo.register(Path)
-def id_for_memo_path(obj: Path, output_ref: bool = False) -> bytes:
-    return bytes(str(obj), encoding="utf-8")
+# PM use generators?
 
 
 def go(config: dict) -> None:
@@ -46,38 +43,56 @@ def go(config: dict) -> None:
     c.run_dir = rundir
     parsl.clear()
     parsl.load(c)
-    futures = []
-    for validtime in validtimes(config):
-        yyyymmdd = validtime.strftime("%Y%m%d")
-        hh = validtime.strftime("%H")
-        gribfile_url = config["baseline"].format(yyyymmdd=yyyymmdd, hh=hh, ff="00")
-        gribfile_path = Path(rundir, "truth", yyyymmdd, hh, Path(urlparse(gribfile_url).path).name)
-        idxfile_url = gribfile_url + ".idx"
-        idxfile_path = Path(rundir, "truth", yyyymmdd, hh, Path(urlparse(idxfile_url).path).name)
-        idxfile_future = idxfile(url=idxfile_url, outputs=[File(idxfile_path)])
-        gribfile_future = gribfile(url=gribfile_url, idxfile_path_future=idxfile_future.outputs[0], outputs=[File(gribfile_path)])
-        futures.append(gribfile_future)
-    for future in futures:
-        assert future.result() is None
-        path = Path(future.outputs[0].result().filepath)
-        logging.info("Got %s: %s", path, path.is_file())
+    for k, v in idxfiles(config, validtimes(config)).items():
+        logging.info("@@@ %s %s", k, v.outputs[0].result().filepath)
     parsl.dfk().cleanup()
 
 
-def urls(config: dict) -> Iterator[str]:
-    for x in validtimes(config):
-        yield config["baseline"].format(yyyymmdd=x.strftime("%Y%m%d"), hh=x.strftime("%H"), ff="00")
+# Helpers
+
+
+@id_for_memo.register(Path)
+def id_for_memo_path(obj: Path, output_ref: bool = False) -> bytes:
+    return bytes(str(obj), encoding="utf-8")
+
+
+def idxfiles(config: dict, validtimes: list[datetime]) -> dict[datetime, DataFuture]:
+    return {
+        validtime: idxfile(
+            url=url(config, validtime) + ".idx",
+            outputs=[File(path(config, validtime) + ".idx")],
+        )
+        for validtime in validtimes
+    }
+
+
+def path(config: dict, validtime: datetime) -> str:
+    tc = timecoords(validtime)
+    return str(
+        Path(
+            config["rundir"],
+            "truth",
+            tc.yyyymmdd,
+            tc.hh,
+            Path(urlparse(url(config, validtime)).path).name,
+        )
+    )
+
+
+def url(config: dict, validtime: datetime) -> str:
+    tc = timecoords(validtime)
+    return config["baseline"].format(yyyymmdd=tc.yyyymmdd, hh=tc.hh, ff="00")
 
 
 # Apps
 
 
-@python_app #(cache=True)
-def idxfile(url: str, outputs: list[File]) -> None:
+@python_app  # (cache=True)
+def gribfile(url: str, idxfile: File, outputs: list[File]) -> None:
+    logging.info("Would use idxfile %s", idxfile.filepath)
     fetch(url=url, path=Path(outputs[0]))
 
 
-@python_app #(cache=True)
-def gribfile(url: str, idxfile_path_future: DataFuture, outputs: list[File]) -> None:
-    logging.info("Would use idxfile %s", idxfile_path_future.filepath)
+@python_app  # (cache=True)
+def idxfile(url: str, outputs: list[File]) -> None:
     fetch(url=url, path=Path(outputs[0]))
