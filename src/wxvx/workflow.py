@@ -10,12 +10,10 @@ from parsl.data_provider.files import File
 from parsl.dataflow.futures import AppFuture
 from parsl.dataflow.memoization import id_for_memo
 from parsl.executors import ThreadPoolExecutor
+from parsl.utils import get_all_checkpoints
 
 from wxvx.net import fetch
 from wxvx.time import TimeCoords, validtimes
-
-from parsl.utils import get_all_checkpoints
-
 
 # Configs
 
@@ -33,8 +31,6 @@ configs = {
 }
 
 # Main
-
-# PM use generators?
 
 
 def go(config: dict) -> None:
@@ -62,7 +58,7 @@ def genurl(config: dict, tc: TimeCoords) -> str:
 
 
 @id_for_memo.register(File)
-def id_for_memo_path(obj: File, output_ref: bool = False) -> bytes:
+def id_for_memo_file(obj: File, output_ref: bool = False) -> bytes:
     return bytes(obj.filepath, encoding="utf-8")
 
 
