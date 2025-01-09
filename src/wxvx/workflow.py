@@ -44,8 +44,7 @@ def go(config: dict) -> None:
     c.run_dir = rundir
     parsl.clear()
     parsl.load(c)
-    tcs = list(map(TimeCoords, validtimes(config)))
-    for k, v in idxfiles(config, tcs).items():
+    for k, v in idxfiles(config, validtimes(config)).items():
         logging.info("@@@ %s %s", k, v.outputs[0].result().filepath)
     parsl.dfk().cleanup()
 
@@ -70,7 +69,8 @@ def id_for_memo_path(obj: Path, output_ref: bool = False) -> bytes:
 def idxfiles(config: dict, tcs: list[TimeCoords]) -> dict[datetime, AppFuture]:
     return {
         tc.dt: idxfile(
-            url=genurl(config, tc) + ".idx", outputs=[File(genpath(config, tc) + ".idx")]
+            url=genurl(config, tc) + ".idx",
+            outputs=[File(genpath(config, tc) + ".idx")],
         )
         for tc in tcs
     }

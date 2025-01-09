@@ -12,6 +12,12 @@ from wxvx.util import WXVXError
 class TimeCoords:
     dt: datetime
 
+    def __hash__(self):
+        return int(self.dt.timestamp())
+
+    def __lt__(self, other):
+        return self.dt < other.dt
+
     @property
     def hh(self) -> str:
         return self.dt.strftime("%H")
@@ -37,9 +43,9 @@ def leadtimes(config: dict) -> list[timedelta]:
     return _enumerate(start, stop, step)
 
 
-def validtimes(config: dict) -> list[datetime]:
+def validtimes(config: dict) -> list[TimeCoords]:
     pairs = product(cycles(config), leadtimes(config))
-    return sorted(set(cycle + leadtime for cycle, leadtime in pairs))
+    return sorted(set(TimeCoords(cycle + leadtime) for cycle, leadtime in pairs))
 
 
 # Private
