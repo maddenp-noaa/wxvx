@@ -14,13 +14,13 @@ from parsl.executors import ThreadPoolExecutor
 from wxvx.net import fetch
 from wxvx.time import TimeCoords, validtimes
 
-# from parsl.utils import get_all_checkpoints
+from parsl.utils import get_all_checkpoints
 
 
 # Configs
 
 common: dict = dict(
-    # checkpoint_mode="task_exit",
+    checkpoint_mode="task_exit",
     initialize_logging=False,
     usage_tracking=0,
 )
@@ -40,7 +40,7 @@ configs = {
 def go(config: dict) -> None:
     rundir = config["rundir"]
     c = configs["threads"]
-    # c.checkpoint_files = get_all_checkpoints(rundir)
+    c.checkpoint_files = get_all_checkpoints(rundir)
     c.run_dir = rundir
     parsl.clear()
     parsl.load(c)
@@ -59,6 +59,11 @@ def genpath(config: dict, tc: TimeCoords) -> str:
 
 def genurl(config: dict, tc: TimeCoords) -> str:
     return str(config["baseline"].format(yyyymmdd=tc.yyyymmdd, hh=tc.hh, ff="00"))
+
+
+@id_for_memo.register(File)
+def id_for_memo_path(obj: File, output_ref: bool = False) -> bytes:
+    return bytes(obj.filepath, encoding="utf-8")
 
 
 @id_for_memo.register(Path)
@@ -85,6 +90,6 @@ def gribfile(url: str, idx: File, outputs: list[File]) -> None:
     fetch(url=url, path=Path(outputs[0]))
 
 
-@python_app  # (cache=True)
+@python_app(cache=True)
 def idxfile(url: str, outputs: list[File]) -> None:
     fetch(url=url, path=Path(outputs[0]))
