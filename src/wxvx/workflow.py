@@ -44,8 +44,8 @@ def go(config: dict) -> None:
     c.run_dir = rundir
     parsl.clear()
     parsl.load(c)
-    for k, v in idxfiles(config, validtimes(config)).items():
-        logging.info("@@@ %s %s", k, v.outputs[0].result().filepath)
+    for _, v in idxfiles(config, validtimes(config)).items():
+        assert v.outputs[0].result().filepath
     parsl.dfk().cleanup()
 
 
