@@ -12,9 +12,8 @@ def fetch(url: str, path: Path, headers: Optional[dict[str, str]] = None) -> boo
     expected = 206 if headers and "Range" in headers.keys() else 200
     if response.status_code == expected:
         os.makedirs(path.parent, exist_ok=True)
-        with open(path, "wb") as f:
-            f.write(response.content)
-            logging.info("Wrote %s", path)
+        path.write_bytes(response.content)
+        logging.info("Wrote %s", path)
         return True
     logging.error("Fetching %s failed", url)
     return False
