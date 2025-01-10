@@ -6,7 +6,8 @@ import parsl
 from parsl.app.app import python_app
 from parsl.config import Config
 from parsl.data_provider.files import File
-from parsl.dataflow.futures import AppFuture
+
+# from parsl.dataflow.futures import AppFuture
 from parsl.dataflow.memoization import id_for_memo
 from parsl.executors import ThreadPoolExecutor
 from parsl.utils import get_all_checkpoints
@@ -38,9 +39,14 @@ def go(config: dict) -> None:
     c.checkpoint_files = get_all_checkpoints(rundir)
     c.run_dir = rundir
     parsl.clear()
-    parsl.load(c)
-    for _, v in idxfiles(config["baseline"], Path(config["rundir"]), validtimes(config)).items():
-        assert v.outputs[0].result().filepath
+    parsl.load(c) 
+    idxfiles = {}
+    for tc in validtimes(config):
+        url = genurl(tc=tc, baseline=config["baseline"], suffix=".idx")
+        f = genfile(tc=tc, rundir=Path(config["rundir"]), url=url)
+        idxfiles[tc] = idxfile(url=url, outputs=[f])
+    for x in idxfiles.values():
+        x.result()
     parsl.dfk().cleanup()
 
 
@@ -65,27 +71,18 @@ def id_for_memo_path(obj: Path, output_ref: bool = False) -> bytes:
     return bytes(str(obj), encoding="utf-8")
 
 
-def idxfiles(baseline: str, rundir: Path, tcs: list[TimeCoords]) -> dict[TimeCoords, AppFuture]:
-    files = {}
-    for tc in tcs:
-        url = genurl(tc=tc, baseline=baseline, suffix=".idx")
-        f = genfile(tc=tc, rundir=rundir, url=url)
-        files[tc] = idxfile(url=url, outputs=[f])
-    return files
-
-
 # Apps
 
 
-@python_app(cache=True)
-def gribfile(url: str, idx: File, outputs: list[File]) -> None:
-    logging.info("Would use idxfile %s", idx.filepath)
-    fetch(url=url, path=Path(outputs[0]))
+# @python_app(cache=True)
+# def gribfile(url: str, idx: File, outputs: list[File]) -> None:
+#     logging.info("Would use idxfile %s", idx.filepath)
+#     fetch(url=url, path=Path(outputs[0]))
 
 
-@python_app
-def idxdata(f: File) -> str:
-    return Path(f.filepath).read_text(encoding="utf-8")
+# @python_app(cache=True)
+# def idxdata(f: File) -> str:
+#     return Path(f.filepath).read_text(encoding="utf-8")
 
 
 @python_app(cache=True)
