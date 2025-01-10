@@ -34,16 +34,16 @@ configs = {
 
 
 def go(config: dict) -> None:
-    rundir = config["rundir"]
+    rundir = Path(config["rundir"])
     c = configs["threads"]
-    c.checkpoint_files = get_all_checkpoints(rundir)
+    c.checkpoint_files = get_all_checkpoints(str(rundir))
     c.run_dir = rundir
     parsl.clear()
     parsl.load(c) 
     idxfiles = {}
     for tc in validtimes(config):
         url = genurl(tc=tc, baseline=config["baseline"], suffix=".idx")
-        f = genfile(tc=tc, rundir=Path(config["rundir"]), url=url)
+        f = genfile(tc=tc, rundir=rundir, url=url)
         idxfiles[tc] = idxfile(url=url, outputs=[f])
     for x in idxfiles.values():
         x.result()
