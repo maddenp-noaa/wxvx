@@ -1,5 +1,4 @@
 import logging
-from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -48,13 +47,12 @@ def go(config: dict) -> None:
 # Helpers
 
 
-def genpath(config: dict, tc: TimeCoords) -> str:
-    fn = Path(urlparse(genurl(config, tc)).path).name
-    return str(Path(config["rundir"], "truth", tc.yyyymmdd, tc.hh, fn))
+def genfile(tc: TimeCoords, rundir: Path, url: str) -> File:
+    return File(rundir / tc.yyyymmdd / tc.hh / Path(urlparse(url).path).name)
 
 
-def genurl(config: dict, tc: TimeCoords) -> str:
-    return str(config["baseline"].format(yyyymmdd=tc.yyyymmdd, hh=tc.hh, ff="00"))
+def genurl(tc: TimeCoords, baseline: str, suffix: str = "") -> str:
+    return baseline.format(yyyymmdd=tc.yyyymmdd, hh=tc.hh, ff="00") + suffix
 
 
 @id_for_memo.register(File)
@@ -67,23 +65,27 @@ def id_for_memo_path(obj: Path, output_ref: bool = False) -> bytes:
     return bytes(str(obj), encoding="utf-8")
 
 
-def idxfiles(config: dict, tcs: list[TimeCoords]) -> dict[datetime, AppFuture]:
-    return {
-        tc.dt: idxfile(
-            url=genurl(config, tc) + ".idx",
-            outputs=[File(genpath(config, tc) + ".idx")],
-        )
-        for tc in tcs
-    }
+def idxfiles(config: dict, tcs: list[TimeCoords]) -> dict[TimeCoords, AppFuture]:
+    files = {}
+    for tc in tcs:
+        url = genurl(tc=tc, baseline=config["baseline"], suffix=".idx")
+        f = genfile(tc=tc, rundir=Path(config["rundir"]), url=url)
+        files[tc] = idxfile(url=url, outputs=[f])
+    return files
 
 
 # Apps
 
 
-@python_app  # (cache=True)
+@python_app(cache=True)
 def gribfile(url: str, idx: File, outputs: list[File]) -> None:
     logging.info("Would use idxfile %s", idx.filepath)
     fetch(url=url, path=Path(outputs[0]))
+
+
+@python_app
+def idxdata(f: File) -> str:
+    return Path(f.filepath).read_text(encoding="utf-8")
 
 
 @python_app(cache=True)
