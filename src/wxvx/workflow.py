@@ -1,4 +1,3 @@
-# import logging
 from itertools import pairwise
 from pathlib import Path
 from urllib.parse import urlparse
@@ -8,7 +7,6 @@ from parsl.app.app import python_app
 from parsl.config import Config
 from parsl.data_provider.files import File
 
-# from parsl.dataflow.futures import AppFuture
 from parsl.dataflow.memoization import id_for_memo
 from parsl.executors import ThreadPoolExecutor
 from parsl.utils import get_all_checkpoints
