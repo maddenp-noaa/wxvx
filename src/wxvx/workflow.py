@@ -80,24 +80,20 @@ def id_for_memo_path(obj: Path, output_ref: bool = False) -> bytes:
 # Apps
 
 
-# @python_app(cache=True)
-# def gribfile(url: str, idx: File, outputs: list[File]) -> None:
-#     logging.info("Would use idxfile %s", idx.filepath)
-#     fetch(url=url, path=Path(outputs[0]))
-
-
 @python_app(cache=True)
-def get_idxdata(f: File, variables: dict) -> str:
-    required = [Var(name=v["name"], level=v["level"], levtype=v["levtype"]) for v in variables]
-    assert required  # PM FIXME
+def get_idxdata(f: File, variables: dict) -> set[Var]:
+    required = set(Var(name=v["name"], level=v["level"], levtype=v["levtype"]) for v in variables)
     lines = Path(f.filepath).read_text(encoding="utf-8").strip().split("\n")
     lines.append(":-1:::::")  # end marker
     records = [line.split(":") for line in lines]
-    vs = []
+    vs = set()
     for a, b in pairwise(records):
-        if name := GFSVar.canonical(a[3]):
-            vs.append(GFSVar(name=name, first_byte=int(a[1]), last_byte=int(b[1]) - 1, levstr=a[4]))
-    return "end"
+        v = GFSVar(
+            name=GFSVar.stdvar(a[3]), first_byte=int(a[1]), last_byte=int(b[1]) - 1, levstr=a[4]
+        )
+        if v in required:
+            vs.add(v)
+    return vs
 
 
 @python_app(cache=True)

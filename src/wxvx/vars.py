@@ -6,14 +6,23 @@ from wxvx.strings import STR
 
 class Var:
 
-    def __init__(self, name: str, level: Optional[int], levtype: str):
+    def __init__(self, name: str, level: Optional[int], levtype: Optional[str]):
         self.name = name
         self.level = level
         self.levtype = levtype
 
     def __eq__(self, other):
-        return (
-            self.name == other.name and self.level == other.level and self.levtype == other.levtype
+        return hash(self) == hash(other)
+
+    def __hash__(self):
+        return hash((self.name, self.level, self.levtype))
+
+    def __repr__(self):
+        return "%s(name='%s', level=%s, levtype='%s')" % (
+            self.__class__.__name__,
+            self.name,
+            self.level,
+            self.levtype,
         )
 
 
@@ -24,8 +33,18 @@ class GFSVar(Var):
         self.first_byte = first_byte
         self.last_byte = last_byte if last_byte > 0 else None
 
+    def __repr__(self):
+        return "%s(name='%s', level=%s, levtype='%s', first_byte=%s, last_byte=%s)" % (
+            self.__class__.__name__,
+            self.name,
+            self.level,
+            self.levtype,
+            self.first_byte,
+            self.last_byte,
+        )
+
     @staticmethod
-    def canonical(name: str) -> Optional[str]:
+    def stdvar(name: str) -> Optional[str]:
         return {
             "HGT": "gh",
             "REFC": "refc",
@@ -47,12 +66,12 @@ class GFSVar(Var):
             return None
         if level := GFSVar._pressure_level(levstr):
             return level
-        raise NotImplementedError("Unhandled level: %s" % levstr)
+        return None
 
     @staticmethod
-    def _levtype(levstr: str) -> str:
+    def _levtype(levstr: str) -> Optional[str]:
         if levstr == STR.surface:
             return STR.surface
         if GFSVar._pressure_level(levstr):
             return STR.pressure
-        raise NotImplementedError("Unhandled level: %s" % levstr)
+        return None
