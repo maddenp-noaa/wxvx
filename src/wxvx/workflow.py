@@ -43,10 +43,9 @@ def go(config: dict) -> None:
     parsl.load(c)
     idxdata = {}
     for tc in validtimes(config):
-        url = genurl(tc=tc, baseline=config["baseline"], suffix=".idx")
-        f = genfile(tc=tc, rundir=rundir, url=url)
-        idxfile = get_idxfile(url=url, outputs=[f]).outputs[0]
-        idxdata[tc] = get_idxdata(idxfile, variables=config["variables"])
+        url = genurl(tc=tc, baseline=config["baseline"], suffix=".idxx")
+        idxfile = get_idxfile(url=url, outputs=[genfile(tc=tc, rundir=rundir, url=url)]).outputs[0]
+        idxdata[tc] = get_idxdata(variables=config["variables"], inputs=[idxfile])
     for x in idxdata.values():
         x.result()
     parsl.dfk().cleanup()
@@ -77,9 +76,9 @@ def id_for_memo_path(obj: Path, output_ref: bool = False) -> bytes:
 
 
 @python_app(cache=True)
-def get_idxdata(f: File, variables: dict) -> set[Var]:
+def get_idxdata(variables: dict, inputs: list[File]) -> set[Var]:
     required = set(Var(name=v["name"], level=v["level"], levtype=v["levtype"]) for v in variables)
-    lines = Path(f.filepath).read_text(encoding="utf-8").strip().split("\n")
+    lines = Path(inputs[0].filepath).read_text(encoding="utf-8").strip().split("\n")
     lines.append(":-1:::::")  # end marker
     records = [line.split(":") for line in lines]
     idxdata: set[Var] = set()
