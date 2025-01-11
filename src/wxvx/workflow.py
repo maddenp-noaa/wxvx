@@ -1,8 +1,6 @@
 # import logging
-from dataclasses import dataclass
 from itertools import pairwise
 from pathlib import Path
-from typing import Optional
 from urllib.parse import urlparse
 
 import parsl
@@ -17,6 +15,7 @@ from parsl.utils import get_all_checkpoints
 
 from wxvx.net import fetch
 from wxvx.time import TimeCoords, validtimes
+from wxvx.vars import GFSVar
 
 # Configs
 
@@ -93,31 +92,9 @@ def get_idxdata(f: File) -> str:
     records = [line.split(":") for line in lines]
     vs = []
     for a, b in pairwise(records):
-        if not (id_ := GFS.canonical(a[3])):
-            continue
-        vs.append(GFS(id=id_, first_byte=int(a[1]), last_byte=int(b[1]) - 1, levstr=a[4]))
+        if name := GFSVar.canonical(a[3]):
+            vs.append(GFSVar(name=name, first_byte=int(a[1]), last_byte=int(b[1]) - 1, levstr=a[4]))
     return "end"
-
-
-@dataclass
-class GFS:
-    id: str
-    first_byte: int
-    last_byte: int
-    levstr: str
-
-    @staticmethod
-    def canonical(name: str) -> Optional[str]:
-        return {
-            "HGT": "gh",
-            "REFC": "refc",
-            "SPFH": "q",
-            "T2M": "t",
-            "TMP": "t",
-            "UGRD": "u",
-            "VGRD": "v",
-            "VVEL": "w",
-        }.get(name)
 
 
 @python_app(cache=True)
