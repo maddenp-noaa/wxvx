@@ -30,7 +30,7 @@ def config():
     }
 
 
-# Public
+# Tests
 
 
 def test_time_cycles(config):
@@ -49,9 +49,6 @@ def test_time_validtimes(config):
         datetime(2024, 12, 20, 12),
         datetime(2024, 12, 20, 18),
     ]
-
-
-# Private
 
 
 @mark.parametrize(

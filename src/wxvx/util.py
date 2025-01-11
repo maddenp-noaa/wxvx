@@ -11,12 +11,10 @@ class WXVXError(Exception): ...
 
 @contextmanager
 def resource(relpath: str) -> Generator[TextIO, None, None]:
-    with resource_path(relpath) as path:
-        with open(path, "r", encoding="utf-8") as f:
-            yield f
+    with open(resource_path(relpath), "r", encoding="utf-8") as f:
+        yield f
 
 
-@contextmanager
-def resource_path(relpath: str) -> Generator[Path, None, None]:
+def resource_path(relpath: str) -> Path:
     with resources.as_file(resources.files(f"{pkgname}.resources")) as prefix:
-        yield prefix / relpath
+        return prefix / relpath

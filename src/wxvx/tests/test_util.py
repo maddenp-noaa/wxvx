@@ -7,6 +7,8 @@ from unittest.mock import patch
 
 from wxvx import util
 
+# Tests
+
 
 def test_util_resource(fs):
     expected = "bar"
@@ -17,5 +19,4 @@ def test_util_resource(fs):
 
 
 def test_util_resource_path():
-    with util.resource_path("foo") as path:
-        assert str(path).endswith("%s/resources/foo" % util.pkgname)
+    assert str(util.resource_path("foo")).endswith("%s/resources/foo" % util.pkgname)

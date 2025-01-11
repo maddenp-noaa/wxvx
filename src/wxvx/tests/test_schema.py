@@ -15,59 +15,6 @@ from uwtools.api.config import validate
 
 from wxvx.util import resource_path
 
-# Helpers
-
-
-def validator(fs: FakeFilesystem, *args: Any) -> Callable:
-    """
-    Returns a lambda that validates an eventual config argument.
-
-    :param args: Keys leading to sub-schema to be used to validate config.
-    """
-    with resource_path("config.jsonschema") as path:
-        fs.add_real_file(path)
-        with open(path, "r", encoding="utf-8") as f:
-            schema = json.load(f)
-    defs = schema.get("$defs", {})
-    for arg in args:
-        schema = schema[arg]
-    schema.update({"$defs": defs})
-    schema_file = str(fs.create_file("test.schema", contents=json.dumps(schema)).path)
-    return lambda c: validate(schema_file=schema_file, config_data=c)
-
-
-def with_del(d: dict, *args: Any) -> dict:
-    """
-    Delete a value at a given chain of keys in a dict.
-
-    :param d: The dict to update.
-    :param args: One or more keys navigating to the value to delete.
-    """
-    new = deepcopy(d)
-    p = new
-    for key in args[:-1]:
-        p = p[key]
-    del p[args[-1]]
-    return new
-
-
-def with_set(d: dict, val: Any, *args: Any) -> dict:
-    """
-    Set a value at a given chain of keys in a dict.
-
-    :param d: The dict to update.
-    :param val: The value to set.
-    :param args: One or more keys navigating to the value to set.
-    """
-    new = deepcopy(d)
-    p = new
-    if args:
-        for key in args[:-1]:
-            p = p[key]
-        p[args[-1]] = val
-    return new
-
-
 # Fixtures
 
 
@@ -108,6 +55,59 @@ def logged(caplog):
         return found
 
     return logged_
+
+
+# Helpers
+
+
+def validator(fs: FakeFilesystem, *args: Any) -> Callable:
+    """
+    Returns a lambda that validates an eventual config argument.
+
+    :param args: Keys leading to sub-schema to be used to validate config.
+    """
+    schema_path = resource_path("config.jsonschema")
+    fs.add_real_file(schema_path)
+    with open(schema_path, "r", encoding="utf-8") as f:
+        schema = json.load(f)
+    defs = schema.get("$defs", {})
+    for arg in args:
+        schema = schema[arg]
+    schema.update({"$defs": defs})
+    schema_file = str(fs.create_file("test.schema", contents=json.dumps(schema)).path)
+    return lambda c: validate(schema_file=schema_file, config_data=c)
+
+
+def with_del(d: dict, *args: Any) -> dict:
+    """
+    Delete a value at a given chain of keys in a dict.
+
+    :param d: The dict to update.
+    :param args: One or more keys navigating to the value to delete.
+    """
+    new = deepcopy(d)
+    p = new
+    for key in args[:-1]:
+        p = p[key]
+    del p[args[-1]]
+    return new
+
+
+def with_set(d: dict, val: Any, *args: Any) -> dict:
+    """
+    Set a value at a given chain of keys in a dict.
+
+    :param d: The dict to update.
+    :param val: The value to set.
+    :param args: One or more keys navigating to the value to set.
+    """
+    new = deepcopy(d)
+    p = new
+    if args:
+        for key in args[:-1]:
+            p = p[key]
+        p[args[-1]] = val
+    return new
 
 
 # Tests

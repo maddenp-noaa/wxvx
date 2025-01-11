@@ -14,8 +14,9 @@ from parsl.executors import ThreadPoolExecutor
 from parsl.utils import get_all_checkpoints
 
 from wxvx.net import fetch
+from wxvx.strings import STR
 from wxvx.time import TimeCoords, validtimes
-from wxvx.vars import GFSVar
+from wxvx.vars import GFSVar, Var
 
 # Configs
 
@@ -26,7 +27,7 @@ common: dict = dict(
 )
 
 configs = {
-    "threads": Config(
+    STR.threads: Config(
         **common,
         executors=[ThreadPoolExecutor(max_threads=4)],
     ),
@@ -36,7 +37,7 @@ configs = {
 
 
 def go(config: dict) -> None:
-    c = configs["threads"]
+    c = configs[STR.threads]
     c.run_dir = config["rundir"]
     c.checkpoint_files = get_all_checkpoints(c.run_dir)
     rundir = Path(c.run_dir)
@@ -49,7 +50,7 @@ def go(config: dict) -> None:
         idxfiles[tc] = get_idxfile(url=url, outputs=[f]).outputs[0]
     idxdata = {}
     for tc in validtimes(config):
-        idxdata[tc] = get_idxdata(idxfiles[tc])
+        idxdata[tc] = get_idxdata(idxfiles[tc], variables=config["variables"])
     for x in idxdata.values():
         x.result()
     parsl.dfk().cleanup()
@@ -86,7 +87,9 @@ def id_for_memo_path(obj: Path, output_ref: bool = False) -> bytes:
 
 
 @python_app(cache=True)
-def get_idxdata(f: File) -> str:
+def get_idxdata(f: File, variables: dict) -> str:
+    required = [Var(name=v["name"], level=v["level"], levtype=v["levtype"]) for v in variables]
+    assert required  # PM FIXME
     lines = Path(f.filepath).read_text(encoding="utf-8").strip().split("\n")
     lines.append(":-1:::::")  # end marker
     records = [line.split(":") for line in lines]

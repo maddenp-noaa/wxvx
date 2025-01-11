@@ -2,44 +2,46 @@
 Tests for wxvx.cli.
 """
 
-# pylint: disable=protected-access
+# pylint: disable=protected-access,redefined-outer-name
 
 import re
 from pathlib import Path
 from unittest.mock import DEFAULT as D
 from unittest.mock import Mock, patch
 
+import yaml
 from pytest import mark, raises
 
 from wxvx import cli
+from wxvx.tests.test_schema import config  # pylint: disable=unused-import
 from wxvx.util import pkgname, resource_path
 
-# Public
+# Tests
 
 
-def test_cli_main():
-    with patch.multiple(cli, sys=D, use_uwtools_logger=D) as mocks:
-        with resource_path("config.yaml") as config_file:
-            argv = [pkgname, "-c", str(config_file)]
+def test_cli_main(config, fs):
+    fs.add_real_file(resource_path("info.json"))
+    fs.add_real_file(resource_path("config.jsonschema"))
+    with patch.multiple(cli, workflow=D, sys=D, use_uwtools_logger=D) as mocks:
+        cf = fs.create_file("/path/to/config.yaml", contents=yaml.safe_dump(config))
+        argv = [pkgname, "-c", cf.path]
         mocks["sys"].argv = argv
         with patch.object(cli, "_parse_args", wraps=cli._parse_args) as _parse_args:
             cli.main()
-    _parse_args.assert_called_once_with(argv)
+        _parse_args.assert_called_once_with(argv)
     mocks["use_uwtools_logger"].assert_called_once_with(verbose=False)
+    mocks["workflow"].go.assert_called_once_with(config)
 
 
 def test_cli_main_bad_config(fs):
-    with resource_path("") as resources_dir:
-        config_file = Path(fs.create_file(resources_dir / "test.yaml", contents="{}").path)
-        fs.add_real_file(resources_dir / "config.jsonschema")
+    resources_dir = resource_path("")
+    config_file = Path(fs.create_file(resources_dir / "test.yaml", contents="{}").path)
+    fs.add_real_file(resources_dir / "config.jsonschema")
     with patch.multiple(cli, _parse_args=D, use_uwtools_logger=D) as mocks:
         mocks["_parse_args"].return_value = Mock(debug=False, config=config_file)
         with raises(SystemExit) as e:
             cli.main()
     assert e.value.code == 1
-
-
-# Private
 
 
 @mark.parametrize("c", ["-c", "--config"])
