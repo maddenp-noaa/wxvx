@@ -89,7 +89,10 @@ def get_idxdata(f: File, variables: dict) -> set[Var]:
     vs = set()
     for a, b in pairwise(records):
         v = GFSVar(
-            name=GFSVar.stdvar(a[3]), first_byte=int(a[1]), last_byte=int(b[1]) - 1, levstr=a[4]
+            name=GFSVar.stdvar(a[3]),
+            first_byte=int(a[1]),
+            last_byte=int(b[1]) - 1,
+            levstr=a[4],
         )
         if v in required:
             vs.add(v)
