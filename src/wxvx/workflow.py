@@ -43,14 +43,12 @@ def go(config: dict) -> None:
     rundir = Path(c.run_dir)
     parsl.clear()
     parsl.load(c)
-    idxfiles = {}
+    idxdata = {}
     for tc in validtimes(config):
         url = genurl(tc=tc, baseline=config["baseline"], suffix=".idx")
         f = genfile(tc=tc, rundir=rundir, url=url)
-        idxfiles[tc] = get_idxfile(url=url, outputs=[f]).outputs[0]
-    idxdata = {}
-    for tc in validtimes(config):
-        idxdata[tc] = get_idxdata(idxfiles[tc], variables=config["variables"])
+        idxfile = get_idxfile(url=url, outputs=[f]).outputs[0]
+        idxdata[tc] = get_idxdata(idxfile, variables=config["variables"])
     for x in idxdata.values():
         x.result()
     parsl.dfk().cleanup()
