@@ -86,17 +86,17 @@ def get_idxdata(f: File, variables: dict) -> set[Var]:
     lines = Path(f.filepath).read_text(encoding="utf-8").strip().split("\n")
     lines.append(":-1:::::")  # end marker
     records = [line.split(":") for line in lines]
-    vs = set()
-    for a, b in pairwise(records):
-        v = GFSVar(
-            name=GFSVar.stdvar(a[3]),
-            first_byte=int(a[1]),
-            last_byte=int(b[1]) - 1,
-            levstr=a[4],
+    idxdata: set[Var] = set()
+    for this_record, next_record in pairwise(records):
+        var = GFSVar(
+            name=GFSVar.stdvar(this_record[3]),
+            first_byte=int(this_record[1]),
+            last_byte=int(next_record[1]) - 1,
+            levstr=this_record[4],
         )
-        if v in required:
-            vs.add(v)
-    return vs
+        if var in required:
+            idxdata.add(var)
+    return idxdata
 
 
 @python_app(cache=True)

@@ -6,7 +6,7 @@ from wxvx.strings import STR
 
 class Var:
 
-    def __init__(self, name: str, level: Optional[int], levtype: Optional[str]):
+    def __init__(self, name: Optional[str], level: Optional[int], levtype: Optional[str]):
         self.name = name
         self.level = level
         self.levtype = levtype
@@ -28,7 +28,7 @@ class Var:
 
 class GFSVar(Var):
 
-    def __init__(self, name: str, first_byte: int, last_byte: int, levstr: str):
+    def __init__(self, name: Optional[str], first_byte: int, last_byte: int, levstr: str):
         super().__init__(name=name, level=GFSVar._level(levstr), levtype=GFSVar._levtype(levstr))
         self.first_byte = first_byte
         self.last_byte = last_byte if last_byte > 0 else None
