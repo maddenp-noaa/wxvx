@@ -43,7 +43,7 @@ def go(config: dict) -> None:
     parsl.load(c)
     idxdata = {}
     for tc in validtimes(config):
-        url = genurl(tc=tc, baseline=config["baseline"], suffix=".idxx")
+        url = genurl(tc=tc, baseline=config["baseline"], suffix=".idx")
         idxfile = get_idxfile(url=url, outputs=[genfile(tc=tc, rundir=rundir, url=url)]).outputs[0]
         idxdata[tc] = get_idxdata(variables=config["variables"], inputs=[idxfile])
     for x in idxdata.values():
