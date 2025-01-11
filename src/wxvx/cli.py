@@ -16,8 +16,7 @@ from wxvx.util import pkgname, resource, resource_path
 def main() -> None:
     args = _parse_args(sys.argv)
     use_uwtools_logger(verbose=args.debug)
-    with open(args.config, "r", encoding="utf-8") as f:
-        config = yaml.safe_load(f.read())
+    config = yaml.safe_load(Path(args.config).read_text(encoding="utf-8"))
     if not validate(schema_file=resource_path("config.jsonschema"), config_path=config):
         sys.exit(1)
     workflow.go(config)
