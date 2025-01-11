@@ -1,5 +1,8 @@
-import logging
+# import logging
+from dataclasses import dataclass
+from itertools import pairwise
 from pathlib import Path
+from typing import Optional
 from urllib.parse import urlparse
 
 import parsl
@@ -34,18 +37,21 @@ configs = {
 
 
 def go(config: dict) -> None:
-    rundir = Path(config["rundir"])
     c = configs["threads"]
-    c.checkpoint_files = get_all_checkpoints(str(rundir))
-    c.run_dir = rundir
+    c.run_dir = config["rundir"]
+    c.checkpoint_files = get_all_checkpoints(c.run_dir)
+    rundir = Path(c.run_dir)
     parsl.clear()
-    parsl.load(c) 
+    parsl.load(c)
     idxfiles = {}
     for tc in validtimes(config):
         url = genurl(tc=tc, baseline=config["baseline"], suffix=".idx")
         f = genfile(tc=tc, rundir=rundir, url=url)
-        idxfiles[tc] = idxfile(url=url, outputs=[f])
-    for x in idxfiles.values():
+        idxfiles[tc] = get_idxfile(url=url, outputs=[f]).outputs[0]
+    idxdata = {}
+    for tc in validtimes(config):
+        idxdata[tc] = get_idxdata(idxfiles[tc])
+    for x in idxdata.values():
         x.result()
     parsl.dfk().cleanup()
 
@@ -80,11 +86,40 @@ def id_for_memo_path(obj: Path, output_ref: bool = False) -> bytes:
 #     fetch(url=url, path=Path(outputs[0]))
 
 
-# @python_app(cache=True)
-# def idxdata(f: File) -> str:
-#     return Path(f.filepath).read_text(encoding="utf-8")
+@python_app(cache=True)
+def get_idxdata(f: File) -> str:
+    lines = Path(f.filepath).read_text(encoding="utf-8").strip().split("\n")
+    lines.append(":-1:::::")  # end marker
+    records = [line.split(":") for line in lines]
+    vs = []
+    for a, b in pairwise(records):
+        if not (id_ := GFS.canonical(a[3])):
+            continue
+        vs.append(GFS(id=id_, first_byte=int(a[1]), last_byte=int(b[1]) - 1, levstr=a[4]))
+    return "end"
+
+
+@dataclass
+class GFS:
+    id: str
+    first_byte: int
+    last_byte: int
+    levstr: str
+
+    @staticmethod
+    def canonical(name: str) -> Optional[str]:
+        return {
+            "HGT": "gh",
+            "REFC": "refc",
+            "SPFH": "q",
+            "T2M": "t",
+            "TMP": "t",
+            "UGRD": "u",
+            "VGRD": "v",
+            "VVEL": "w",
+        }.get(name)
 
 
 @python_app(cache=True)
-def idxfile(url: str, outputs: list[File]) -> None:
+def get_idxfile(url: str, outputs: list[File]) -> None:
     fetch(url=url, path=Path(outputs[0]))

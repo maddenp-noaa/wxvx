@@ -65,9 +65,6 @@
       "items": {
         "additionalProperties": false,
         "properties": {
-          "id": {
-            "type": "string"
-          },
           "level": {
             "type": [
               "integer",
@@ -79,12 +76,15 @@
               "pressure",
               "surface"
             ]
+          },
+          "name": {
+            "type": "string"
           }
         },
         "required": [
-          "id",
           "level",
-          "levtype"
+          "levtype",
+          "name"
         ],
         "type": "object"
       },

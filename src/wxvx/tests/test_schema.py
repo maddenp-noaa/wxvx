@@ -94,8 +94,8 @@ def config():
         },
         "rundir": "/tmp/rundir",
         "variables": [
-            {"id": "q", "level": 1000, "levtype": "pressure"},
-            {"id": "t", "level": None, "levtype": "surface"},
+            {"level": 1000, "levtype": "pressure", "name": "q"},
+            {"level": None, "levtype": "surface", "name": "t"},
         ],
     }
 
@@ -186,7 +186,7 @@ def test_schema_variables(logged, config, fs):
     assert not ok([entry] * 2)
     assert logged("has non-unique elements")
     # Array entries must have the correct keys:
-    for key in ("id", "level", "levtype"):
+    for key in ("level", "levtype", "name"):
         assert not ok([with_del(entry, key)])
         assert logged(f"'{key}' is a required property")
     # Additional keys in entries are not allowed:
