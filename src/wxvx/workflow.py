@@ -11,23 +11,46 @@ from wxvx.vars import GFSVar, Var
 
 
 def go(config: dict) -> None:
-    baseline, rundir, variables = [config[x] for x in ("baseline", "rundir", "variables")]
-    for tc in validtimes(config):
-        grib_index_data(tc=tc, baseline=baseline, fh=0, rundir=Path(rundir), variables=variables)
+    fh = 0
+    for tcoord in validtimes(config):
+        grib_message(
+            url=config["baseline"].format(yyyymmdd=tcoord.yyyymmdd, hh=tcoord.hh, fh=f"{fh:02}"),
+            timestamp=(tcoord.dt + timedelta(hours=fh)).isoformat(),
+            tcoord=tcoord,
+            rundir=Path(config["rundir"]),
+            required=set(
+                Var(name=v["name"], level=v["level"], levtype=v["levtype"])
+                for v in config["variables"]
+            ),
+        )
 
 
 @task
-def grib_index_data(tc: TimeCoords, fh: int, baseline: str, rundir: Path, variables: dict):
+def grib_message(url: str, timestamp: str, tcoord: TimeCoords, rundir: Path, required: set[Var]):
+    path = rundir / tcoord.yyyymmdd / tcoord.hh / Path(urlparse(url).path).name
+    idxdata = grib_index_data(
+        url=url + ".idx",
+        timestamp=timestamp,
+        tcoord=tcoord,
+        rundir=rundir,
+        required=required,
+    )
+    yield "%s GRIB message" % timestamp
+    yield asset(path, path.is_file)
+    yield idxdata
+    path.touch()
+
+
+@task
+def grib_index_data(url: str, timestamp: str, tcoord: TimeCoords, rundir: Path, required: set[Var]):
     idxdata: set[Var] = set()
-    yield "%s GRIB index data" % (tc.dt + timedelta(hours=fh))
+    idxfile = grib_index_local(url=url, timestamp=timestamp, tcoord=tcoord, rundir=rundir)
+    yield "%s GRIB index data" % timestamp
     yield asset(idxdata, lambda: bool(idxdata))
-    idxfile = grib_index_local(tc=tc, fh=fh, baseline=baseline, rundir=rundir)
     yield idxfile
-    required = set(Var(name=v["name"], level=v["level"], levtype=v["levtype"]) for v in variables)
     lines = refs(idxfile).read_text(encoding="utf-8").strip().split("\n")
     lines.append(":-1:::::")  # end marker
-    records = [line.split(":") for line in lines]
-    for this_record, next_record in pairwise(records):
+    for this_record, next_record in pairwise([line.split(":") for line in lines]):
         var = GFSVar(
             name=GFSVar.stdvar(this_record[3]),
             first_byte=int(this_record[1]),
@@ -39,10 +62,8 @@ def grib_index_data(tc: TimeCoords, fh: int, baseline: str, rundir: Path, variab
 
 
 @task
-def grib_index_local(tc: TimeCoords, fh: int, baseline: str, rundir: Path):
-    url = baseline.format(yyyymmdd=tc.yyyymmdd, hh=tc.hh, fh=f"{fh:02}") + ".idx"
-    path = rundir / tc.yyyymmdd / tc.hh / Path(urlparse(url).path).name
-    timestamp = tc.dt + timedelta(hours=fh)
+def grib_index_local(url: str, timestamp: str, tcoord: TimeCoords, rundir: Path):
+    path = rundir / tcoord.yyyymmdd / tcoord.hh / Path(urlparse(url).path).name
     taskname = "%s GRIB index" % timestamp
     yield taskname
     yield asset(path, path.is_file)
