@@ -40,7 +40,7 @@ def config():
             "stop": "01:00:00",
         },
         "rundir": "/tmp/rundir",
-        "variables": [
+        "vars": [
             {"level": 1000, "levtype": "pressure", "name": "q"},
             {"level": None, "levtype": "surface", "name": "t"},
         ],
@@ -170,9 +170,9 @@ def test_schema_leadtimes(logged, config, fs):
         assert logged("'foo' does not match")
 
 
-def test_schema_variables(logged, config, fs):
-    ok = validator(fs, "properties", "variables")
-    config = config["variables"]
+def test_schema_vars(logged, config, fs):
+    ok = validator(fs, "properties", "vars")
+    config = config["vars"]
     entry = config[0]
     # Basic correctness:
     assert ok(config)

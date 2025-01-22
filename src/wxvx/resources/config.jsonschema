@@ -61,7 +61,7 @@
     "rundir": {
       "type": "string"
     },
-    "variables": {
+    "vars": {
       "items": {
         "additionalProperties": false,
         "properties": {
@@ -98,7 +98,7 @@
     "cycles",
     "leadtimes",
     "rundir",
-    "variables"
+    "vars"
   ],
   "type": "object"
 }

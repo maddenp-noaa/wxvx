@@ -12,9 +12,7 @@ from wxvx.vars import GFSVar, Var
 
 def go(config: dict) -> None:
     fh = 0
-    need = set(
-        Var(name=v["name"], level=v["level"], levtype=v["levtype"]) for v in config["variables"]
-    )
+    need = {Var(name=v["name"], level=v["level"], levtype=v["levtype"]) for v in config["vars"]}
     for tcoord in validtimes(config):
         for var in need:
             url = config["baseline"].format(yyyymmdd=tcoord.yyyymmdd, hh=tcoord.hh, fh=f"{fh:02}")

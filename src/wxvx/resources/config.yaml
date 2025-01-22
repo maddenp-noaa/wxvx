@@ -8,7 +8,7 @@ leadtimes:
   step: '01:00:00'
   stop: '01:00:00'
 rundir: /tmp/wxvx
-variables:
+vars:
   - level: 1000
     levtype: pressure
     name: gh
