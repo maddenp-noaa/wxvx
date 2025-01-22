@@ -1,99 +1,34 @@
-from itertools import pairwise
+# from itertools import pairwise
 from pathlib import Path
 from urllib.parse import urlparse
 
-import parsl
-from parsl.app.app import python_app
-from parsl.config import Config
-from parsl.data_provider.files import File
+from iotaa import asset, external, task
 
-from parsl.dataflow.memoization import id_for_memo
-from parsl.executors import ThreadPoolExecutor
-from parsl.utils import get_all_checkpoints
+from wxvx.net import fetch, status
 
-from wxvx.net import fetch
-from wxvx.strings import STR
+# from wxvx.strings import STR
 from wxvx.time import TimeCoords, validtimes
-from wxvx.vars import GFSVar, Var
 
-# Configs
-
-common: dict = dict(
-    checkpoint_mode="task_exit",
-    initialize_logging=False,
-    usage_tracking=0,
-)
-
-configs = {
-    STR.threads: Config(
-        **common,
-        executors=[ThreadPoolExecutor(max_threads=4)],
-    ),
-}
-
-# Main
+# from wxvx.vars import GFSVar, Var
 
 
 def go(config: dict) -> None:
-    c = configs[STR.threads]
-    c.run_dir = config["rundir"]
-    c.checkpoint_files = get_all_checkpoints(c.run_dir)
-    rundir = Path(c.run_dir)
-    parsl.clear()
-    parsl.load(c)
-    idxdata = {}
     for tc in validtimes(config):
-        url = genurl(tc=tc, baseline=config["baseline"], suffix=".idx")
-        idxfile = get_idxfile(url=url, outputs=[genfile(tc=tc, rundir=rundir, url=url)]).outputs[0]
-        idxdata[tc] = get_idxdata(variables=config["variables"], inputs=[idxfile])
-    for x in idxdata.values():
-        x.result()
-    parsl.dfk().cleanup()
+        grib_index_local(tc=tc, baseline=config["baseline"], rundir=Path(config["rundir"]))
 
 
-# Helpers
+@task
+def grib_index_local(tc: TimeCoords, baseline: str, rundir: Path):
+    url = baseline.format(yyyymmdd=tc.yyyymmdd, hh=tc.hh, ff="00") + ".idx"
+    path = rundir / tc.yyyymmdd / tc.hh / Path(urlparse(url).path).name
+    taskname = "GRIB index local: %s" % path
+    yield taskname
+    yield asset(path, path.is_file)
+    yield grib_index_remote(url=url)
+    fetch(taskname=taskname, url=url, path=path)
 
 
-def genfile(tc: TimeCoords, rundir: Path, url: str) -> File:
-    return File(rundir / tc.yyyymmdd / tc.hh / Path(urlparse(url).path).name)
-
-
-def genurl(tc: TimeCoords, baseline: str, suffix: str = "") -> str:
-    return baseline.format(yyyymmdd=tc.yyyymmdd, hh=tc.hh, ff="00") + suffix
-
-
-@id_for_memo.register(File)
-def id_for_memo_file(obj: File, output_ref: bool = False) -> bytes:
-    return bytes(obj.filepath, encoding="utf-8")
-
-
-@id_for_memo.register(Path)
-def id_for_memo_path(obj: Path, output_ref: bool = False) -> bytes:
-    return bytes(str(obj), encoding="utf-8")
-
-
-# Apps
-
-
-@python_app(cache=True)
-def get_idxdata(variables: dict, inputs: list[File]) -> set[Var]:
-    required = set(Var(name=v["name"], level=v["level"], levtype=v["levtype"]) for v in variables)
-    lines = Path(inputs[0].filepath).read_text(encoding="utf-8").strip().split("\n")
-    lines.append(":-1:::::")  # end marker
-    records = [line.split(":") for line in lines]
-    idxdata: set[Var] = set()
-    for this_record, next_record in pairwise(records):
-        var = GFSVar(
-            name=GFSVar.stdvar(this_record[3]),
-            first_byte=int(this_record[1]),
-            last_byte=int(next_record[1]) - 1,
-            levstr=this_record[4],
-        )
-        if var in required:
-            idxdata.add(var)
-    return idxdata
-
-
-@python_app(cache=True)
-def get_idxfile(url: str, outputs: list[File]) -> None:
-    fetch(url=url, path=Path(outputs[0]))
+@external
+def grib_index_remote(url: str):
+    yield "GRIB index remote: %s" % url
+    yield asset(url, lambda: status(url) == 200)

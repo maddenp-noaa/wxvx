@@ -5,4 +5,3 @@ from dataclasses import dataclass
 class STR:
     pressure: str = "pressure"
     surface: str = "surface"
-    threads: str = "threads"
