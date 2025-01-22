@@ -12,66 +12,68 @@ from wxvx.vars import GFSVar, Var
 
 def go(config: dict) -> None:
     fh = 0
+    need = set(
+        Var(name=v["name"], level=v["level"], levtype=v["levtype"]) for v in config["variables"]
+    )
     for tcoord in validtimes(config):
-        grib_message(
-            url=config["baseline"].format(yyyymmdd=tcoord.yyyymmdd, hh=tcoord.hh, fh=f"{fh:02}"),
-            timestamp=(tcoord.dt + timedelta(hours=fh)).isoformat(),
-            tcoord=tcoord,
-            rundir=Path(config["rundir"]),
-            required=set(
-                Var(name=v["name"], level=v["level"], levtype=v["levtype"])
-                for v in config["variables"]
-            ),
-        )
+        for var in need:
+            url = config["baseline"].format(yyyymmdd=tcoord.yyyymmdd, hh=tcoord.hh, fh=f"{fh:02}")
+            grib_message(
+                var=var,
+                need=need,
+                tcoord=tcoord,
+                rundir=Path(config["rundir"]),
+                url=url,
+                ts=(tcoord.dt + timedelta(hours=fh)).isoformat(),
+            )
 
 
 @task
-def grib_message(url: str, timestamp: str, tcoord: TimeCoords, rundir: Path, required: set[Var]):
-    path = rundir / tcoord.yyyymmdd / tcoord.hh / Path(urlparse(url).path).name
-    idxdata = grib_index_data(
-        url=url + ".idx",
-        timestamp=timestamp,
-        tcoord=tcoord,
-        rundir=rundir,
-        required=required,
-    )
-    yield "%s GRIB message" % timestamp
+def grib_message(var: Var, need: set[Var], tcoord: TimeCoords, rundir: Path, url: str, ts: str):
+    fn = "%s.dat.%s" % (Path(urlparse(url).path).name, var)
+    path = rundir / tcoord.yyyymmdd / tcoord.hh / fn
+    idxdata = grib_index_data(need=need, tcoord=tcoord, rundir=rundir, url=f"{url}.idx", ts=ts)
+    taskname = "%s GRIB message %s" % (ts, var)
+    yield taskname
     yield asset(path, path.is_file)
     yield idxdata
-    path.touch()
+    var_idxdata = refs(idxdata)[str(var)]
+    fb, lb = var_idxdata.first_byte, var_idxdata.last_byte
+    headers = {"Range": "bytes=%s" % (f"{fb}-{lb}" if lb else fb)}
+    fetch(taskname=taskname, url=url, path=path, headers=headers)
 
 
 @task
-def grib_index_data(url: str, timestamp: str, tcoord: TimeCoords, rundir: Path, required: set[Var]):
-    idxdata: set[Var] = set()
-    idxfile = grib_index_local(url=url, timestamp=timestamp, tcoord=tcoord, rundir=rundir)
-    yield "%s GRIB index data" % timestamp
+def grib_index_data(need: set[Var], tcoord: TimeCoords, rundir: Path, url: str, ts: str):
+    idxdata: dict[str, GFSVar] = {}
+    idxfile = grib_index_local(tcoord=tcoord, rundir=rundir, url=url, ts=ts)
+    yield "%s GRIB index data" % ts
     yield asset(idxdata, lambda: bool(idxdata))
     yield idxfile
     lines = refs(idxfile).read_text(encoding="utf-8").strip().split("\n")
     lines.append(":-1:::::")  # end marker
     for this_record, next_record in pairwise([line.split(":") for line in lines]):
-        var = GFSVar(
+        gfsvar = GFSVar(
             name=GFSVar.stdvar(this_record[3]),
             first_byte=int(this_record[1]),
             last_byte=int(next_record[1]) - 1,
             levstr=this_record[4],
         )
-        if var in required:
-            idxdata.add(var)
+        if gfsvar in need:
+            idxdata[str(gfsvar)] = gfsvar
 
 
 @task
-def grib_index_local(url: str, timestamp: str, tcoord: TimeCoords, rundir: Path):
+def grib_index_local(tcoord: TimeCoords, rundir: Path, url: str, ts):
     path = rundir / tcoord.yyyymmdd / tcoord.hh / Path(urlparse(url).path).name
-    taskname = "%s GRIB index" % timestamp
+    taskname = "%s GRIB index" % ts
     yield taskname
     yield asset(path, path.is_file)
-    yield grib_index_remote(url=url, timestamp=timestamp)
+    yield grib_index_remote(url=url, ts=ts)
     fetch(taskname=taskname, url=url, path=path)
 
 
 @external
-def grib_index_remote(url: str, timestamp: str):
-    yield "%s GRIB index remote %s" % (timestamp, url)
+def grib_index_remote(url: str, ts: str):
+    yield "%s GRIB index remote %s" % (ts, url)
     yield asset(url, lambda: status(url) == 200)

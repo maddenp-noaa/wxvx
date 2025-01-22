@@ -18,12 +18,15 @@ class Var:
         return hash((self.name, self.level, self.levtype))
 
     def __repr__(self):
-        return "%s(name='%s', level=%s, levtype='%s')" % (
+        return "%s(name='%s', levtype='%s', level=%s)" % (
             self.__class__.__name__,
             self.name,
-            self.level,
             self.levtype,
+            self.level,
         )
+
+    def __str__(self):
+        return "%s-%s-%s" % (self.name, self.levtype, self.level)
 
 
 class GFSVar(Var):

@@ -36,6 +36,8 @@ disable = [
   "missing-function-docstring",
   "missing-module-docstring",
   "too-few-public-methods",
+  "too-many-arguments",
+  "too-many-positional-arguments",
   "use-dict-literal",
 ]
 enable = [
