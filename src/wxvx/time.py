@@ -18,6 +18,9 @@ class TimeCoords:
     def __lt__(self, other):
         return self.dt < other.dt
 
+    def __repr__(self):
+        return self.iso
+
     @property
     def hh(self) -> str:
         return self.dt.strftime("%H")

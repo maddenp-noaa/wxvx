@@ -1,4 +1,4 @@
-baseline: https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.{yyyymmdd}/conus/hrrr.t{hh}z.wrfprsf{ff}.grib2
+baseline: https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.{yyyymmdd}/conus/hrrr.t{hh}z.wrfprsf{fh}.grib2
 cycles:
   start: '2024-04-01T01:00:00'
   step: '01:00:00'
