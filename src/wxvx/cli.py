@@ -20,6 +20,7 @@ def main() -> None:
     if not validate(schema_file=resource_path("config.jsonschema"), config_data=config):
         sys.exit(1)
     workflow.grib_messages(config=config, threads=4)
+    # PM TODO Potentially add metadata to ML forecast data.
 
 
 # Private
