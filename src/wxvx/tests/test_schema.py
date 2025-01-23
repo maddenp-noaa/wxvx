@@ -197,3 +197,6 @@ def test_schema_vars(logged, config, fs):
     for levtype in ("isobaricInhPa",):
         assert not ok([{"name": "foo", "levtype": levtype}])
         assert logged("'levels' is a required property")
+    for levtype in ("atmosphere", "surface"):
+        assert not ok([{"name": "foo", "levtype": levtype, "levels": [1000]}])
+        assert logged("should not be valid")

@@ -6,7 +6,7 @@ UNKNOWN = "unknown"
 
 class Var:
 
-    def __init__(self, name: str, levtype: str, level: Optional[str]):
+    def __init__(self, name: str, levtype: str, level: Optional[str] = None):
         self.name = name
         self.levtype = levtype
         self.level = str(level) if level else UNKNOWN
