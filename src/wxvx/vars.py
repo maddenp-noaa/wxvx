@@ -19,7 +19,7 @@ class Var:
         return hash((self.name, self.level, self.levtype))
 
     def __repr__(self):
-        vals = ["%s=%s" for k, v in zip(self._keys, [getattr(self, key) for key in self._keys])]
+        vals = [f"{k}={v}" for k, v in zip(self._keys, [getattr(self, key) for key in self._keys])]
         return "%s(%s)" % (self.__class__.__name__, ", ".join(vals))
 
     def __str__(self):

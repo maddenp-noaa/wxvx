@@ -3,28 +3,33 @@ from itertools import pairwise
 from pathlib import Path
 from urllib.parse import urlparse
 
-from iotaa import asset, external, refs, task
+from iotaa import asset, external, refs, task, tasks
 
 from wxvx.net import fetch, status
 from wxvx.time import TimeCoords, validtimes
 from wxvx.vars import GFSVar, Var
 
 
-def go(config: dict) -> None:
+@tasks
+def grib_messages(config: dict):
     fh = 0
     need = {Var(name=x["name"], levtype=x["levtype"], level=x["level"]) for x in config["vars"]}
+    messages = []
     for tcoord in validtimes(config):
         for var in need:
             url = config["baseline"].format(yyyymmdd=tcoord.yyyymmdd, hh=tcoord.hh, fh=f"{fh:02}")
-            grib_message(
-                var=var,
-                need=need,
-                tcoord=tcoord,
-                rundir=Path(config["rundir"]),
-                url=url,
-                ts=(tcoord.dt + timedelta(hours=fh)).isoformat(),
+            messages.append(
+                grib_message(
+                    var=var,
+                    need=need,
+                    tcoord=tcoord,
+                    rundir=Path(config["rundir"]),
+                    url=url,
+                    ts=(tcoord.dt + timedelta(hours=fh)).isoformat(),
+                )
             )
-
+    yield "GRIB messages"
+    yield messages
 
 @task
 def grib_message(var: Var, need: set[Var], tcoord: TimeCoords, rundir: Path, url: str, ts: str):
@@ -39,7 +44,6 @@ def grib_message(var: Var, need: set[Var], tcoord: TimeCoords, rundir: Path, url
     fb, lb = var_idxdata.firstbyte, var_idxdata.lastbyte
     headers = {"Range": "bytes=%s" % (f"{fb}-{lb}" if lb else fb)}
     fetch(taskname=taskname, url=url, path=path, headers=headers)
-
 
 @task
 def grib_index_data(need: set[Var], tcoord: TimeCoords, rundir: Path, url: str, ts: str):
@@ -60,11 +64,10 @@ def grib_index_data(need: set[Var], tcoord: TimeCoords, rundir: Path, url: str, 
         if gfsvar in need:
             idxdata[str(gfsvar)] = gfsvar
 
-
 @task
 def grib_index_local(tcoord: TimeCoords, rundir: Path, url: str, ts):
     path = rundir / tcoord.yyyymmdd / tcoord.hh / Path(urlparse(url).path).name
-    taskname = "%s GRIB index" % ts
+    taskname = "%s GRIB index local" % ts
     yield taskname
     yield asset(path, path.is_file)
     yield grib_index_remote(url=url, ts=ts)
