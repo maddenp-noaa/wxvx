@@ -8,7 +8,7 @@ leadtimes:
   step: '01:00:00'
   stop: '01:00:00'
 meta:
-  levels: &levels [975, 1000]
+  levels: &levels [200, 300, 475, 800, 825, 850, 875, 900, 925, 950, 975, 1000]
 rundir: /tmp/wxvx
 vars:
   - levels: *levels
@@ -16,20 +16,20 @@ vars:
     name: gh
   - levtype: atmosphere
     name: refc
-  - levels: *ref_0
+  - levels: *levels
     levtype: isobaricInhPa
     name: q
   - levtype: surface
     name: t
-  - levels: *ref_0
+  - levels: *levels
     levtype: isobaricInhPa
     name: t
-  - levels: *ref_0
+  - levels: *levels
     levtype: isobaricInhPa
     name: u
-  - levels: *ref_0
+  - levels: *levels
     levtype: isobaricInhPa
     name: v
-  - levels: *ref_0
+  - levels: *levels
     levtype: isobaricInhPa
     name: w
