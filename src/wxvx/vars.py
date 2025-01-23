@@ -9,7 +9,7 @@ class Var:
     def __init__(self, name: str, levtype: str, level: Optional[str]):
         self.name = name
         self.levtype = levtype
-        self.level = level
+        self.level = str(level) if level else UNKNOWN
         self._keys = ["name", "levtype", "level"] if self.level else ["name", "levtype"]
 
     def __eq__(self, other):
