@@ -31,6 +31,7 @@ def grib_messages(config: dict):
     yield "GRIB messages"
     yield messages
 
+
 @task
 def grib_message(var: Var, need: set[Var], tcoord: TimeCoords, rundir: Path, url: str, ts: str):
     fn = "%s.dat.%s" % (Path(urlparse(url).path).name, var)
@@ -44,6 +45,7 @@ def grib_message(var: Var, need: set[Var], tcoord: TimeCoords, rundir: Path, url
     fb, lb = var_idxdata.firstbyte, var_idxdata.lastbyte
     headers = {"Range": "bytes=%s" % (f"{fb}-{lb}" if lb else fb)}
     fetch(taskname=taskname, url=url, path=path, headers=headers)
+
 
 @task
 def grib_index_data(need: set[Var], tcoord: TimeCoords, rundir: Path, url: str, ts: str):
@@ -63,6 +65,7 @@ def grib_index_data(need: set[Var], tcoord: TimeCoords, rundir: Path, url: str, 
         )
         if gfsvar in need:
             idxdata[str(gfsvar)] = gfsvar
+
 
 @task
 def grib_index_local(tcoord: TimeCoords, rundir: Path, url: str, ts):

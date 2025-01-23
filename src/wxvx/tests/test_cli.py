@@ -30,7 +30,7 @@ def test_cli_main(config, fs):
             cli.main()
         _parse_args.assert_called_once_with(argv)
     mocks["use_uwtools_logger"].assert_called_once_with(verbose=False)
-    mocks["workflow"].go.assert_called_once_with(config)
+    mocks["workflow"].grib_messages.assert_called_once_with(config=config, threads=None)
 
 
 def test_cli_main_bad_config(fs):
