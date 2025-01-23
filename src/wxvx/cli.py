@@ -3,8 +3,7 @@ import sys
 from argparse import ArgumentParser, HelpFormatter, Namespace
 from pathlib import Path
 
-import yaml
-from uwtools.api.config import validate
+from uwtools.api.config import get_yaml_config, validate
 from uwtools.api.logging import use_uwtools_logger
 
 from wxvx import workflow
@@ -16,8 +15,9 @@ from wxvx.util import pkgname, resource, resource_path
 def main() -> None:
     args = _parse_args(sys.argv)
     use_uwtools_logger(verbose=args.debug)
-    config = yaml.safe_load(Path(args.config).read_text(encoding="utf-8"))
-    if not validate(schema_file=resource_path("config.jsonschema"), config_path=config):
+    config = get_yaml_config(args.config)
+    config.dereference()
+    if not validate(schema_file=resource_path("config.jsonschema"), config_data=config):
         sys.exit(1)
     workflow.grib_messages(config=config, threads=None)
 
