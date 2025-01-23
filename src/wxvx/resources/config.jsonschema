@@ -58,6 +58,9 @@
       ],
       "type": "object"
     },
+    "meta": {
+      "type": "object"
+    },
     "rundir": {
       "type": "string"
     },

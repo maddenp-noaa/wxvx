@@ -9,7 +9,7 @@ leadtimes:
   stop: '01:00:00'
 rundir: /tmp/wxvx
 vars:
-  - levels: [1000]
+  - levels: [975, 1000]
     levtype: isobaricInhPa
     name: gh
   - levtype: atmosphere
@@ -31,3 +31,4 @@ vars:
   - levels: [1000]
     levtype: isobaricInhPa
     name: w
+meta: {a: b}

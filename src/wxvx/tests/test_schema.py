@@ -171,6 +171,14 @@ def test_schema_leadtimes(logged, config, fs):
         assert logged("'foo' does not match")
 
 
+def test_schema_meta(config, fs, logged):
+    ok = validator(fs)
+    # The optional top-level "meta" key must have a dict value:
+    assert ok(with_set(config, {}, "meta"))
+    assert not ok(with_set(config, [], "meta"))
+    assert logged("is not of type 'object'")
+
+
 def test_schema_vars(logged, config, fs):
     ok = validator(fs, "properties", "vars")
     config = config["vars"]
@@ -193,7 +201,7 @@ def test_schema_vars(logged, config, fs):
     # Additional keys in entries are not allowed:
     assert not ok([{**entry, "foo": "bar"}])
     assert logged("Additional properties are not allowed")
-    # 'levels' is required for some level types, but not others:
+    # The "levels" key is required for some level types, but not others:
     for levtype in ("isobaricInhPa",):
         assert not ok([{"name": "foo", "levtype": levtype}])
         assert logged("'levels' is a required property")
