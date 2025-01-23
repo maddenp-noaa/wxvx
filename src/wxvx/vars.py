@@ -9,7 +9,7 @@ class Var:
     def __init__(self, name: str, levtype: str, level: Optional[str] = None):
         self.name = name
         self.levtype = levtype
-        self.level = str(level) if level else UNKNOWN
+        self.level = str(level) if level else None
         self._keys = ["name", "levtype", "level"] if self.level else ["name", "levtype"]
 
     def __eq__(self, other):
@@ -23,7 +23,7 @@ class Var:
         return "%s(%s)" % (self.__class__.__name__, ", ".join(vals))
 
     def __str__(self):
-        vals = (self.name, self.levtype, self.level) if self.level else (self.name, self.levtype)
+        vals = filter(None, [self.name, self.levtype, self.level])
         return "-".join(vals)
 
 
@@ -65,7 +65,7 @@ class GFSVar(Var):
             return ("isobaricInhPa", m[1])
         if m := re.match(r"^surface$", levstr):
             return ("surface", None)
-        return (UNKNOWN, UNKNOWN)
+        return (UNKNOWN, None)
 
 
 # typeOfLevel per eccodes in HRRR data:
