@@ -19,7 +19,7 @@ def main() -> None:
     config = yaml.safe_load(Path(args.config).read_text(encoding="utf-8"))
     if not validate(schema_file=resource_path("config.jsonschema"), config_path=config):
         sys.exit(1)
-    workflow.grib_messages(config=config)
+    workflow.grib_messages(config=config, threads=None)
 
 
 # Private
