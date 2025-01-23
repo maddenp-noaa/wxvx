@@ -14,13 +14,10 @@ from wxvx.vars import GFSVar, Var
 def grib_messages(config: dict):
     fh = 0
     need = set()
-    add = lambda name, levtype, level=None: need.add(Var(name=name, levtype=levtype, level=level))
     for entry in config["vars"]:
-        if levels := entry.get("levels"):
-            for level in levels:
-                add(entry["name"], entry["levtype"], level)
-        else:
-            add(entry["name"], entry["levtype"])
+        levels = entry.get("levels", [None])
+        for level in levels:
+            need.add(Var(name=entry["name"], levtype=entry["levtype"], level=level))
     messages = []
     for tcoord in validtimes(config):
         for var in need:
