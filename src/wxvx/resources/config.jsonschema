@@ -64,12 +64,38 @@
     "vars": {
       "items": {
         "additionalProperties": false,
+        "allOf": [
+          {
+            "else": {
+              "required": [
+                "levtype",
+                "name"
+              ]
+            },
+            "if": {
+              "properties": {
+                "levtype": {
+                  "enum": [
+                    "isobaricInhPa"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "levels",
+                "levtype",
+                "name"
+              ]
+            }
+          }
+        ],
         "properties": {
-          "level": {
-            "type": [
-              "integer",
-              "null"
-            ]
+          "levels": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
           },
           "levtype": {
             "enum": [
@@ -82,11 +108,6 @@
             "type": "string"
           }
         },
-        "required": [
-          "level",
-          "levtype",
-          "name"
-        ],
         "type": "object"
       },
       "minItems": 1,

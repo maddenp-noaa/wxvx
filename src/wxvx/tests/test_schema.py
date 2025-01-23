@@ -41,9 +41,9 @@ def config():
         },
         "rundir": "/tmp/rundir",
         "vars": [
-            {"name": "q", "levtype": "isobaricInhPa", "level": 1000},
-            {"name": "refc", "levtype": "atmosphere", "level": None},
-            {"name": "t", "levtype": "surface", "level": None},
+            {"name": "q", "levtype": "isobaricInhPa", "levels": [1000]},
+            {"name": "refc", "levtype": "atmosphere"},
+            {"name": "t", "levtype": "surface"},
         ],
     }
 
@@ -187,9 +187,13 @@ def test_schema_vars(logged, config, fs):
     assert not ok([entry] * 2)
     assert logged("has non-unique elements")
     # Array entries must have the correct keys:
-    for key in ("level", "levtype", "name"):
+    for key in ("levels", "levtype", "name"):
         assert not ok([with_del(entry, key)])
         assert logged(f"'{key}' is a required property")
     # Additional keys in entries are not allowed:
     assert not ok([{**entry, "foo": "bar"}])
     assert logged("Additional properties are not allowed")
+    # 'levels' is required for some level types, but not others:
+    for levtype in ("isobaricInhPa",):
+        assert not ok([{"name": "foo", "levtype": levtype}])
+        assert logged("'levels' is a required property")

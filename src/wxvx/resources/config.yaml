@@ -9,27 +9,25 @@ leadtimes:
   stop: '01:00:00'
 rundir: /tmp/wxvx
 vars:
-  - level: 1000
+  - levels: [1000]
     levtype: isobaricInhPa
     name: gh
-  - level: null
-    levtype: atmosphere
+  - levtype: atmosphere
     name: refc
-  - level: 1000
+  - levels: [1000]
     levtype: isobaricInhPa
     name: q
-  - level: null
-    levtype: surface
+  - levtype: surface
     name: t
-  - level: 1000
+  - levels: [1000]
     levtype: isobaricInhPa
     name: t
-  - level: 1000
+  - levels: [1000]
     levtype: isobaricInhPa
     name: u
-  - level: 1000
+  - levels: [1000]
     levtype: isobaricInhPa
     name: v
-  - level: 1000
+  - levels: [1000]
     levtype: isobaricInhPa
     name: w
