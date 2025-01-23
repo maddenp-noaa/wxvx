@@ -1,15 +1,16 @@
 import re
 from typing import Optional
 
-from wxvx.strings import STR
+UNKNOWN = "unknown"
 
 
 class Var:
 
-    def __init__(self, name: Optional[str], level: Optional[int], levtype: Optional[str]):
+    def __init__(self, name: str, levtype: str, level: Optional[str]):
         self.name = name
-        self.level = level
         self.levtype = levtype
+        self.level = level
+        self._keys = ["name", "levtype", "level"] if self.level else ["name", "levtype"]
 
     def __eq__(self, other):
         return hash(self) == hash(other)
@@ -18,36 +19,29 @@ class Var:
         return hash((self.name, self.level, self.levtype))
 
     def __repr__(self):
-        return "%s(name='%s', levtype='%s', level=%s)" % (
-            self.__class__.__name__,
-            self.name,
-            self.levtype,
-            self.level,
-        )
+        vals = ["%s=%s" for k, v in zip(self._keys, [getattr(self, key) for key in self._keys])]
+        return "%s(%s)" % (self.__class__.__name__, ", ".join(vals))
 
     def __str__(self):
-        return "%s-%s-%s" % (self.name, self.levtype, self.level)
+        vals = (self.name, self.levtype, self.level) if self.level else (self.name, self.levtype)
+        return "-".join(vals)
 
 
 class GFSVar(Var):
 
-    def __init__(self, name: Optional[str], first_byte: int, last_byte: int, levstr: str):
-        super().__init__(name=name, level=GFSVar._level(levstr), levtype=GFSVar._levtype(levstr))
-        self.first_byte = first_byte
-        self.last_byte = last_byte if last_byte > 0 else None
-
-    def __repr__(self):
-        return "%s(name='%s', level=%s, levtype='%s', first_byte=%s, last_byte=%s)" % (
-            self.__class__.__name__,
-            self.name,
-            self.level,
-            self.levtype,
-            self.first_byte,
-            self.last_byte,
+    def __init__(self, name: str, levstr: str, firstbyte: int, lastbyte: int):
+        levtype, level = self._levinfo(levstr)
+        super().__init__(name=name, levtype=levtype, level=level)
+        self.firstbyte: int = firstbyte
+        self.lastbyte: Optional[int] = lastbyte if lastbyte > 0 else None
+        self._keys = (
+            ["name", "levtype", "level", "firstbyte", "lastbyte"]
+            if self.level
+            else ["name", "levtype", "firstbyte", "lastbyte"]
         )
 
     @staticmethod
-    def stdvar(name: str) -> Optional[str]:
+    def stdvar(name: str) -> str:
         return {
             "HGT": "gh",
             "REFC": "refc",
@@ -57,24 +51,48 @@ class GFSVar(Var):
             "UGRD": "u",
             "VGRD": "v",
             "VVEL": "w",
-        }.get(name)
+        }.get(name, UNKNOWN)
 
     @staticmethod
-    def _pressure_level(levstr: str) -> Optional[int]:
-        return int(m[1]) if (m := re.match(r"^(\d+) mb$", levstr)) else None
+    def _level_pressure(levstr: str) -> Optional[str]:
+        return m[1] if (m := re.match(r"^([0-9\.]+) mb$", levstr)) else None
 
     @staticmethod
-    def _level(levstr: str) -> Optional[int]:
-        if levstr == STR.surface:
-            return None
-        if level := GFSVar._pressure_level(levstr):
-            return level
-        return None
+    def _levinfo(levstr: str) -> tuple[str, Optional[str]]:
+        if m := re.match(r"^entire atmosphere$", levstr):
+            return ("atmosphere", None)
+        if m := re.match(r"^(\d+(\.\d+)?) mb$", levstr):
+            return ("isobaricInhPa", m[1])
+        if m := re.match(r"^surface$", levstr):
+            return ("surface", None)
+        return (UNKNOWN, UNKNOWN)
 
-    @staticmethod
-    def _levtype(levstr: str) -> Optional[str]:
-        if levstr == STR.surface:
-            return STR.surface
-        if GFSVar._pressure_level(levstr):
-            return STR.pressure
-        return None
+
+# typeOfLevel per eccodes in HRRR data:
+# adiabaticCondensation
+# atmosphere
+# atmosphereSingleLayer
+# cloudBase
+# cloudCeiling
+# cloudTop
+# depthBelowLand
+# depthBelowLandLayer
+# equilibrium
+# freeConvection
+# heightAboveGround
+# heightAboveGroundLayer
+# highCloudLayer
+# highestTroposphericFreezing
+# isobaricInhPa
+# isobaricLayer
+# isothermal
+# isothermZero
+# lowCloudLayer
+# meanSea
+# middleCloudLayer
+# nominalTop
+# pressureFromGroundLayer
+# sigma
+# sigmaLayer
+# surface
+# unknown

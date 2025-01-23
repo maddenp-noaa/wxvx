@@ -41,8 +41,9 @@ def config():
         },
         "rundir": "/tmp/rundir",
         "vars": [
-            {"level": 1000, "levtype": "pressure", "name": "q"},
-            {"level": None, "levtype": "surface", "name": "t"},
+            {"name": "q", "levtype": "isobaricInhPa", "level": 1000},
+            {"name": "refc", "levtype": "atmosphere", "level": None},
+            {"name": "t", "levtype": "surface", "level": None},
         ],
     }
 

@@ -12,7 +12,7 @@ from wxvx.vars import GFSVar, Var
 
 def go(config: dict) -> None:
     fh = 0
-    need = {Var(name=x["name"], level=x["level"], levtype=x["levtype"]) for x in config["vars"]}
+    need = {Var(name=x["name"], levtype=x["levtype"], level=x["level"]) for x in config["vars"]}
     for tcoord in validtimes(config):
         for var in need:
             url = config["baseline"].format(yyyymmdd=tcoord.yyyymmdd, hh=tcoord.hh, fh=f"{fh:02}")
@@ -36,7 +36,7 @@ def grib_message(var: Var, need: set[Var], tcoord: TimeCoords, rundir: Path, url
     yield asset(path, path.is_file)
     yield idxdata
     var_idxdata = refs(idxdata)[str(var)]
-    fb, lb = var_idxdata.first_byte, var_idxdata.last_byte
+    fb, lb = var_idxdata.firstbyte, var_idxdata.lastbyte
     headers = {"Range": "bytes=%s" % (f"{fb}-{lb}" if lb else fb)}
     fetch(taskname=taskname, url=url, path=path, headers=headers)
 
@@ -53,9 +53,9 @@ def grib_index_data(need: set[Var], tcoord: TimeCoords, rundir: Path, url: str, 
     for this_record, next_record in pairwise([line.split(":") for line in lines]):
         gfsvar = GFSVar(
             name=GFSVar.stdvar(this_record[3]),
-            first_byte=int(this_record[1]),
-            last_byte=int(next_record[1]) - 1,
             levstr=this_record[4],
+            firstbyte=int(this_record[1]),
+            lastbyte=int(next_record[1]) - 1,
         )
         if gfsvar in need:
             idxdata[str(gfsvar)] = gfsvar

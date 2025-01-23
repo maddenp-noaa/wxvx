@@ -73,7 +73,8 @@
           },
           "levtype": {
             "enum": [
-              "pressure",
+              "atmosphere",
+              "isobaricInhPa",
               "surface"
             ]
           },
