@@ -12,29 +12,40 @@ from wxvx.vars import GFSVar, Var
 
 @tasks
 def run_directory(config: dict):
-    path = Path(config["rundir"])
-    yield "Run directory %s" % path
-    yield [grib_messages(config)]
+    keys = ("baseline", "cycles", "leadtimes", "rundir", "vars")
+    baseline, cycles, leadtimes, rundir, vars = [config[k] for k in keys]
+    yield "Run directory %s" % rundir
+    yield [
+        grib_messages(
+            baseline=baseline,
+            cycles=cycles,
+            leadtimes=leadtimes,
+            rundir=Path(rundir),
+            vars=vars,
+        )
+    ]
 
 
 @tasks
-def grib_messages(config: dict):
+def grib_messages(
+    baseline: str, cycles: dict[str, str], leadtimes: dict[str, str], rundir: Path, vars: list[dict]
+):
     fh = 0
     need = set()
-    for entry in config["vars"]:
+    for entry in vars:
         levels = entry.get("levels", [None])
         for level in levels:
             need.add(Var(name=entry["name"], levtype=entry["levtype"], level=level))
     messages = []
-    for tcoord in validtimes(cycles=config["cycles"], leadtimes=config["leadtimes"]):
+    for tcoord in validtimes(cycles=cycles, leadtimes=leadtimes):
         for var in need:
-            url = config["baseline"].format(yyyymmdd=tcoord.yyyymmdd, hh=tcoord.hh, fh=f"{fh:02}")
+            url = baseline.format(yyyymmdd=tcoord.yyyymmdd, hh=tcoord.hh, fh=f"{fh:02}")
             messages.append(
                 grib_message(
                     var=var,
                     need=need,
                     tcoord=tcoord,
-                    rundir=Path(config["rundir"]),
+                    rundir=rundir,
                     url=url,
                     ts=(tcoord.dt + timedelta(hours=fh)).isoformat(),
                 )
