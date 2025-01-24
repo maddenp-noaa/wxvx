@@ -14,9 +14,9 @@ from wxvx.vars import GFSVar, Var
 
 
 @external
-def file(path: Path, taskname: str):
+def exists(path: Path, taskname: str):
     yield taskname
-    yield asset(path, path.is_file)
+    yield asset(path, path.exists)
 
 
 @tasks
@@ -108,7 +108,7 @@ def netcdf_file(forecast: Path, rundir: Path):
     taskname = "Forecast netCDF file %s" % path
     yield taskname
     yield asset(path, path.is_file)
-    yield file(path=forecast, taskname="Forecast %s" % forecast)
+    yield exists(path=forecast, taskname="Forecast %s" % forecast)
     logging.info("%s: Opening forecast %s", taskname, forecast)
     with catch_warnings():
         simplefilter("ignore")
