@@ -34,6 +34,7 @@ def config():
             "step": "01:00:00",
             "stop": "2024-04-07T22:00:00",
         },
+        "forecast": "/tmp/forecast",
         "leadtimes": {
             "start": "01:00:00",
             "step": "01:00:00",
@@ -119,7 +120,7 @@ def test_schema(logged, config, fs):
     # Basic correctness:
     assert ok(config)
     # Certain top-level keys are required:
-    for key in ["baseline", "cycles", "leadtimes", "rundir"]:
+    for key in ["baseline", "cycles", "forecast", "leadtimes", "rundir"]:
         assert not ok(with_del(config, key))
         assert logged(f"'{key}' is a required property")
     # Addional keys are not allowed:
@@ -130,7 +131,7 @@ def test_schema(logged, config, fs):
         assert not ok(with_set(config, None, key))
         assert logged("None is not of type 'object'")
     # Some keys have str values:
-    for key in ["baseline", "rundir"]:
+    for key in ["baseline", "forecast", "rundir"]:
         assert not ok(with_set(config, None, key))
         assert logged("None is not of type 'string'")
 

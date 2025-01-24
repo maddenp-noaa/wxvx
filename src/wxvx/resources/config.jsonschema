@@ -38,6 +38,9 @@
       ],
       "type": "object"
     },
+    "forecast": {
+      "type": "string"
+    },
     "leadtimes": {
       "additionalProperties": false,
       "properties": {
@@ -124,6 +127,7 @@
   "required": [
     "baseline",
     "cycles",
+    "forecast",
     "leadtimes",
     "rundir",
     "vars"
