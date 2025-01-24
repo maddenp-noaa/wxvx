@@ -67,7 +67,7 @@
     "rundir": {
       "type": "string"
     },
-    "vars": {
+    "variables": {
       "items": {
         "additionalProperties": false,
         "allOf": [
@@ -130,7 +130,7 @@
     "forecast",
     "leadtimes",
     "rundir",
-    "vars"
+    "variables"
   ],
   "type": "object"
 }

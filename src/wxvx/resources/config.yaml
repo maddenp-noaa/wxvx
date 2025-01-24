@@ -12,7 +12,7 @@ leadtimes:
 meta:
   levels: &levels [1000] # [200, 300, 475, 800, 825, 850, 875, 900, 925, 950, 975, 1000]
 rundir: /tmp/wxvx/
-vars:
+variables:
   - levels: *levels
     levtype: isobaricInhPa
     name: gh

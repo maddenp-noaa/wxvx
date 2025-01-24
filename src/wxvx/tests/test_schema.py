@@ -41,7 +41,7 @@ def config():
             "stop": "01:00:00",
         },
         "rundir": "/tmp/rundir",
-        "vars": [
+        "variables": [
             {"name": "q", "levtype": "isobaricInhPa", "levels": [1000]},
             {"name": "refc", "levtype": "atmosphere"},
             {"name": "t", "levtype": "surface"},
@@ -180,9 +180,9 @@ def test_schema_meta(config, fs, logged):
     assert logged("is not of type 'object'")
 
 
-def test_schema_vars(logged, config, fs):
-    ok = validator(fs, "properties", "vars")
-    config = config["vars"]
+def test_schema_variables(logged, config, fs):
+    ok = validator(fs, "properties", "variables")
+    config = config["variables"]
     entry = config[0]
     # Basic correctness:
     assert ok(config)

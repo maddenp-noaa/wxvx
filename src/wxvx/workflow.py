@@ -12,8 +12,8 @@ from wxvx.vars import GFSVar, Var
 
 @tasks
 def run_directory(config: dict):
-    keys = ("baseline", "cycles", "leadtimes", "rundir", "vars")
-    baseline, cycles, leadtimes, rundir, vars = [config[k] for k in keys]
+    keys = ("baseline", "cycles", "leadtimes", "rundir", "variables")
+    baseline, cycles, leadtimes, rundir, variables = [config[k] for k in keys]
     yield "Run directory %s" % rundir
     yield [
         grib_messages(
@@ -21,18 +21,22 @@ def run_directory(config: dict):
             cycles=cycles,
             leadtimes=leadtimes,
             rundir=Path(rundir),
-            vars=vars,
+            variables=variables,
         )
     ]
 
 
 @tasks
 def grib_messages(
-    baseline: str, cycles: dict[str, str], leadtimes: dict[str, str], rundir: Path, vars: list[dict]
+    baseline: str,
+    cycles: dict[str, str],
+    leadtimes: dict[str, str],
+    rundir: Path,
+    variables: list[dict],
 ):
     fh = 0
     need = set()
-    for entry in vars:
+    for entry in variables:
         levels = entry.get("levels", [None])
         for level in levels:
             need.add(Var(name=entry["name"], levtype=entry["levtype"], level=level))
