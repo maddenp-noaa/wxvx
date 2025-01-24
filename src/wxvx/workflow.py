@@ -26,7 +26,7 @@ def grib_messages(config: dict):
         for level in levels:
             need.add(Var(name=entry["name"], levtype=entry["levtype"], level=level))
     messages = []
-    for tcoord in validtimes(config):
+    for tcoord in validtimes(cycles=config["cycles"], leadtimes=config["leadtimes"]):
         for var in need:
             url = config["baseline"].format(yyyymmdd=tcoord.yyyymmdd, hh=tcoord.hh, fh=f"{fh:02}")
             messages.append(

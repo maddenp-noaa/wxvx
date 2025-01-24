@@ -34,10 +34,8 @@ class TimeCoords:
         return self.dt.strftime("%Y%m%d")
 
 
-def validtimes(config: dict) -> list[TimeCoords]:
-    cycles = config["cycles"]
+def validtimes(cycles: dict[str, str], leadtimes: dict[str, str]) -> list[TimeCoords]:
     cycles_start, cycles_step, cycles_stop = [cycles[x] for x in ("start", "step", "stop")]
-    leadtimes = config["leadtimes"]
     leadtimes_start, leadtimes_step, leadtimes_stop = [
         leadtimes[x] for x in ("start", "step", "stop")
     ]

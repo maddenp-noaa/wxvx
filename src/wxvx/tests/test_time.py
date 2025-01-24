@@ -34,7 +34,9 @@ def config():
 
 
 def test_time_validtimes(config):
-    assert [x.dt for x in time.validtimes(config)] == [
+    assert [
+        x.dt for x in time.validtimes(cycles=config["cycles"], leadtimes=config["leadtimes"])
+    ] == [
         datetime(2024, 12, 19, 18),
         datetime(2024, 12, 20, 0),
         datetime(2024, 12, 20, 6),
