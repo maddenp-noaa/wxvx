@@ -43,3 +43,6 @@ disable = [
 enable = [
   "useless-suppression",
 ]
+
+[tool.pytest.ini_options]
+filterwarnings = ["ignore:numpy.core.multiarray is deprecated"]

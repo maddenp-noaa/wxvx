@@ -1,8 +1,11 @@
+import logging
 from datetime import timedelta
 from itertools import pairwise
 from pathlib import Path
 from urllib.parse import urlparse
+from warnings import catch_warnings, simplefilter
 
+import xarray as xr
 from iotaa import asset, external, refs, task, tasks
 
 from wxvx.net import fetch, status
@@ -10,20 +13,10 @@ from wxvx.time import TimeCoords, validtimes
 from wxvx.vars import GFSVar, Var
 
 
-@tasks
-def run_directory(config: dict):
-    keys = ("baseline", "cycles", "leadtimes", "rundir", "variables")
-    baseline, cycles, leadtimes, rundir, variables = [config[k] for k in keys]
-    yield "Run directory %s" % rundir
-    yield [
-        grib_messages(
-            baseline=baseline,
-            cycles=cycles,
-            leadtimes=leadtimes,
-            rundir=Path(rundir),
-            variables=variables,
-        )
-    ]
+@external
+def file(path: Path, taskname: str):
+    yield taskname
+    yield asset(path, path.is_file)
 
 
 @tasks
@@ -107,3 +100,35 @@ def grib_index_local(tcoord: TimeCoords, rundir: Path, url: str, ts):
 def grib_index_remote(url: str, ts: str):
     yield "%s GRIB index remote %s" % (ts, url)
     yield asset(url, lambda: status(url) == 200)
+
+
+@task
+def netcdf_file(forecast: Path, rundir: Path):
+    path = rundir / "forecast.nc"
+    taskname = "Forecast netCDF file %s" % path
+    yield taskname
+    yield asset(path, path.is_file)
+    yield file(path=forecast, taskname="Forecast %s" % forecast)
+    logging.info("%s: Opening forecast %s", taskname, forecast)
+    with catch_warnings():
+        simplefilter("ignore")
+        ds = xr.open_dataset(forecast)
+    logging.info("Writing forecast to %s", path)
+    ds.to_netcdf(path=path)
+
+
+@tasks
+def run_directory(config: dict):
+    keys = ("baseline", "cycles", "forecast", "leadtimes", "rundir", "variables")
+    baseline, cycles, forecast, leadtimes, rundir, variables = [config[k] for k in keys]
+    yield "Run directory %s" % rundir
+    yield [
+        grib_messages(
+            baseline=baseline,
+            cycles=cycles,
+            leadtimes=leadtimes,
+            rundir=Path(rundir),
+            variables=variables,
+        ),
+        netcdf_file(forecast=Path(forecast), rundir=Path(rundir)),
+    ]

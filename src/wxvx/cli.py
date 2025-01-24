@@ -1,19 +1,13 @@
 import json
-
-# import logging
 import sys
 from argparse import ArgumentParser, HelpFormatter, Namespace
 from pathlib import Path
 
-# import xarray as xr
 from uwtools.api.config import get_yaml_config, validate
 from uwtools.api.logging import use_uwtools_logger
 
 from wxvx import workflow
 from wxvx.util import pkgname, resource, resource_path
-
-# from warnings import catch_warnings, simplefilter
-
 
 # Public
 
@@ -26,12 +20,6 @@ def main() -> None:
     if not validate(schema_file=resource_path("config.jsonschema"), config_data=config):
         sys.exit(1)
     workflow.run_directory(config=config, threads=4)
-    # with catch_warnings():
-    #     simplefilter("ignore")
-    #     ds = xr.open_dataset(config["forecast"])
-    # path = Path(config["rundir"], "forecast.nc")
-    # logging.info("Writing forecast to %s", path)
-    # ds.to_netcdf(path=path)
 
 
 # Private
