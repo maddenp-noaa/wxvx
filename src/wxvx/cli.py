@@ -1,17 +1,19 @@
 import json
-import logging
+
+# import logging
 import sys
 from argparse import ArgumentParser, HelpFormatter, Namespace
 from pathlib import Path
-from typing import Optional
 
-import xarray as xr
-import zarr
+# import xarray as xr
 from uwtools.api.config import get_yaml_config, validate
 from uwtools.api.logging import use_uwtools_logger
-from warnings import catch_warnings, simplefilter
+
 from wxvx import workflow
 from wxvx.util import pkgname, resource, resource_path
+
+# from warnings import catch_warnings, simplefilter
+
 
 # Public
 
@@ -23,34 +25,16 @@ def main() -> None:
     config.dereference()
     if not validate(schema_file=resource_path("config.jsonschema"), config_data=config):
         sys.exit(1)
-    workflow.grib_messages(config=config, threads=4)
-    with catch_warnings():
-        simplefilter("ignore")
-        ds = xr.open_dataset(config["forecast"])
-    # if not (ds := _ds(path=Path(config["forecast"]))):
-    #     sys.exit(1)
-    breakpoint()
-    return
+    workflow.run_directory(config=config, threads=4)
+    # with catch_warnings():
+    #     simplefilter("ignore")
+    #     ds = xr.open_dataset(config["forecast"])
+    # path = Path(config["rundir"], "forecast.nc")
+    # logging.info("Writing forecast to %s", path)
+    # ds.to_netcdf(path=path)
 
 
 # Private
-
-
-def _ds(path: Path) -> Optional[xr.Dataset]:
-    engines = ("netcdf4", "zarr")
-    for engine in engines:
-        try:
-            ds = xr.open_dataset(path, engine=engine)
-        except OSError as e:
-            if not "NetCDF: Unknown file format" in str(e):
-                raise
-        except zarr.errors._BaseZarrError:
-            pass
-        else:
-            logging.info("Opened %s as %s", path, engine)
-            return ds
-    logging.error("Could not open %s as %s", path, ", ".join(engines))
-    return None
 
 
 def _parse_args(argv: list[str]) -> Namespace:

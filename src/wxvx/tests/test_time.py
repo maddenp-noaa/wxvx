@@ -33,14 +33,6 @@ def config():
 # Tests
 
 
-def test_time_cycles(config):
-    assert time.cycles(config) == [datetime(2024, 12, 19, 18), datetime(2024, 12, 20, 6)]
-
-
-def test_time_leadtimes(config):
-    assert time.leadtimes(config) == [timedelta(hours=n) for n in (0, 6, 12)]
-
-
 def test_time_validtimes(config):
     assert [x.dt for x in time.validtimes(config)] == [
         datetime(2024, 12, 19, 18),
@@ -51,15 +43,11 @@ def test_time_validtimes(config):
     ]
 
 
-@mark.parametrize(
-    "step,expected",
-    [
-        ("01:02:03", timedelta(hours=1, minutes=2, seconds=3)),
-        ("168:00:00", timedelta(days=7)),
-    ],
-)
-def test_time__delta(step, expected):
-    assert time._delta(step=step) == expected
+def test_time__cycles(config):
+    assert time._cycles(**config["cycles"]) == [
+        datetime(2024, 12, 19, 18),
+        datetime(2024, 12, 20, 6),
+    ]
 
 
 def test_time__enumerate_basic():
@@ -90,3 +78,18 @@ def test_time__enumerate_stop_precedes_start():
             step=timedelta(hours=6),
         )
     assert str(e.value) == "Stop time 2024-12-19 06:00:00 precedes start time 2024-12-19 12:00:00"
+
+
+def test_time__leadtimes(config):
+    assert time._leadtimes(**config["leadtimes"]) == [timedelta(hours=n) for n in (0, 6, 12)]
+
+
+@mark.parametrize(
+    "step,expected",
+    [
+        ("01:02:03", timedelta(hours=1, minutes=2, seconds=3)),
+        ("168:00:00", timedelta(days=7)),
+    ],
+)
+def test_time__timedelta(step, expected):
+    assert time._timedelta(step=step) == expected

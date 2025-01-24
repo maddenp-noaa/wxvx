@@ -34,31 +34,27 @@ class TimeCoords:
         return self.dt.strftime("%Y%m%d")
 
 
-def cycles(config: dict) -> list[datetime]:
-    start, stop = [datetime.fromisoformat(config["cycles"][key]) for key in ("start", "stop")]
-    step = _delta(config["cycles"]["step"])
-    return _enumerate(start, stop, step)
-
-
-def leadtimes(config: dict) -> list[timedelta]:
-    start, stop = [_delta(config["leadtimes"][key]) for key in ("start", "stop")]
-    step = _delta(config["leadtimes"]["step"])
-    return _enumerate(start, stop, step)
-
-
 def validtimes(config: dict) -> list[TimeCoords]:
-    pairs = product(cycles(config), leadtimes(config))
+    cycles = config["cycles"]
+    cycles_start, cycles_step, cycles_stop = [cycles[x] for x in ("start", "step", "stop")]
+    leadtimes = config["leadtimes"]
+    leadtimes_start, leadtimes_step, leadtimes_stop = [
+        leadtimes[x] for x in ("start", "step", "stop")
+    ]
+    pairs = product(
+        _cycles(start=cycles_start, step=cycles_step, stop=cycles_stop),
+        _leadtimes(leadtimes_start, leadtimes_step, leadtimes_stop),
+    )
     return sorted(set(TimeCoords(cycle + leadtime) for cycle, leadtime in pairs))
 
 
 # Private
 
 
-def _delta(step: str) -> timedelta:
-    keys = ["hours", "minutes", "seconds"]
-    args = dict(zip(keys, map(int, step.split(":"))))
-    td = timedelta(**args)
-    return td
+def _cycles(start: str, step: str, stop: str) -> list[datetime]:
+    dt_start, dt_stop = [datetime.fromisoformat(x) for x in (start, stop)]
+    td_step = _timedelta(step)
+    return _enumerate(dt_start, dt_stop, td_step)
 
 
 @overload
@@ -72,3 +68,15 @@ def _enumerate(start, stop, step):
     while (x := xs[-1]) < stop:
         xs.append(x + step)
     return xs
+
+
+def _leadtimes(start: str, step: str, stop: str) -> list[timedelta]:
+    td_start, td_step, td_stop = [_timedelta(x) for x in (start, step, stop)]
+    return _enumerate(td_start, td_stop, td_step)
+
+
+def _timedelta(step: str) -> timedelta:
+    keys = ["hours", "minutes", "seconds"]
+    args = dict(zip(keys, map(int, step.split(":"))))
+    td = timedelta(**args)
+    return td

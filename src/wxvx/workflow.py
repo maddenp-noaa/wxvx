@@ -11,6 +11,13 @@ from wxvx.vars import GFSVar, Var
 
 
 @tasks
+def run_directory(config: dict):
+    path = Path(config["rundir"])
+    yield "Run directory %s" % path
+    yield [grib_messages(config)]
+
+
+@tasks
 def grib_messages(config: dict):
     fh = 0
     need = set()
