@@ -66,33 +66,3 @@ class GFSVar(Var):
         if m := re.match(r"^surface$", levstr):
             return ("surface", None)
         return (UNKNOWN, None)
-
-
-# typeOfLevel per eccodes in HRRR data:
-# adiabaticCondensation
-# atmosphere
-# atmosphereSingleLayer
-# cloudBase
-# cloudCeiling
-# cloudTop
-# depthBelowLand
-# depthBelowLandLayer
-# equilibrium
-# freeConvection
-# heightAboveGround
-# heightAboveGroundLayer
-# highCloudLayer
-# highestTroposphericFreezing
-# isobaricInhPa
-# isobaricLayer
-# isothermal
-# isothermZero
-# lowCloudLayer
-# meanSea
-# middleCloudLayer
-# nominalTop
-# pressureFromGroundLayer
-# sigma
-# sigmaLayer
-# surface
-# unknown
