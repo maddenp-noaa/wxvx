@@ -34,15 +34,15 @@ def config():
 
 
 def test_time_validtimes(config):
-    assert [
-        x.dt for x in time.validtimes(cycles=config["cycles"], leadtimes=config["leadtimes"])
-    ] == [
+    actual = [x.dt for x in time.validtimes(cycles=config["cycles"], leadtimes=config["leadtimes"])]
+    expected = [
         datetime(2024, 12, 19, 18),
         datetime(2024, 12, 20, 0),
         datetime(2024, 12, 20, 6),
         datetime(2024, 12, 20, 12),
         datetime(2024, 12, 20, 18),
     ]
+    assert actual == expected
 
 
 def test_time__cycles(config):
