@@ -16,10 +16,13 @@ requirements:
   run:
     - iotaa >=1.1.0
     - metkit 11.0.*
+    - netcdf4 1.7.*
     - python 3.10 # due to metkit python_abi pin
     - pyyaml 6.0.*
     - requests 2.32.*
     - uwtools 2.6.*
+    - xarray 2023.12.*
+    - zarr 2.17.*
 test:
   requires:
     - black 24.10.*
