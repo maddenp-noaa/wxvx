@@ -1,5 +1,4 @@
 import logging
-import os
 from pathlib import Path
 from typing import Optional
 
@@ -12,7 +11,7 @@ def fetch(taskname: str, url: str, path: Path, headers: Optional[dict[str, str]]
     response = requests.get(url, allow_redirects=True, timeout=3, headers=headers or {})
     expected = 206 if headers and "Range" in headers.keys() else 200
     if response.status_code == expected:
-        os.makedirs(path.parent, exist_ok=True)
+        path.parent.mkdir(parents=True, exist_ok=True)
         with open(path, "wb") as f:
             f.write(response.content)
             logging.info("%s: Wrote %s", taskname, path)

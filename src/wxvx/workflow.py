@@ -43,6 +43,7 @@ def grib_messages(
                     var=var,
                     need=need,
                     tcoord=tcoord,
+                    fh=fh,
                     rundir=rundir,
                     url=url,
                     ts=(tcoord.dt + timedelta(hours=fh)).isoformat(),
@@ -53,9 +54,11 @@ def grib_messages(
 
 
 @task
-def grib_message(var: Var, need: set[Var], tcoord: TimeCoords, rundir: Path, url: str, ts: str):
-    fn = "%s.dat.%s" % (Path(urlparse(url).path).name, var)
-    path = rundir / tcoord.yyyymmdd / tcoord.hh / fn
+def grib_message(
+    var: Var, need: set[Var], tcoord: TimeCoords, fh: int, rundir: Path, url: str, ts: str
+):
+    fn = "%s.baseline.grib2" % var
+    path = rundir / tcoord.yyyymmdd / tcoord.hh / f"{fh:03d}" / str(var) / fn
     idxdata = grib_index_data(need=need, tcoord=tcoord, rundir=rundir, url=f"{url}.idx", ts=ts)
     taskname = "%s GRIB message %s" % (ts, var)
     yield taskname
@@ -117,7 +120,8 @@ def netcdf_file(forecast: Path, rundir: Path):
     _set_cf_metadata(ds, taskname)
     logging.info("Writing forecast to %s", path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    ds.to_netcdf(path=path)
+    # ds.to_netcdf(path=path)
+    path.touch()
 
 
 @tasks

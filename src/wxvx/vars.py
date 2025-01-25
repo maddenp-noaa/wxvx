@@ -23,7 +23,8 @@ class Var:
         return "%s(%s)" % (self.__class__.__name__, ", ".join(vals))
 
     def __str__(self):
-        vals = filter(None, [self.name, self.levtype, self.level])
+        level = f"{int(self.level):04}" if self.level else None
+        vals = filter(None, [self.name, self.levtype, level])
         return "-".join(vals)
 
 
