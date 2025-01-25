@@ -25,7 +25,7 @@ Optional arguments:
 
 ## Configuration
 
-The content YAML configuration file supplied via `-c` / `--config` is described in the table below.
+The content of the YAML configuration file supplied via `-c` / `--config` is described in the table below.
 
 ```
 ┌────────────────┬─────────────────────────────────────────────┐
