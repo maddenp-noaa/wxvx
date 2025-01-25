@@ -114,7 +114,7 @@ def netcdf_file(forecast: Path, rundir: Path):
     with catch_warnings():
         simplefilter("ignore")
         ds = xr.open_dataset(forecast)
-    _add_cf_metadata(ds, taskname)
+    _set_cf_metadata(ds, taskname)
     logging.info("Writing forecast to %s", path)
     ds.to_netcdf(path=path)
 
@@ -139,7 +139,7 @@ def run_directory(config: dict):
 # Helpers
 
 
-def _add_cf_metadata(ds: xr.Dataset, taskname: str) -> None:
+def _set_cf_metadata(ds: xr.Dataset, taskname: str) -> None:
     logging.info("%s: Setting CF metadata on dataset", taskname)
     ds.attrs["Conventions"] = "CF-1.8"
     ds["latitude_longitude"] = int()
