@@ -8,21 +8,21 @@
 ├────────────────┼─────────────────────────────────────────────┤
 │ baseline:      │ Template for baseline GRIB file URLs        │
 │ cycles:        │ Cycles to verify                            │
-│     start:     │ First cycle as ISO8601 timestamp            │
-│     step:      │ Interval between cycles as hh[:mm[:ss]]     │
-│     stop:      │ Last cycle as ISO8601 timestamp             │
+│   start:       │ First cycle as ISO8601 timestamp            │
+│   step:        │ Interval between cycles as hh[:mm[:ss]]     │
+│   stop:        │ Last cycle as ISO8601 timestamp             │
 │ forecast:      │ Path to netCDF or Zarr forecast             │
 │ leadtimes:     │ Leadtimes to verify                         │
-│     start:     │ First leadtime as hh[:mm[:ss]]              │
-│     step:      │ Interval between leadtimes as hh[:mm[:ss]]  │
-│     stop:      │ Last leadtime as hh[:mm[:ss]]               │
+│   start:       │ First leadtime as hh[:mm[:ss]]              │
+│   step:        │ Interval between leadtimes as hh[:mm[:ss]]  │
+│   stop:        │ Last leadtime as hh[:mm[:ss]]               │
 │ meta:          │ Optional free-form data section             │
 │ rundir:        │ Run directory for temporary files           │
 │ threads:       │ Number of concurrent threads to use         │
 │ variables:     │ A sequence of variables to verify           │
-│     - levels:  │ A sequence of level values                  │
-│       levtype: │ The level type                              │
-│       name:    │ The variable name                           │
+│   - levels:    │ A sequence of level values                  │
+│     levtype:   │ The level type                              │
+│     name:      │ The variable name                           │
 └────────────────┴─────────────────────────────────────────────┘
 ```
 
