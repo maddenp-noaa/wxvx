@@ -25,7 +25,7 @@ Optional arguments:
 
 ## Configuration
 
-Use the `-s` / `--show` CLI switch to show a pro-forma config for reference.
+The content YAML configuration file supplied via `-c` / `--config` is described in the table below.
 
 ```
 ┌────────────────┬─────────────────────────────────────────────┐
@@ -50,6 +50,8 @@ Use the `-s` / `--show` CLI switch to show a pro-forma config for reference.
 │     name:      │ The variable name                           │
 └────────────────┴─────────────────────────────────────────────┘
 ```
+
+Use the `-s` / `--show` CLI switch to show a pro-forma config with realistic values for reference.
 
 Notes:
 
