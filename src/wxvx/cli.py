@@ -45,7 +45,7 @@ def _parse_args(argv: list[str]) -> Namespace:
         "-d",
         "--debug",
         action="store_true",
-        help="Print all logging messages",
+        help="Log all messages",
     )
     optional.add_argument(
         "-h",

@@ -1,6 +1,31 @@
 # wxvx
 
+## Use
+
+```
+$ wxvx --help
+usage: wxvx -c FILE [-d] [-h] [-s] [-v]
+
+wxvx
+
+Required arguments:
+  -c FILE, --config FILE
+      Configuration file
+
+Optional arguments:
+  -d, --debug
+      Log all messages
+  -h, --help
+      Show help and exit
+  -s, --show
+      Show a pro-forma config and exit
+  -v, --version
+      Show version and exit
+```
+
 ## Configuration
+
+Use the `-s` / `--show` CLI switch to show a pro-forma config for reference.
 
 ```
 ┌────────────────┬─────────────────────────────────────────────┐
