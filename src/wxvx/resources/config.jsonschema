@@ -67,6 +67,9 @@
     "rundir": {
       "type": "string"
     },
+    "threads": {
+      "type": "integer"
+    },
     "variables": {
       "items": {
         "additionalProperties": false,
@@ -130,6 +133,7 @@
     "forecast",
     "leadtimes",
     "rundir",
+    "threads",
     "variables"
   ],
   "type": "object"

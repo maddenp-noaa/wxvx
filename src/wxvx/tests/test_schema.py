@@ -41,6 +41,7 @@ def config():
             "stop": "01:00:00",
         },
         "rundir": "/tmp/rundir",
+        "threads": 4,
         "variables": [
             {"name": "q", "levtype": "isobaricInhPa", "levels": [1000]},
             {"name": "refc", "levtype": "atmosphere"},
@@ -120,7 +121,7 @@ def test_schema(logged, config, fs):
     # Basic correctness:
     assert ok(config)
     # Certain top-level keys are required:
-    for key in ["baseline", "cycles", "forecast", "leadtimes", "rundir"]:
+    for key in ["baseline", "cycles", "forecast", "leadtimes", "rundir", "threads"]:
         assert not ok(with_del(config, key))
         assert logged(f"'{key}' is a required property")
     # Addional keys are not allowed:
@@ -130,6 +131,10 @@ def test_schema(logged, config, fs):
     for key in ["cycles", "leadtimes"]:
         assert not ok(with_set(config, None, key))
         assert logged("None is not of type 'object'")
+    # Some keys have int values:
+    for key in ["threads"]:
+        assert not ok(with_set(config, None, key))
+        assert logged("None is not of type 'integer'")
     # Some keys have str values:
     for key in ["baseline", "forecast", "rundir"]:
         assert not ok(with_set(config, None, key))
