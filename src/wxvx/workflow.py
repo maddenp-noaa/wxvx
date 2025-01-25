@@ -116,6 +116,7 @@ def netcdf_file(forecast: Path, rundir: Path):
         ds = xr.open_dataset(forecast)
     _set_cf_metadata(ds, taskname)
     logging.info("Writing forecast to %s", path)
+    path.parent.mkdir(parents=True, exist_ok=True)
     ds.to_netcdf(path=path)
 
 
@@ -144,7 +145,7 @@ def _set_cf_metadata(ds: xr.Dataset, taskname: str) -> None:
     ds.attrs["Conventions"] = "CF-1.8"
     ds["latitude_longitude"] = int()
     ds.latitude_longitude.attrs["grid_mapping_name"] = "latitude_longitude"
-    wxvars = (
+    for var, long_name, standard_name, units in (
         ["HGT", "Geopotential Height", "geopotential_height", "m"],
         ["REFC", "Composite Reflectivity", "unknown", "dBZ"],
         ["SPFH", "Specific Humidity", "specific_humidity", "1"],
@@ -153,8 +154,7 @@ def _set_cf_metadata(ds: xr.Dataset, taskname: str) -> None:
         ["UGRD", "U-Component of Wind", "eastward_wind", "m s-1"],
         ["VGRD", "V-Component of Wind", "northward_wind", "m s-1"],
         ["VVEL", "Vertical Velocity (Pressure],", "lagrangian_tendency_of_air_pressure", "Pa s-1"],
-    )
-    for var, long_name, standard_name, units in wxvars:
+    ):
         updates = {
             "grid_mapping": "latitude_longitude",
             "long_name": long_name,
@@ -163,11 +163,16 @@ def _set_cf_metadata(ds: xr.Dataset, taskname: str) -> None:
         }
         logging.debug("%s: Setting %s on %s", taskname, updates, var)
         ds[var].attrs.update(updates)
-    for var, long_name, standard_name in (
+    for var, long_name, standard_name, units in (
         ["latitude", "latitude", "latitude", "degrees_north"],
-        ["lead_time", "Forecast Period", "forecast_period"],
         ["level", "pressure level", "air_pressure", "hPa"],
         ["longitude", "longitude", "longitude", "degrees_east"],
+    ):
+        updates = {"long_name": long_name, "standard_name": standard_name, "units": units}
+        logging.debug("%s: Setting %s on %s", taskname, updates, var)
+        ds[var].attrs.update(updates)
+    for var, long_name, standard_name in (
+        ["lead_time", "Forecast Period", "forecast_period"],
         ["time", "Forecast Reference Time", "forecast_reference_time"],
     ):
         updates = {"long_name": long_name, "standard_name": standard_name}
