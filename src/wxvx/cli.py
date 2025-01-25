@@ -1,6 +1,6 @@
 import json
 import sys
-from argparse import ArgumentParser, HelpFormatter, Namespace
+from argparse import Action, ArgumentParser, HelpFormatter, Namespace
 from pathlib import Path
 
 from uwtools.api.config import get_yaml_config, validate
@@ -19,7 +19,7 @@ def main() -> None:
     config.dereference()
     if not validate(schema_file=resource_path("config.jsonschema"), config_data=config):
         sys.exit(1)
-    workflow.run_directory(config=config, threads=args.threads)
+    workflow.run_directory(config=config, threads=config["threads"])
 
 
 # Private
@@ -54,6 +54,13 @@ def _parse_args(argv: list[str]) -> Namespace:
         help="Show help and exit",
     )
     optional.add_argument(
+        "-s",
+        "--show",
+        action=ShowConfig,
+        help="Show a pro-forma config and exit",
+        nargs=0,
+    )
+    optional.add_argument(
         "-v",
         "--version",
         action="version",
@@ -67,3 +74,13 @@ def _version() -> str:
     with resource("info.json") as f:
         info = json.load(f)
     return "version %s build %s" % (info["version"], info["buildnum"])
+
+
+class ShowConfig(Action):
+    def __init__(self, option_strings, dest, **kwargs):
+        super().__init__(option_strings, dest, **kwargs)
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        with resource("config.yaml") as f:
+            print(f.read().strip())
+        sys.exit(0)
