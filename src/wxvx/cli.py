@@ -19,7 +19,7 @@ def main() -> None:
     config.dereference()
     if not validate(schema_file=resource_path("config.jsonschema"), config_data=config):
         sys.exit(1)
-    workflow.run_directory(config=config, threads=4)
+    workflow.run_directory(config=config, threads=args.threads)
 
 
 # Private
