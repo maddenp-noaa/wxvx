@@ -54,31 +54,29 @@ def test_time__cycles(config):
 
 def test_time__enumerate_basic():
     start = datetime(2024, 12, 19, 12, 0)
+    step = timedelta(hours=6)
     stop = datetime(2024, 12, 20, 6, 0)
-    assert time._enumerate(start=start, stop=stop, step=timedelta(hours=6)) == [
-        start,
+    assert time._enumerate(start=start, stop=stop, step=step) == [
+        datetime(2024, 12, 19, 12, 0),
         datetime(2024, 12, 19, 18, 0),
         datetime(2024, 12, 20, 0, 0),
-        stop,
+        datetime(2024, 12, 20, 6, 0),
     ]
 
 
 def test_time__enumerate_degenerate_one():
     start = datetime(2024, 12, 19, 12, 0)
-    assert time._enumerate(
-        start=start,
-        stop=datetime(2024, 12, 19, 12, 0),
-        step=timedelta(hours=6),
-    ) == [start]
+    step = timedelta(hours=6)
+    stop = datetime(2024, 12, 19, 12, 0)
+    assert time._enumerate(start=start, step=step, stop=stop) == [datetime(2024, 12, 19, 12, 0)]
 
 
 def test_time__enumerate_stop_precedes_start():
+    start = datetime(2024, 12, 19, 12, 0)
+    step = timedelta(hours=6)
+    stop = datetime(2024, 12, 19, 6, 0)
     with raises(WXVXError) as e:
-        time._enumerate(
-            start=datetime(2024, 12, 19, 12, 0),
-            stop=datetime(2024, 12, 19, 6, 0),
-            step=timedelta(hours=6),
-        )
+        time._enumerate(start=start, step=step, stop=stop)
     assert str(e.value) == "Stop time 2024-12-19 06:00:00 precedes start time 2024-12-19 12:00:00"
 
 

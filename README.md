@@ -53,7 +53,7 @@ The content of the YAML configuration file supplied via `-c` / `--config` is des
 
 Use the `-s` / `--show` CLI switch to show a pro-forma config with realistic values for reference.
 
-- The baseline URL template may include {yyyymmdd} (forecast date), {hh} (forecast hour), and {fh} (forecast leadtime) Jinja2 expressions, which will be replaced with appropriate values at run time.
+- The baseline URL template may include {yyyymmdd} (forecast date) and {hh} (forecast hour) Jinja2 expressions, which will be replaced with appropriate values at run time.
 - The last cycle/leadtime is included in verification. That is, the range upper bound is inclusive, not exclusive.
 - The `meta:` block may contain, for example, values tagged with YAML anchors referenced elsewhere via aliases (see the _Aliases_ section [here](https://pyyaml.org/wiki/PyYAMLDocumentation)), or values referenced elsewhere in Jinja2 expressions as realized by `uwtools` (see examples in [here](https://uwtools.readthedocs.io/en/stable/sections/user_guide/cli/tools/config.html#realize)).
 - The `variables:` block may be an arbitrarily long sequence of variable descriptions. Variable names and level types follow ECMWF conventions. See the [Parameter Database](https://codes.ecmwf.int/grib/param-db/) for details.

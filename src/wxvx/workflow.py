@@ -12,55 +12,57 @@ from wxvx.net import fetch, status
 from wxvx.time import TimeCoords, validtimes
 from wxvx.vars import GFSVar, Var
 
-
 # Tasks
+
+
 @external
 def exists(path: Path, taskname: str):
     yield taskname
     yield asset(path, path.exists)
 
 
-@tasks
-def grib_messages(
-    baseline: str,
-    cycles: dict[str, str],
-    leadtimes: dict[str, str],
-    rundir: Path,
-    variables: list[dict],
-):
-    fh = 0
-    need = set()
-    for entry in variables:
-        levels = entry.get("levels", [None])
-        for level in levels:
-            need.add(Var(name=entry["name"], levtype=entry["levtype"], level=level))
-    messages = []
-    for tcoord in validtimes(cycles=cycles, leadtimes=leadtimes):
-        for var in need:
-            url = baseline.format(yyyymmdd=tcoord.yyyymmdd, hh=tcoord.hh, fh=f"{fh:02}")
-            messages.append(
-                grib_message(
-                    var=var,
-                    need=need,
-                    tcoord=tcoord,
-                    fh=fh,
-                    rundir=rundir,
-                    url=url,
-                    ts=(tcoord.dt + timedelta(hours=fh)).isoformat(),
-                )
-            )
-    yield "GRIB messages"
-    yield messages
+# @tasks
+# def grib_messages(
+#     baseline: str,
+#     cycles: dict[str, str],
+#     leadtimes: dict[str, str],
+#     rundir: Path,
+#     variables: list[dict],
+# ):
+#     fh = 0
+#     need = set()
+#     for entry in variables:
+#         levels = entry.get("levels", [None])
+#         for level in levels:
+#             need.add(Var(name=entry["name"], levtype=entry["levtype"], level=level))
+#     messages = []
+#     for tcoord in validtimes(cycles=cycles, leadtimes=leadtimes):
+#         for var in need:
+#             url = baseline.format(yyyymmdd=tcoord.yyyymmdd, hh=tcoord.hh, fh=f"{fh:02}")
+#             messages.append(
+#                 grib_message(
+#                     var=var,
+#                     need=need,
+#                     tcoord=tcoord,
+#                     fh=fh,
+#                     rundir=rundir,
+#                     url=url,
+#                     ts=(tcoord.dt + timedelta(hours=fh)).isoformat(),
+#                 )
+#             )
+#     yield "GRIB messages"
+#     yield messages
 
 
 @task
-def grib_message(
-    var: Var, need: set[Var], tcoord: TimeCoords, fh: int, rundir: Path, url: str, ts: str
-):
-    fn = "%s.baseline.grib2" % var
-    path = rundir / tcoord.yyyymmdd / tcoord.hh / f"{fh:03d}" / str(var) / fn
-    idxdata = grib_index_data(need=need, tcoord=tcoord, rundir=rundir, url=f"{url}.idx", ts=ts)
+def grib_message(var: Var, variables: set[Var], tcoord: TimeCoords, rundir: Path, url: str):
+    ts = tcoord.dt.isoformat()
     taskname = "%s GRIB message %s" % (ts, var)
+    fn = "%s.baseline.grib2" % var
+    path = rundir / tcoord.yyyymmdd / tcoord.hh / "000" / str(var) / fn
+    idxdata = grib_index_data(
+        variables=variables, tcoord=tcoord, rundir=rundir, url=f"{url}.idx", ts=ts
+    )
     yield taskname
     yield asset(path, path.is_file)
     yield idxdata
@@ -71,7 +73,7 @@ def grib_message(
 
 
 @task
-def grib_index_data(need: set[Var], tcoord: TimeCoords, rundir: Path, url: str, ts: str):
+def grib_index_data(variables: set[Var], tcoord: TimeCoords, rundir: Path, url: str, ts: str):
     idxdata: dict[str, GFSVar] = {}
     idxfile = grib_index_local(tcoord=tcoord, rundir=rundir, url=url, ts=ts)
     yield "%s GRIB index data" % ts
@@ -86,14 +88,14 @@ def grib_index_data(need: set[Var], tcoord: TimeCoords, rundir: Path, url: str, 
             firstbyte=int(this_record[1]),
             lastbyte=int(next_record[1]) - 1,
         )
-        if gfsvar in need:
+        if gfsvar in variables:
             idxdata[str(gfsvar)] = gfsvar
 
 
 @task
 def grib_index_local(tcoord: TimeCoords, rundir: Path, url: str, ts):
-    path = rundir / tcoord.yyyymmdd / tcoord.hh / Path(urlparse(url).path).name
     taskname = "%s GRIB index local" % ts
+    path = rundir / tcoord.yyyymmdd / tcoord.hh / Path(urlparse(url).path).name
     yield taskname
     yield asset(path, path.is_file)
     yield grib_index_remote(url=url, ts=ts)
@@ -106,22 +108,22 @@ def grib_index_remote(url: str, ts: str):
     yield asset(url, lambda: status(url) == 200)
 
 
-@task
-def netcdf_file(forecast: Path, rundir: Path):
-    path = rundir / "forecast.nc"
-    taskname = "Forecast netCDF file %s" % path
-    yield taskname
-    yield asset(path, path.is_file)
-    yield exists(path=forecast, taskname="Forecast %s" % forecast)
-    logging.info("%s: Opening forecast %s", taskname, forecast)
-    with catch_warnings():
-        simplefilter("ignore")
-        ds = xr.open_dataset(forecast)
-    _set_cf_metadata(ds, taskname)
-    logging.info("Writing forecast to %s", path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    # ds.to_netcdf(path=path)
-    path.touch()
+# @task
+# def netcdf_file(forecast: Path, rundir: Path):
+#     taskname = "Forecast netCDF file %s" % path
+#     path = rundir / "forecast.nc"
+#     yield taskname
+#     yield asset(path, path.is_file)
+#     yield exists(path=forecast, taskname="Forecast %s" % forecast)
+#     logging.info("%s: Opening forecast %s", taskname, forecast)
+#     with catch_warnings():
+#         simplefilter("ignore")
+#         ds = xr.open_dataset(forecast)
+#     _set_cf_metadata(ds, taskname)
+#     logging.info("Writing forecast to %s", path)
+#     path.parent.mkdir(parents=True, exist_ok=True)
+#     # ds.to_netcdf(path=path)
+#     path.touch()
 
 
 @tasks
@@ -139,6 +141,45 @@ def run_directory(config: dict):
         ),
         netcdf_file(forecast=Path(forecast), rundir=Path(rundir)),
     ]
+
+
+@tasks
+def verify_all(config: dict):
+    taskname = "Verification"
+    logging.info("%s: Opening forecast %s", taskname, config["forecast"])
+    with catch_warnings():
+        simplefilter("ignore")
+        ds = xr.open_dataset(config["forecast"])  # PM factor out to task with external req
+    _set_cf_metadata(ds, taskname)
+    variables = _variables(needed=config["variables"])
+    var_validtime_pairs = []
+    for validtime in validtimes(cycles=config["cycles"], leadtimes=config["leadtimes"]):
+        for var in sorted(list(variables))[:2]:
+            var_validtime_pairs.append(
+                verify_one(
+                    var=var,
+                    variables=variables,
+                    validtime=validtime,
+                    rundir=Path(config["rundir"]),
+                    baseline=config["baseline"],
+                )
+            )
+    yield taskname
+    yield var_validtime_pairs
+
+
+@tasks  # PM change to @task
+def verify_one(
+    var: Var,
+    variables: set[Var],
+    validtime: TimeCoords,
+    rundir: Path,
+    baseline: str,
+):
+    url = baseline.format(yyyymmdd=validtime.yyyymmdd, hh=validtime.hh)
+    gm = grib_message(var=var, variables=variables, tcoord=validtime, rundir=rundir, url=url)
+    yield "Verification of %s at %s" % (var, validtime)
+    yield gm
 
 
 # Helpers
@@ -182,3 +223,12 @@ def _set_cf_metadata(ds: xr.Dataset, taskname: str) -> None:
         updates = {"long_name": long_name, "standard_name": standard_name}
         logging.debug("%s: Setting %s on %s", taskname, updates, var)
         ds[var].attrs.update(updates)
+
+
+def _variables(needed: list[dict]) -> set[Var]:
+    variables = set()
+    for var in needed:
+        levels = var.get("levels", [None])
+        for level in levels:
+            variables.add(Var(name=var["name"], levtype=var["levtype"], level=level))
+    return variables

@@ -18,6 +18,9 @@ class Var:
     def __hash__(self):
         return hash((self.name, self.level, self.levtype))
 
+    def __lt__(self, other):
+        return str(self) < str(other)
+
     def __repr__(self):
         vals = [f"{k}={v}" for k, v in zip(self._keys, [getattr(self, key) for key in self._keys])]
         return "%s(%s)" % (self.__class__.__name__, ", ".join(vals))

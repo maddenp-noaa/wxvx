@@ -35,10 +35,9 @@ class TimeCoords:
 
 
 def validtimes(cycles: dict[str, str], leadtimes: dict[str, str]) -> list[TimeCoords]:
-    cycles_start, cycles_step, cycles_stop = [cycles[x] for x in ("start", "step", "stop")]
-    leadtimes_start, leadtimes_step, leadtimes_stop = [
-        leadtimes[x] for x in ("start", "step", "stop")
-    ]
+    range_params = lambda section: [section[param] for param in ("start", "step", "stop")]
+    cycles_start, cycles_step, cycles_stop = range_params(cycles)
+    leadtimes_start, leadtimes_step, leadtimes_stop = range_params(leadtimes)
     pairs = product(
         _cycles(start=cycles_start, step=cycles_step, stop=cycles_stop),
         _leadtimes(leadtimes_start, leadtimes_step, leadtimes_stop),
@@ -52,14 +51,14 @@ def validtimes(cycles: dict[str, str], leadtimes: dict[str, str]) -> list[TimeCo
 def _cycles(start: str, step: str, stop: str) -> list[datetime]:
     dt_start, dt_stop = [datetime.fromisoformat(x) for x in (start, stop)]
     td_step = _timedelta(step)
-    return _enumerate(dt_start, dt_stop, td_step)
+    return _enumerate(dt_start, td_step, dt_stop)
 
 
 @overload
-def _enumerate(start: datetime, stop: datetime, step: timedelta) -> list[datetime]: ...
+def _enumerate(start: datetime, step: timedelta, stop: datetime) -> list[datetime]: ...
 @overload
-def _enumerate(start: timedelta, stop: timedelta, step: timedelta) -> list[timedelta]: ...
-def _enumerate(start, stop, step):
+def _enumerate(start: timedelta, step: timedelta, stop: timedelta) -> list[timedelta]: ...
+def _enumerate(start, step, stop):
     if stop < start:
         raise WXVXError("Stop time %s precedes start time %s" % (stop, start))
     xs = [start]
@@ -70,7 +69,7 @@ def _enumerate(start, stop, step):
 
 def _leadtimes(start: str, step: str, stop: str) -> list[timedelta]:
     td_start, td_step, td_stop = [_timedelta(x) for x in (start, step, stop)]
-    return _enumerate(td_start, td_stop, td_step)
+    return _enumerate(td_start, td_step, td_stop)
 
 
 def _timedelta(step: str) -> timedelta:
