@@ -13,9 +13,22 @@ from wxvx.vars import GFSVar, Var
 
 
 @external
-def exists(path: Path, taskname: str):
-    yield taskname
+def existing(path: Path):
+    yield "Existing path %s" % path
     yield asset(path, path.exists)
+
+
+@task
+def forecast_dataset(forecast: Path):
+    taskname = "Forecast %s" % forecast
+    fd = xr.Dataset()
+    yield taskname
+    yield asset(fd, lambda: bool(fd))
+    yield existing(path=forecast)
+    logging.info("%s: Opening forecast %s", taskname, forecast)
+    with catch_warnings():
+        simplefilter("ignore")
+        fd.update(xr.open_dataset(forecast))
 
 
 @task
@@ -72,19 +85,6 @@ def grib_index_remote(url: str, ts: str):
     yield asset(url, lambda: status(url) == 200)
 
 
-@task
-def forecast_dataset(path: Path):
-    taskname = "Forecast %s" % path
-    fd = xr.Dataset()
-    yield taskname
-    yield asset(fd, lambda: bool(fd))
-    yield exists(path, taskname)
-    logging.info("%s: Opening forecast %s", taskname, path)
-    with catch_warnings():
-        simplefilter("ignore")
-        fd.update(xr.open_dataset(path))
-
-
 @tasks
 def verify_all(config: dict):
     taskname = "Verification"
@@ -98,6 +98,7 @@ def verify_all(config: dict):
         for var in sorted(list(variables))[:2]:
             var_validtime_pairs.append(
                 verify_one(
+                    forecast=Path(config["forecast"]),
                     var=var,
                     variables=variables,
                     validtime=validtime,
@@ -111,6 +112,7 @@ def verify_all(config: dict):
 
 @tasks  # PM change to @task
 def verify_one(
+    forecast: Path,
     var: Var,
     variables: set[Var],
     validtime: TimeCoords,
@@ -118,7 +120,8 @@ def verify_one(
     baseline: str,
 ):
     url = baseline.format(yyyymmdd=validtime.yyyymmdd, hh=validtime.hh)
+    fd = forecast_dataset(forecast=forecast)
     gm = grib_message(var=var, variables=variables, tcoord=validtime, rundir=rundir, url=url)
     yield "Verification of %s at %s" % (var, validtime)
-    yield gm
+    yield [fd, gm]
     # _set_cf_metadata(ds, taskname)
