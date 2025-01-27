@@ -21,39 +21,6 @@ def exists(path: Path, taskname: str):
     yield asset(path, path.exists)
 
 
-# @tasks
-# def grib_messages(
-#     baseline: str,
-#     cycles: dict[str, str],
-#     leadtimes: dict[str, str],
-#     rundir: Path,
-#     variables: list[dict],
-# ):
-#     fh = 0
-#     need = set()
-#     for entry in variables:
-#         levels = entry.get("levels", [None])
-#         for level in levels:
-#             need.add(Var(name=entry["name"], levtype=entry["levtype"], level=level))
-#     messages = []
-#     for tcoord in validtimes(cycles=cycles, leadtimes=leadtimes):
-#         for var in need:
-#             url = baseline.format(yyyymmdd=tcoord.yyyymmdd, hh=tcoord.hh, fh=f"{fh:02}")
-#             messages.append(
-#                 grib_message(
-#                     var=var,
-#                     need=need,
-#                     tcoord=tcoord,
-#                     fh=fh,
-#                     rundir=rundir,
-#                     url=url,
-#                     ts=(tcoord.dt + timedelta(hours=fh)).isoformat(),
-#                 )
-#             )
-#     yield "GRIB messages"
-#     yield messages
-
-
 @task
 def grib_message(var: Var, variables: set[Var], tcoord: TimeCoords, rundir: Path, url: str):
     ts = tcoord.dt.isoformat()
@@ -185,7 +152,7 @@ def verify_one(
 # Helpers
 
 
-def _set_cf_metadata(ds: xr.Dataset, taskname: str) -> None:
+def _set_cf_metadata(ds: xr.Dataset, taskname: str) -> None:  # PM drive per req'd var
     logging.info("%s: Setting CF metadata on dataset", taskname)
     ds.attrs["Conventions"] = "CF-1.8"
     ds["latitude_longitude"] = int()
