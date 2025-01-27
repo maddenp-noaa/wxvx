@@ -19,6 +19,17 @@ def existing(path: Path):
 
 
 @task
+def forecast_var(var: Var, validtime: TimeCoords, forecast: Path):
+    ran: list[bool] = []
+    fd = forecast_dataset(forecast=forecast)
+    yield "Forecast variable %s at %s" % (var, validtime)
+    yield asset(ran, lambda: bool(ran))
+    yield fd
+    ran.append(True)
+    # _set_cf_metadata(ds, taskname)
+
+
+@task
 def forecast_dataset(forecast: Path):
     taskname = "Forecast %s" % forecast
     fd = xr.Dataset()
@@ -120,8 +131,7 @@ def verify_one(
     baseline: str,
 ):
     url = baseline.format(yyyymmdd=validtime.yyyymmdd, hh=validtime.hh)
-    fd = forecast_dataset(forecast=forecast)
+    fv = forecast_var(var=var, validtime=validtime, forecast=forecast)
     gm = grib_message(var=var, variables=variables, tcoord=validtime, rundir=rundir, url=url)
     yield "Verification of %s at %s" % (var, validtime)
-    yield [fd, gm]
-    # _set_cf_metadata(ds, taskname)
+    yield [fv, gm]
