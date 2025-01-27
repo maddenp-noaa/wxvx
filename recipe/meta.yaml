@@ -14,7 +14,7 @@ requirements:
     - pip
     - setuptools
   run:
-    - iotaa >=1.1.0
+    - iotaa >=1.1.1
     - metkit 11.0.*
     - netcdf4 1.7.*
     - python 3.10 # due to metkit python_abi pin
