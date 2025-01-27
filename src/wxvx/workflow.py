@@ -1,5 +1,4 @@
 import logging
-from datetime import timedelta
 from itertools import pairwise
 from pathlib import Path
 from urllib.parse import urlparse
@@ -93,21 +92,21 @@ def grib_index_remote(url: str, ts: str):
 #     path.touch()
 
 
-@tasks
-def run_directory(config: dict):
-    keys = ("baseline", "cycles", "forecast", "leadtimes", "rundir", "variables")
-    baseline, cycles, forecast, leadtimes, rundir, variables = [config[k] for k in keys]
-    yield "Run directory %s" % rundir
-    yield [
-        grib_messages(
-            baseline=baseline,
-            cycles=cycles,
-            leadtimes=leadtimes,
-            rundir=Path(rundir),
-            variables=variables,
-        ),
-        netcdf_file(forecast=Path(forecast), rundir=Path(rundir)),
-    ]
+# @tasks
+# def run_directory(config: dict):
+#     keys = ("baseline", "cycles", "forecast", "leadtimes", "rundir", "variables")
+#     baseline, cycles, forecast, leadtimes, rundir, variables = [config[k] for k in keys]
+#     yield "Run directory %s" % rundir
+#     yield [
+#         grib_messages(
+#             baseline=baseline,
+#             cycles=cycles,
+#             leadtimes=leadtimes,
+#             rundir=Path(rundir),
+#             variables=variables,
+#         ),
+#         netcdf_file(forecast=Path(forecast), rundir=Path(rundir)),
+#     ]
 
 
 @tasks
