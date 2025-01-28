@@ -2,7 +2,7 @@
 Tests for wxvx.cli.
 """
 
-# pylint: disable=protected-access,redefined-outer-name
+# pylint: disable=invalid-name,protected-access,redefined-outer-name
 
 import re
 from pathlib import Path
