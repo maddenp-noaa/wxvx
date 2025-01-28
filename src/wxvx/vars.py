@@ -88,36 +88,37 @@ def set_cf_metadata(da: xr.DataArray, taskname: str) -> None:
     da.attrs["Conventions"] = "CF-1.8"
     da["latitude_longitude"] = int()
     da.latitude_longitude.attrs["grid_mapping_name"] = "latitude_longitude"
-    # for var, long_name, standard_name, units in (
-    #     ["HGT", "Geopotential Height", "geopotential_height", "m"],
-    #     ["REFC", "Composite Reflectivity", "unknown", "dBZ"],
-    #     ["SPFH", "Specific Humidity", "specific_humidity", "1"],
-    #     ["T2M", "Temperature", "surface_temperature", "K"],
-    #     ["TMP", "Temperature", "air_temperature", "K"],
-    #     ["UGRD", "U-Component of Wind", "eastward_wind", "m s-1"],
-    #     ["VGRD", "V-Component of Wind", "northward_wind", "m s-1"],
-    #     ["VVEL", "Vertical Velocity (Pressure],", "lagrangian_tendency_of_air_pressure", "Pa s-1"],
-    # ):
-    #     updates = {
-    #         "grid_mapping": "latitude_longitude",
-    #         "long_name": long_name,
-    #         "standard_name": standard_name,
-    #         "units": units,
-    #     }
-    #     logging.debug("%s: Setting %s on %s", taskname, updates, var)
-    #     da[var].attrs.update(updates)
-    # for var, long_name, standard_name, units in (
-    #     ["latitude", "latitude", "latitude", "degrees_north"],
-    #     ["level", "pressure level", "air_pressure", "hPa"],
-    #     ["longitude", "longitude", "longitude", "degrees_east"],
-    # ):
-    #     updates = {"long_name": long_name, "standard_name": standard_name, "units": units}
-    #     logging.debug("%s: Setting %s on %s", taskname, updates, var)
-    #     da[var].attrs.update(updates)
-    # for var, long_name, standard_name in (
-    #     ["lead_time", "Forecast Period", "forecast_period"],
-    #     ["time", "Forecast Reference Time", "forecast_reference_time"],
-    # ):
-    #     updates = {"long_name": long_name, "standard_name": standard_name}
-    #     logging.debug("%s: Setting %s on %s", taskname, updates, var)
-    #     da[var].attrs.update(updates)
+    for var, long_name, standard_name, units in (
+        ["HGT", "Geopotential Height", "geopotential_height", "m"],
+        ["REFC", "Composite Reflectivity", "unknown", "dBZ"],
+        ["SPFH", "Specific Humidity", "specific_humidity", "1"],
+        ["T2M", "Temperature", "surface_temperature", "K"],
+        ["TMP", "Temperature", "air_temperature", "K"],
+        ["UGRD", "U-Component of Wind", "eastward_wind", "m s-1"],
+        ["VGRD", "V-Component of Wind", "northward_wind", "m s-1"],
+        ["VVEL", "Vertical Velocity (Pressure],", "lagrangian_tendency_of_air_pressure", "Pa s-1"],
+    ):
+        updates = {
+            "grid_mapping": "latitude_longitude",
+            "long_name": long_name,
+            "standard_name": standard_name,
+            "units": units,
+        }
+        if da.name == var:
+            logging.debug("%s: Setting %s on %s", taskname, updates, var)
+            da.attrs.update(updates)
+    for var, long_name, standard_name, units in (
+        ["latitude", "latitude", "latitude", "degrees_north"],
+        ["level", "pressure level", "air_pressure", "hPa"],
+        ["longitude", "longitude", "longitude", "degrees_east"],
+    ):
+        updates = {"long_name": long_name, "standard_name": standard_name, "units": units}
+        logging.debug("%s: Setting %s on %s", taskname, updates, var)
+        da[var].attrs.update(updates)
+    for var, long_name, standard_name in (
+        ["lead_time", "Forecast Period", "forecast_period"],
+        ["time", "Forecast Reference Time", "forecast_reference_time"],
+    ):
+        updates = {"long_name": long_name, "standard_name": standard_name}
+        logging.debug("%s: Setting %s on %s", taskname, updates, var)
+        da[var].attrs.update(updates)
