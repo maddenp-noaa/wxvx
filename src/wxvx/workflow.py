@@ -9,7 +9,7 @@ from iotaa import asset, external, refs, task, tasks
 
 from wxvx.net import fetch, status
 from wxvx.time import TimeCoords, validtimes
-from wxvx.vars import GFSVar, Var
+from wxvx.vars import GFSVar, Var, set_cf_metadata
 
 
 @external
@@ -35,12 +35,13 @@ def forecast_dataset(forecast: Path):
 def forecast_var(var: Var, validtime: TimeCoords, forecast: Path, rundir: Path):
     fn = "%s.forecast.nc" % var
     path = rundir / "forecast" / validtime.yyyymmdd / validtime.hh / fn
+    taskname = "Forecast variable %s at %s" % (var, validtime)
     fd = forecast_dataset(forecast=forecast)
-    yield "Forecast variable %s at %s" % (var, validtime)
+    yield taskname
     yield asset(path, path.is_file)
     yield fd
     da = refs(fd)[GFSVar.gfsvar(var.name)].sel(time=validtime.dt)
-    # _set_cf_metadata(ds, taskname)
+    set_cf_metadata(da=da, taskname=taskname)
     path.parent.mkdir(parents=True, exist_ok=True)
     da.to_netcdf(path=path)
 
