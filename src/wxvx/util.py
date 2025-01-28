@@ -11,7 +11,7 @@ class WXVXError(Exception): ...
 
 @contextmanager
 def resource(relpath: str) -> Generator[TextIO, None, None]:
-    with open(resource_path(relpath), "r", encoding="utf-8") as f:
+    with resource_path(relpath).open("r") as f:
         yield f
 
 

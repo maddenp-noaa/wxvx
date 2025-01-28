@@ -32,24 +32,27 @@ def forecast_dataset(forecast: Path):
 
 
 @task
-def forecast_var(var: Var, validtime: TimeCoords, forecast: Path):
-    ran: list[bool] = []
+def forecast_var(var: Var, validtime: TimeCoords, forecast: Path, rundir: Path):
+    fn = "%s.forecast.nc" % var
+    path = rundir / "forecast" / validtime.yyyymmdd / validtime.hh / fn
     fd = forecast_dataset(forecast=forecast)
     yield "Forecast variable %s at %s" % (var, validtime)
-    yield asset(ran, lambda: bool(ran))
+    yield asset(path, path.is_file)
     yield fd
-    ran.append(True)
+    da = refs(fd)[GFSVar.gfsvar(var.name)].sel(time=validtime.dt)
     # _set_cf_metadata(ds, taskname)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    da.to_netcdf(path=path)
 
 
 @task
-def grib_message(var: Var, variables: set[Var], tcoord: TimeCoords, rundir: Path, url: str):
-    ts = tcoord.dt.isoformat()
-    taskname = "%s GRIB message %s" % (ts, var)
+def grib_message(var: Var, variables: set[Var], validtime: TimeCoords, rundir: Path, url: str):
     fn = "%s.baseline.grib2" % var
-    path = rundir / tcoord.yyyymmdd / tcoord.hh / "000" / str(var) / fn
+    path = rundir / "baseline" / validtime.yyyymmdd / validtime.hh / fn
+    ts = validtime.dt.isoformat()
+    taskname = "%s GRIB message %s" % (ts, var)
     idxdata = grib_index_data(
-        variables=variables, tcoord=tcoord, rundir=rundir, url=f"{url}.idx", ts=ts
+        variables=variables, validtime=validtime, rundir=rundir, url=f"{url}.idx", ts=ts
     )
     yield taskname
     yield asset(path, path.is_file)
@@ -61,9 +64,9 @@ def grib_message(var: Var, variables: set[Var], tcoord: TimeCoords, rundir: Path
 
 
 @task
-def grib_index_data(variables: set[Var], tcoord: TimeCoords, rundir: Path, url: str, ts: str):
+def grib_index_data(variables: set[Var], validtime: TimeCoords, rundir: Path, url: str, ts: str):
     idxdata: dict[str, GFSVar] = {}
-    idxfile = grib_index_local(tcoord=tcoord, rundir=rundir, url=url, ts=ts)
+    idxfile = grib_index_local(validtime=validtime, rundir=rundir, url=url, ts=ts)
     yield "%s GRIB index data" % ts
     yield asset(idxdata, lambda: bool(idxdata))
     yield idxfile
@@ -81,9 +84,9 @@ def grib_index_data(variables: set[Var], tcoord: TimeCoords, rundir: Path, url: 
 
 
 @task
-def grib_index_local(tcoord: TimeCoords, rundir: Path, url: str, ts):
+def grib_index_local(validtime: TimeCoords, rundir: Path, url: str, ts):
     taskname = "%s GRIB index local" % ts
-    path = rundir / tcoord.yyyymmdd / tcoord.hh / Path(urlparse(url).path).name
+    path = rundir / "baseline" / validtime.yyyymmdd / validtime.hh / Path(urlparse(url).path).name
     yield taskname
     yield asset(path, path.is_file)
     yield grib_index_remote(url=url, ts=ts)
@@ -131,7 +134,7 @@ def verify_one(
     baseline: str,
 ):
     url = baseline.format(yyyymmdd=validtime.yyyymmdd, hh=validtime.hh)
-    fv = forecast_var(var=var, validtime=validtime, forecast=forecast)
-    gm = grib_message(var=var, variables=variables, tcoord=validtime, rundir=rundir, url=url)
+    fv = forecast_var(var=var, validtime=validtime, forecast=forecast, rundir=rundir)
+    gm = grib_message(var=var, variables=variables, validtime=validtime, rundir=rundir, url=url)
     yield "Verification of %s at %s" % (var, validtime)
     yield [fv, gm]

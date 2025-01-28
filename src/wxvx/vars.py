@@ -47,18 +47,26 @@ class GFSVar(Var):
             else ["name", "levtype", "firstbyte", "lastbyte"]
         )
 
-    @staticmethod
-    def stdvar(name: str) -> str:
-        return {
-            "HGT": "gh",
-            "REFC": "refc",
-            "SPFH": "q",
-            "T2M": "t",
-            "TMP": "t",
-            "UGRD": "u",
-            "VGRD": "v",
-            "VVEL": "w",
-        }.get(name, UNKNOWN)
+    GFS2STD = {
+        "HGT": "gh",
+        "REFC": "refc",
+        "SPFH": "q",
+        "T2M": "t",
+        "TMP": "t",
+        "UGRD": "u",
+        "VGRD": "v",
+        "VVEL": "w",
+    }
+
+    STD2GFS = {v: k for k, v in GFS2STD.items()}
+
+    @classmethod
+    def gfsvar(cls, name: str) -> str:
+        return cls.STD2GFS.get(name, UNKNOWN)
+
+    @classmethod
+    def stdvar(cls, name: str) -> str:
+        return cls.GFS2STD.get(name, UNKNOWN)
 
     @staticmethod
     def _level_pressure(levstr: str) -> Optional[str]:
