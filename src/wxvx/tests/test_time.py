@@ -2,7 +2,7 @@
 Tests for wxvx.time.
 """
 
-# pylint: disable=protected-access,redefined-outer-name
+# pylint: disable=invalid-name,protected-access,redefined-outer-name
 
 from datetime import datetime, timedelta
 
@@ -93,3 +93,16 @@ def test_time__leadtimes(config):
 )
 def test_time__timedelta(step, expected):
     assert time._timedelta(step=step) == expected
+
+
+def test_TimeCoords():
+    t = datetime(2024, 1, 28, 12)
+    tc = time.TimeCoords(dt=t)
+    assert hash(tc) == t.timestamp()
+    assert tc < time.TimeCoords(dt=t + timedelta(hours=1))
+    assert tc == time.TimeCoords(dt=t + timedelta(hours=0))
+    assert tc > time.TimeCoords(dt=t - timedelta(hours=1))
+    assert repr(tc) == "2024-01-28T12:00:00"
+    assert tc.hh == "12"
+    assert tc.iso == "2024-01-28T12:00:00"
+    assert tc.yyyymmdd == "20240128"

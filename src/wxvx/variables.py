@@ -19,7 +19,7 @@ class Var:
         return hash(self) == hash(other)
 
     def __hash__(self):
-        return hash((self.name, self.level, self.levtype))
+        return hash((self.name, self.levtype, self.level))
 
     def __lt__(self, other):
         return str(self) < str(other)

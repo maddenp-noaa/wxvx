@@ -9,7 +9,7 @@ from iotaa import asset, external, refs, task, tasks
 
 from wxvx.net import fetch, status
 from wxvx.time import TimeCoords, validtimes
-from wxvx.vars import GFSVar, Var, set_cf_metadata
+from wxvx.variables import GFSVar, Var, set_cf_metadata
 
 
 @external
