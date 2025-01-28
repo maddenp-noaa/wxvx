@@ -19,17 +19,6 @@ def existing(path: Path):
 
 
 @task
-def forecast_var(var: Var, validtime: TimeCoords, forecast: Path):
-    ran: list[bool] = []
-    fd = forecast_dataset(forecast=forecast)
-    yield "Forecast variable %s at %s" % (var, validtime)
-    yield asset(ran, lambda: bool(ran))
-    yield fd
-    ran.append(True)
-    # _set_cf_metadata(ds, taskname)
-
-
-@task
 def forecast_dataset(forecast: Path):
     taskname = "Forecast %s" % forecast
     fd = xr.Dataset()
@@ -40,6 +29,17 @@ def forecast_dataset(forecast: Path):
     with catch_warnings():
         simplefilter("ignore")
         fd.update(xr.open_dataset(forecast))
+
+
+@task
+def forecast_var(var: Var, validtime: TimeCoords, forecast: Path):
+    ran: list[bool] = []
+    fd = forecast_dataset(forecast=forecast)
+    yield "Forecast variable %s at %s" % (var, validtime)
+    yield asset(ran, lambda: bool(ran))
+    yield fd
+    ran.append(True)
+    # _set_cf_metadata(ds, taskname)
 
 
 @task
