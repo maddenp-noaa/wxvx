@@ -21,14 +21,14 @@ def existing(path: Path):
 @task
 def forecast_dataset(forecast: Path):
     taskname = "Forecast %s" % forecast
-    fd = xr.Dataset()
+    ds = xr.Dataset()
     yield taskname
-    yield asset(fd, lambda: bool(fd))
+    yield asset(ds, lambda: bool(ds))
     yield existing(path=forecast)
     logging.info("%s: Opening forecast %s", taskname, forecast)
     with catch_warnings():
         simplefilter("ignore")
-        fd.update(xr.open_dataset(forecast))
+        ds.update(xr.open_dataset(forecast))
 
 
 @task
