@@ -89,6 +89,6 @@ def test_variables_GFSVar__levinfo(expected, levstr):
     assert variables.GFSVar._levinfo(levstr) == expected
 
 
-def test_variables_set_cf_metadata(da, cf_metadata_checks):
+def test_variables_set_cf_metadata(da, check_cf_metadata):
     variables.set_cf_metadata(da=da, taskname="test")
-    cf_metadata_checks(da)
+    check_cf_metadata(da)

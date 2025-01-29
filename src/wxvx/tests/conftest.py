@@ -6,7 +6,7 @@ from pytest import fixture
 
 
 @fixture
-def cf_metadata_checks():
+def check_cf_metadata():
     def check(da):
         for k, v in [
             ("Conventions", "CF-1.8"),
