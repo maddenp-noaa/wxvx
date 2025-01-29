@@ -81,7 +81,7 @@ def test_cli__version():
     assert re.match(r"^version \d+\.\d+\.\d+ build \d+$", cli._version())
 
 
-def test_ShowConfig(capsys, fs):
+def test_cli_ShowConfig(capsys, fs):
     msg = "testing ShowConfig"
     cf = Path(fs.create_file("config.yaml", contents=msg).path)
     sc = cli.ShowConfig(option_strings=["-s", "--show"], dest="show")

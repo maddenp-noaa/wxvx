@@ -18,7 +18,7 @@ URL = "https://some.url"
     ("code", "out", "byterange", "ret"),
     [(200, "foo", False, True), (206, "foo", True, True), (404, "", False, False)],
 )
-def test_fetch_fail(code, fs, out, byterange, ret):
+def test_net_fetch_fail(code, fs, out, byterange, ret):
     response = Mock()
     response.status_code = code
     response.content = bytes("foo", encoding="utf-8")
@@ -30,7 +30,7 @@ def test_fetch_fail(code, fs, out, byterange, ret):
     assert path.read_text(encoding="utf-8") == out
 
 
-def test_status():
+def test_net_status():
     code = 42
     response = Mock()
     response.status_code = code

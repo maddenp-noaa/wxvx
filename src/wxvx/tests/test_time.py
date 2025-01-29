@@ -95,7 +95,7 @@ def test_time__timedelta(step, expected):
     assert time._timedelta(step=step) == expected
 
 
-def test_TimeCoords():
+def test_time_TimeCoords():
     t = datetime(2024, 1, 28, 12)
     tc = time.TimeCoords(dt=t)
     assert hash(tc) == t.timestamp()

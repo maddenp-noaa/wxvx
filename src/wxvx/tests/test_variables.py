@@ -4,8 +4,6 @@ Tests for wxvx.net.
 
 # pylint: disable=invalid-name,protected-access
 
-import numpy as np
-import xarray as xr
 from pytest import mark, raises
 
 from wxvx import variables
@@ -13,7 +11,7 @@ from wxvx import variables
 # Tests
 
 
-def test_Var_no_level():
+def test_variables_Var_no_level():
     var = variables.Var(name="foo", levtype="surface")
     assert var.name == "foo"
     assert var.levtype == "surface"
@@ -28,7 +26,7 @@ def test_Var_no_level():
     assert str(var) == "foo-surface"
 
 
-def test_Var_with_level():
+def test_variables_Var_with_level():
     var = variables.Var(name="foo", levtype="isobaricInhPa", level="1000")
     assert var.name == "foo"
     assert var.levtype == "isobaricInhPa"
@@ -43,7 +41,7 @@ def test_Var_with_level():
     assert str(var) == "foo-isobaricInhPa-1000"
 
 
-def test_GFSVar():
+def test_variables_GFSVar():
     keys = {"name", "levtype", "firstbyte", "lastbyte"}
     var = variables.GFSVar(name="TMP", levstr="900 mb", firstbyte=1, lastbyte=2)
     assert var.levtype == "isobaricInhPa"
@@ -54,27 +52,27 @@ def test_GFSVar():
     assert variables.GFSVar(name="TMP", levstr="surface", firstbyte=1, lastbyte=2)._keys == keys
 
 
-def test_GFSVar_fail():
+def test_variables_GFSVar_fail():
     with raises(ValueError) as e:
         variables.GFSVar(name="FOO", levstr="surface", firstbyte=1, lastbyte=2)
     assert str(e.value) == "Unknown GFS variable name 'FOO'"
 
 
 @mark.parametrize(("expected", "name"), [("TMP", "t"), (variables.UNKNOWN, "foo")])
-def test_GFSVar_gfsvar(expected, name):
+def test_variables_GFSVar_gfsvar(expected, name):
     # NB: 't' => 'TMP', not T2M, which is potentially a problem.
     assert variables.GFSVar.gfsvar(name) == expected
 
 
 @mark.parametrize(("expected", "name"), [("t", "TMP"), ("t", "T2M"), (variables.UNKNOWN, "FOO")])
-def test_GFSVar_stdvar(expected, name):
+def test_variables_GFSVar_stdvar(expected, name):
     assert variables.GFSVar.stdvar(name) == expected
 
 
 @mark.parametrize(
     ("expected", "levstr"), [("900", "900 mb"), ("1013.1", "1013.1 mb"), (None, "surface")]
 )
-def test_GFSVar__level_pressure(expected, levstr):
+def test_variables_GFSVar__level_pressure(expected, levstr):
     assert variables.GFSVar._level_pressure(levstr) == expected
 
 
@@ -87,23 +85,11 @@ def test_GFSVar__level_pressure(expected, levstr):
         ((variables.UNKNOWN, None), "something else"),
     ],
 )
-def test_GFSVar__levinfo(expected, levstr):
+def test_variables_GFSVar__levinfo(expected, levstr):
     assert variables.GFSVar._levinfo(levstr) == expected
 
 
-def test_set_cf_metadata():
-    da = xr.DataArray(
-        name="HGT",
-        data=np.zeros((1, 1, 1, 1, 1)),
-        dims=["latitude", "longitude", "level", "time", "lead_time"],
-        coords=dict(
-            latitude=(["latitude", "longitude"], np.zeros((1, 1))),
-            longitude=(["latitude", "longitude"], np.zeros((1, 1))),
-            level=(["level"], np.zeros((1,))),
-            time=np.zeros((1,)),
-            lead_time=np.zeros((1,)),
-        ),
-    )
+def test_variables_set_cf_metadata(da):
     variables.set_cf_metadata(da=da, taskname="test")
     for k, v in [
         ("Conventions", "CF-1.8"),
