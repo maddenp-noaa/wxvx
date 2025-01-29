@@ -13,7 +13,7 @@ class Var:
         self.name = name
         self.levtype = levtype
         self.level = str(level) if level else None
-        self._keys = ["name", "levtype", "level"] if self.level else ["name", "levtype"]
+        self._keys = {"name", "levtype", "level"} if self.level else {"name", "levtype"}
 
     def __eq__(self, other):
         return hash(self) == hash(other)
@@ -25,7 +25,8 @@ class Var:
         return str(self) < str(other)
 
     def __repr__(self):
-        vals = [f"{k}={v}" for k, v in zip(self._keys, [getattr(self, key) for key in self._keys])]
+        keys = sorted(list(self._keys))
+        vals = [f"{k}={v}" for k, v in zip(keys, [getattr(self, key) for key in keys])]
         return "%s(%s)" % (self.__class__.__name__, ", ".join(vals))
 
     def __str__(self):
@@ -35,17 +36,6 @@ class Var:
 
 
 class GFSVar(Var):
-
-    def __init__(self, name: str, levstr: str, firstbyte: int, lastbyte: int):
-        levtype, level = self._levinfo(levstr)
-        super().__init__(name=name, levtype=levtype, level=level)
-        self.firstbyte: int = firstbyte
-        self.lastbyte: Optional[int] = lastbyte if lastbyte > 0 else None
-        self._keys = (
-            ["name", "levtype", "level", "firstbyte", "lastbyte"]
-            if self.level
-            else ["name", "levtype", "firstbyte", "lastbyte"]
-        )
 
     GFS2STD = {
         "HGT": "gh",
@@ -59,6 +49,19 @@ class GFSVar(Var):
     }
 
     STD2GFS = {v: k for k, v in GFS2STD.items()}
+
+    def __init__(self, name: str, levstr: str, firstbyte: int, lastbyte: int):
+        if name not in GFSVar.GFS2STD:
+            raise ValueError(f"Unknown GFSVar name '{name}'")
+        levtype, level = self._levinfo(levstr)
+        super().__init__(name=name, levtype=levtype, level=level)
+        self.firstbyte: int = firstbyte
+        self.lastbyte: Optional[int] = lastbyte if lastbyte > 0 else None
+        self._keys = (
+            {"name", "levtype", "level", "firstbyte", "lastbyte"}
+            if self.level
+            else {"name", "levtype", "firstbyte", "lastbyte"}
+        )
 
     @classmethod
     def gfsvar(cls, name: str) -> str:
