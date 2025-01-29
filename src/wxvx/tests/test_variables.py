@@ -4,7 +4,9 @@ Tests for wxvx.net.
 
 # pylint: disable=invalid-name,protected-access
 
-from pytest import mark
+import numpy as np
+import xarray as xr
+from pytest import mark, raises
 
 from wxvx import variables
 
@@ -52,6 +54,12 @@ def test_GFSVar():
     assert variables.GFSVar(name="TMP", levstr="surface", firstbyte=1, lastbyte=2)._keys == keys
 
 
+def test_GFSVar_fail():
+    with raises(ValueError) as e:
+        variables.GFSVar(name="FOO", levstr="surface", firstbyte=1, lastbyte=2)
+    assert str(e.value) == "Unknown GFS variable name 'FOO'"
+
+
 @mark.parametrize(("expected", "name"), [("TMP", "t"), (variables.UNKNOWN, "foo")])
 def test_GFSVar_gfsvar(expected, name):
     # NB: 't' => 'TMP', not T2M, which is potentially a problem.
@@ -81,3 +89,52 @@ def test_GFSVar__level_pressure(expected, levstr):
 )
 def test_GFSVar__levinfo(expected, levstr):
     assert variables.GFSVar._levinfo(levstr) == expected
+
+
+def test_set_cf_metadata():
+    da = xr.DataArray(
+        name="HGT",
+        data=np.zeros((1, 1, 1, 1, 1)),
+        dims=["latitude", "longitude", "level", "time", "lead_time"],
+        coords=dict(
+            latitude=(["latitude", "longitude"], np.zeros((1, 1))),
+            longitude=(["latitude", "longitude"], np.zeros((1, 1))),
+            level=(["level"], np.zeros((1,))),
+            time=np.zeros((1,)),
+            lead_time=np.zeros((1,)),
+        ),
+    )
+    variables.set_cf_metadata(da=da, taskname="test")
+    for k, v in [
+        ("Conventions", "CF-1.8"),
+        ("grid_mapping", "latitude_longitude"),
+        ("long_name", "Geopotential Height"),
+        ("standard_name", "geopotential_height"),
+        ("units", "m"),
+    ]:
+        assert da.attrs[k] == v
+    for k, v in [
+        ("long_name", "latitude"),
+        ("standard_name", "latitude"),
+        ("units", "degrees_north"),
+    ]:
+        assert da.latitude.attrs[k] == v
+    for k, v in [
+        ("long_name", "pressure level"),
+        ("standard_name", "air_pressure"),
+        ("units", "hPa"),
+    ]:
+        assert da.level.attrs[k] == v
+    for k, v in [
+        ("long_name", "longitude"),
+        ("standard_name", "longitude"),
+        ("units", "degrees_east"),
+    ]:
+        assert da.longitude.attrs[k] == v
+    for k, v in [("long_name", "Forecast Period"), ("standard_name", "forecast_period")]:
+        assert da.lead_time.attrs[k] == v
+    for k, v in [
+        ("long_name", "Forecast Reference Time"),
+        ("standard_name", "forecast_reference_time"),
+    ]:
+        assert da.time.attrs[k] == v
