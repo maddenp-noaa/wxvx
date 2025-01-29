@@ -51,12 +51,10 @@ class GFSVar(Var):
     STD2GFS = {v: k for k, v in GFS2STD.items()}
 
     def __init__(self, name: str, levstr: str, firstbyte: int, lastbyte: int):
-        if name not in GFSVar.GFS2STD:
-            raise ValueError(f"Unknown GFS variable name '{name}'")
         levtype, level = self._levinfo(levstr)
         super().__init__(name=name, levtype=levtype, level=level)
         self.firstbyte: int = firstbyte
-        self.lastbyte: Optional[int] = lastbyte if lastbyte > 0 else None
+        self.lastbyte: Optional[int] = lastbyte if lastbyte > -1 else None
         self._keys = (
             {"name", "levtype", "level", "firstbyte", "lastbyte"}
             if self.level

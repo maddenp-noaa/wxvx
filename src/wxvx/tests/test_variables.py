@@ -4,7 +4,7 @@ Tests for wxvx.net.
 
 # pylint: disable=invalid-name,protected-access
 
-from pytest import mark, raises
+from pytest import mark
 
 from wxvx import variables
 
@@ -50,12 +50,6 @@ def test_variables_GFSVar():
     assert var.lastbyte == 2
     assert var._keys == {*keys, "level"}
     assert variables.GFSVar(name="TMP", levstr="surface", firstbyte=1, lastbyte=2)._keys == keys
-
-
-def test_variables_GFSVar_fail():
-    with raises(ValueError) as e:
-        variables.GFSVar(name="FOO", levstr="surface", firstbyte=1, lastbyte=2)
-    assert str(e.value) == "Unknown GFS variable name 'FOO'"
 
 
 @mark.parametrize(("expected", "name"), [("TMP", "t"), (variables.UNKNOWN, "foo")])
