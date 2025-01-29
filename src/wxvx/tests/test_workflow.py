@@ -1,9 +1,8 @@
-# pylint: disable=line-too-long,unused-import # PM FIXME
 """
 Tests for wxvx.workflow.
 """
 
-# pylint: disable=redefined-outer-name
+# pylint: disable=protected-access,redefined-outer-name
 
 from datetime import datetime
 from pathlib import Path
@@ -49,21 +48,31 @@ def test_workflow_grib_message():
     pass
 
 
-# def test_workflow_grib_index_data(fakefs, ts, url, validtime):
-#     idxdata = """
-#     1:0:d=2024040103:HGT:900 mb:anl:
-#     2:1:d=2024040103:FOO:900 mb:anl:
-#     3:2:d=2024040103:TMP:900 mb:anl:
-#     """
-#     idxfile = fakefs / "gfs.idx"
-#     idxfile.write_text(dedent(idxdata).strip())
-#     grib_index_local = Mock()
-#     grib_index_local()._assets = asset(idxfile, idxfile.exists)
-#     vars2idx = {variables.Var(name=name, levtype="isobaricInhPa", level="900") for name in ("gh", "t")}
-#     with patch.object(workflow, "grib_index_local", grib_index_local):
-#         val = workflow.grib_index_data(variables=vars2idx, validtime=validtime, rundir=fakefs, url=url, ts=ts)
-#     breakpoint()
-#     pass
+def test_workflow_grib_index_data(fakefs, ts, url, validtime):
+    idxdata = """
+    1:0:d=2024040103:HGT:900 mb:anl:
+    2:1:d=2024040103:FOO:900 mb:anl:
+    3:2:d=2024040103:TMP:900 mb:anl:
+    """
+    idxfile = fakefs / "gfs.idx"
+    idxfile.write_text(dedent(idxdata).strip())
+    grib_index_local = Mock()
+    grib_index_local()._assets = asset(idxfile, idxfile.exists)
+    vars2idx = {
+        variables.Var(name=name, levtype="isobaricInhPa", level="900") for name in ("gh", "t")
+    }
+    with patch.object(workflow, "grib_index_local", grib_index_local):
+        val = workflow.grib_index_data(
+            variables=vars2idx, validtime=validtime, rundir=fakefs, url=url, ts=ts
+        )
+    assert refs(val) == {
+        "gh-isobaricInhPa-0900": variables.GFSVar(
+            name="HGT", levstr="900 mb", firstbyte=0, lastbyte=0
+        ),
+        "t-isobaricInhPa-0900": variables.GFSVar(
+            name="TMP", levstr="900 mb", firstbyte=2, lastbyte=2
+        ),
+    }
 
 
 def test_workflow_grib_index_local(fakefs, ts, url, validtime):

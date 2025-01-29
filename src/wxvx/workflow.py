@@ -75,7 +75,7 @@ def grib_index_data(variables: set[Var], validtime: TimeCoords, rundir: Path, ur
     lines.append(":-1:::::")  # end marker
     for this_record, next_record in pairwise([line.split(":") for line in lines]):
         gfsvar = GFSVar(
-            name=GFSVar.stdvar(this_record[3]),
+            name=this_record[3],
             levstr=this_record[4],
             firstbyte=int(this_record[1]),
             lastbyte=int(next_record[1]) - 1,

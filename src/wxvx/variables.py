@@ -19,7 +19,7 @@ class Var:
         return hash(self) == hash(other)
 
     def __hash__(self):
-        return hash((self.name, self.levtype, self.level))
+        return hash((self._stdname, self.levtype, self.level))
 
     def __lt__(self, other):
         return str(self) < str(other)
@@ -31,8 +31,12 @@ class Var:
 
     def __str__(self):
         level = f"{int(self.level):04}" if self.level else None
-        vals = filter(None, [self.name, self.levtype, level])
+        vals = filter(None, [self._stdname, self.levtype, level])
         return "-".join(vals)
+
+    @property
+    def _stdname(self) -> str:
+        return self.name
 
 
 class GFSVar(Var):
@@ -82,6 +86,10 @@ class GFSVar(Var):
         if m := re.match(r"^surface$", levstr):
             return ("surface", None)
         return (UNKNOWN, None)
+
+    @property
+    def _stdname(self) -> str:
+        return self.stdvar(self.name)
 
 
 def set_cf_metadata(da: xr.DataArray, taskname: str) -> None:
