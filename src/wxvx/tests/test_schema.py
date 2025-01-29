@@ -15,104 +15,6 @@ from uwtools.api.config import validate
 
 from wxvx.util import resource_path
 
-# Fixtures
-
-
-@fixture
-def config():
-    return {
-        "baseline": "/".join(
-            [
-                "https://noaa-hrrr-bdp-pds.s3.amazonaws.com",
-                "hrrr.{yyyymmdd}",
-                "conus",
-                "hrrr.t{hh}z.wrfprsf{ff}.grib2",
-            ]
-        ),
-        "cycles": {
-            "start": "2024-04-01T01:00:00",
-            "step": "01:00:00",
-            "stop": "2024-04-07T22:00:00",
-        },
-        "forecast": "/tmp/forecast",
-        "leadtimes": {
-            "start": "01:00:00",
-            "step": "01:00:00",
-            "stop": "01:00:00",
-        },
-        "rundir": "/tmp/rundir",
-        "threads": 4,
-        "variables": [
-            {"name": "q", "levtype": "isobaricInhPa", "levels": [1000]},
-            {"name": "refc", "levtype": "atmosphere"},
-            {"name": "t", "levtype": "surface"},
-        ],
-    }
-
-
-@fixture
-def logged(caplog):
-    def logged_(s: str):
-        found = any(re.match(rf"^.*{s}.*$", message) for message in caplog.messages)
-        caplog.clear()
-        return found
-
-    return logged_
-
-
-# Helpers
-
-
-def validator(fs: FakeFilesystem, *args: Any) -> Callable:
-    """
-    Returns a lambda that validates an eventual config argument.
-
-    :param args: Keys leading to sub-schema to be used to validate config.
-    """
-    schema_path = resource_path("config.jsonschema")
-    fs.add_real_file(schema_path)
-    with open(schema_path, "r", encoding="utf-8") as f:
-        schema = json.load(f)
-    defs = schema.get("$defs", {})
-    for arg in args:
-        schema = schema[arg]
-    schema.update({"$defs": defs})
-    schema_file = str(fs.create_file("test.schema", contents=json.dumps(schema)).path)
-    return lambda c: validate(schema_file=schema_file, config_data=c)
-
-
-def with_del(d: dict, *args: Any) -> dict:
-    """
-    Delete a value at a given chain of keys in a dict.
-
-    :param d: The dict to update.
-    :param args: One or more keys navigating to the value to delete.
-    """
-    new = deepcopy(d)
-    p = new
-    for key in args[:-1]:
-        p = p[key]
-    del p[args[-1]]
-    return new
-
-
-def with_set(d: dict, val: Any, *args: Any) -> dict:
-    """
-    Set a value at a given chain of keys in a dict.
-
-    :param d: The dict to update.
-    :param val: The value to set.
-    :param args: One or more keys navigating to the value to set.
-    """
-    new = deepcopy(d)
-    p = new
-    if args:
-        for key in args[:-1]:
-            p = p[key]
-        p[args[-1]] = val
-    return new
-
-
 # Tests
 
 
@@ -214,3 +116,101 @@ def test_schema_variables(logged, config, fs):
     for levtype in ("atmosphere", "surface"):
         assert not ok([{"name": "foo", "levtype": levtype, "levels": [1000]}])
         assert logged("should not be valid")
+
+
+# Fixtures
+
+
+@fixture
+def config():
+    return {
+        "baseline": "/".join(
+            [
+                "https://noaa-hrrr-bdp-pds.s3.amazonaws.com",
+                "hrrr.{yyyymmdd}",
+                "conus",
+                "hrrr.t{hh}z.wrfprsf{ff}.grib2",
+            ]
+        ),
+        "cycles": {
+            "start": "2024-04-01T01:00:00",
+            "step": "01:00:00",
+            "stop": "2024-04-07T22:00:00",
+        },
+        "forecast": "/tmp/forecast",
+        "leadtimes": {
+            "start": "01:00:00",
+            "step": "01:00:00",
+            "stop": "01:00:00",
+        },
+        "rundir": "/tmp/rundir",
+        "threads": 4,
+        "variables": [
+            {"name": "q", "levtype": "isobaricInhPa", "levels": [1000]},
+            {"name": "refc", "levtype": "atmosphere"},
+            {"name": "t", "levtype": "surface"},
+        ],
+    }
+
+
+@fixture
+def logged(caplog):
+    def logged_(s: str):
+        found = any(re.match(rf"^.*{s}.*$", message) for message in caplog.messages)
+        caplog.clear()
+        return found
+
+    return logged_
+
+
+# Helpers
+
+
+def validator(fs: FakeFilesystem, *args: Any) -> Callable:
+    """
+    Returns a lambda that validates an eventual config argument.
+
+    :param args: Keys leading to sub-schema to be used to validate config.
+    """
+    schema_path = resource_path("config.jsonschema")
+    fs.add_real_file(schema_path)
+    with open(schema_path, "r", encoding="utf-8") as f:
+        schema = json.load(f)
+    defs = schema.get("$defs", {})
+    for arg in args:
+        schema = schema[arg]
+    schema.update({"$defs": defs})
+    schema_file = str(fs.create_file("test.schema", contents=json.dumps(schema)).path)
+    return lambda c: validate(schema_file=schema_file, config_data=c)
+
+
+def with_del(d: dict, *args: Any) -> dict:
+    """
+    Delete a value at a given chain of keys in a dict.
+
+    :param d: The dict to update.
+    :param args: One or more keys navigating to the value to delete.
+    """
+    new = deepcopy(d)
+    p = new
+    for key in args[:-1]:
+        p = p[key]
+    del p[args[-1]]
+    return new
+
+
+def with_set(d: dict, val: Any, *args: Any) -> dict:
+    """
+    Set a value at a given chain of keys in a dict.
+
+    :param d: The dict to update.
+    :param val: The value to set.
+    :param args: One or more keys navigating to the value to set.
+    """
+    new = deepcopy(d)
+    p = new
+    if args:
+        for key in args[:-1]:
+            p = p[key]
+        p[args[-1]] = val
+    return new

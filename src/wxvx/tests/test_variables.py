@@ -89,38 +89,6 @@ def test_variables_GFSVar__levinfo(expected, levstr):
     assert variables.GFSVar._levinfo(levstr) == expected
 
 
-def test_variables_set_cf_metadata(da):
+def test_variables_set_cf_metadata(da, cf_metadata_checks):
     variables.set_cf_metadata(da=da, taskname="test")
-    for k, v in [
-        ("Conventions", "CF-1.8"),
-        ("grid_mapping", "latitude_longitude"),
-        ("long_name", "Geopotential Height"),
-        ("standard_name", "geopotential_height"),
-        ("units", "m"),
-    ]:
-        assert da.attrs[k] == v
-    for k, v in [
-        ("long_name", "latitude"),
-        ("standard_name", "latitude"),
-        ("units", "degrees_north"),
-    ]:
-        assert da.latitude.attrs[k] == v
-    for k, v in [
-        ("long_name", "pressure level"),
-        ("standard_name", "air_pressure"),
-        ("units", "hPa"),
-    ]:
-        assert da.level.attrs[k] == v
-    for k, v in [
-        ("long_name", "longitude"),
-        ("standard_name", "longitude"),
-        ("units", "degrees_east"),
-    ]:
-        assert da.longitude.attrs[k] == v
-    for k, v in [("long_name", "Forecast Period"), ("standard_name", "forecast_period")]:
-        assert da.lead_time.attrs[k] == v
-    for k, v in [
-        ("long_name", "Forecast Reference Time"),
-        ("standard_name", "forecast_reference_time"),
-    ]:
-        assert da.time.attrs[k] == v
+    cf_metadata_checks(da)

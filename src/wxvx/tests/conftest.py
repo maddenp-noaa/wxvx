@@ -2,6 +2,48 @@ import numpy as np
 import xarray as xr
 from pytest import fixture
 
+# pylint: disable=redefined-outer-name
+
+
+@fixture
+def cf_metadata_checks():
+    def check(da):
+        for k, v in [
+            ("Conventions", "CF-1.8"),
+            ("grid_mapping", "latitude_longitude"),
+            ("long_name", "Geopotential Height"),
+            ("standard_name", "geopotential_height"),
+            ("units", "m"),
+        ]:
+            assert da.attrs[k] == v
+        for k, v in [
+            ("long_name", "latitude"),
+            ("standard_name", "latitude"),
+            ("units", "degrees_north"),
+        ]:
+            assert da.latitude.attrs[k] == v
+        for k, v in [
+            ("long_name", "pressure level"),
+            ("standard_name", "air_pressure"),
+            ("units", "hPa"),
+        ]:
+            assert da.level.attrs[k] == v
+        for k, v in [
+            ("long_name", "longitude"),
+            ("standard_name", "longitude"),
+            ("units", "degrees_east"),
+        ]:
+            assert da.longitude.attrs[k] == v
+        for k, v in [("long_name", "Forecast Period"), ("standard_name", "forecast_period")]:
+            assert da.lead_time.attrs[k] == v
+        for k, v in [
+            ("long_name", "Forecast Reference Time"),
+            ("standard_name", "forecast_reference_time"),
+        ]:
+            assert da.time.attrs[k] == v
+
+    return check
+
 
 @fixture
 def da():

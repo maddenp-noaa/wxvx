@@ -13,7 +13,7 @@ class TimeCoords:
     dt: datetime
 
     def __hash__(self):
-        return int(self.dt.timestamp())
+        return int(self.timestamp)
 
     def __lt__(self, other):
         return self.dt < other.dt
@@ -28,6 +28,10 @@ class TimeCoords:
     @property
     def iso(self) -> str:
         return self.dt.isoformat()
+
+    @property
+    def timestamp(self) -> float:
+        return self.dt.timestamp()
 
     @property
     def yyyymmdd(self) -> str:

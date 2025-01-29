@@ -40,7 +40,7 @@ def forecast_var(var: Var, validtime: TimeCoords, forecast: Path, rundir: Path):
     yield taskname
     yield asset(path, path.is_file)
     yield fd
-    da = refs(fd)[GFSVar.gfsvar(var.name)].sel(time=validtime.dt)
+    da = refs(fd)[GFSVar.gfsvar(var.name)].sel(time=validtime.timestamp)
     set_cf_metadata(da=da, taskname=taskname)
     path.parent.mkdir(parents=True, exist_ok=True)
     da.to_netcdf(path=path)
