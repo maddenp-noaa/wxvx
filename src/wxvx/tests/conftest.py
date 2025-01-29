@@ -7,7 +7,7 @@ from pytest import fixture
 
 @fixture
 def check_cf_metadata():
-    def check(da):
+    def check(da: xr.DataArray):
         for k, v in [
             ("Conventions", "CF-1.8"),
             ("grid_mapping", "latitude_longitude"),
@@ -46,7 +46,7 @@ def check_cf_metadata():
 
 
 @fixture
-def da():
+def da() -> xr.DataArray:
     return xr.DataArray(
         name="HGT",
         data=np.zeros((1, 1, 1, 1, 1)),

@@ -85,7 +85,7 @@ def grib_index_data(variables: set[Var], validtime: TimeCoords, rundir: Path, ur
 
 
 @task
-def grib_index_local(validtime: TimeCoords, rundir: Path, url: str, ts):
+def grib_index_local(validtime: TimeCoords, rundir: Path, url: str, ts: str):
     taskname = "%s GRIB index local" % ts
     path = rundir / "baseline" / validtime.yyyymmdd / validtime.hh / Path(urlparse(url).path).name
     yield taskname
@@ -97,7 +97,7 @@ def grib_index_local(validtime: TimeCoords, rundir: Path, url: str, ts):
 @external
 def grib_index_remote(url: str, ts: str):
     yield "%s GRIB index remote %s" % (ts, url)
-    yield asset(url, lambda: status(url) == 200)
+    yield asset(url, lambda: status(url=url) == 200)
 
 
 @tasks
