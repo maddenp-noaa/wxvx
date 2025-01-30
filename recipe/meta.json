@@ -6,7 +6,7 @@
     "dev": [
       "black ==24.10.*",
       "docformatter ==1.7.*",
-      "iotaa >=1.1.1",
+      "iotaa >=1.1.2",
       "isort ==5.13.*",
       "jq ==1.7.*",
       "make ==4.4.*",
@@ -28,7 +28,7 @@
       "zarr ==2.17.*"
     ],
     "run": [
-      "iotaa >=1.1.1",
+      "iotaa >=1.1.2",
       "metkit ==11.0.*",
       "netcdf4 ==1.7.*",
       "python ==3.10",
