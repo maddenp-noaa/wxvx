@@ -14,9 +14,9 @@ from wxvx.util import WXVXError
 # Tests
 
 
-def test_time_validtimes(config):
+def test_time_timecoords(config):
     actual = set(
-        x.validtime for x in time.validtimes(cycles=config["cycles"], leadtimes=config["leadtimes"])
+        x.validtime for x in time.timecoords(cycles=config["cycles"], leadtimes=config["leadtimes"])
     )
     expected = {
         datetime(2024, 12, 19, 18),

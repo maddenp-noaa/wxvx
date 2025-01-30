@@ -112,9 +112,9 @@ def test_workflow_verify_all(config):
 
     with patch.object(workflow, "verify_one", test_verify_one):
         val = workflow.verify_all(config=config)
-    validtimes = time.validtimes(cycles=config["cycles"], leadtimes=config["leadtimes"])
-    assert len(refs(val)) == len(validtimes) * len(config["variables"])
-    assert set(x["validtime"] for x in refs(val)) == set(validtimes)
+    timecoords = time.timecoords(cycles=config["cycles"], leadtimes=config["leadtimes"])
+    assert len(refs(val)) == len(timecoords) * len(config["variables"])
+    assert set(x["validtime"] for x in refs(val)) == set(timecoords)
 
 
 @mark.skip()

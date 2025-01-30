@@ -9,7 +9,7 @@ import xarray as xr
 from iotaa import asset, external, refs, task, tasks
 
 from wxvx.net import fetch, status
-from wxvx.time import TimeCoords, validtimes
+from wxvx.time import TimeCoords, timecoords
 from wxvx.variables import GFSVar, Var, set_cf_metadata
 
 
@@ -114,7 +114,7 @@ def verify_all(config: dict):
         for level in levels:
             variables.add(Var(name=var["name"], levtype=var["levtype"], level=level))
     verify_ones = []
-    for validtime in validtimes(cycles=config["cycles"], leadtimes=config["leadtimes"]):
+    for validtime in timecoords(cycles=config["cycles"], leadtimes=config["leadtimes"]):
         for var in sorted(list(variables)):
             verify_ones.append(
                 verify_one(
