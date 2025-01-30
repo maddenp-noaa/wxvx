@@ -4,6 +4,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 from warnings import catch_warnings, simplefilter
 
+import numpy as np
 import xarray as xr
 from iotaa import asset, external, refs, task, tasks
 
@@ -40,7 +41,11 @@ def forecast_var(var: Var, validtime: TimeCoords, forecast: Path, rundir: Path):
     yield taskname
     yield asset(path, path.is_file)
     yield fd
-    da = refs(fd)[GFSVar.gfsvar(var.name)].sel(time=validtime.timestamp)
+    da = (
+        refs(fd)[GFSVar.gfsvar(var.name)]
+        .sel(time=np.datetime64(str(validtime.cycle.isoformat())))
+        .sel(lead_time=np.timedelta64(int(validtime.leadtime.total_seconds()), "s"))
+    )
     set_cf_metadata(da=da, taskname=taskname)
     path.parent.mkdir(parents=True, exist_ok=True)
     da.to_netcdf(path=path)
