@@ -10,7 +10,7 @@ from textwrap import dedent
 from unittest.mock import ANY, Mock, patch
 
 import xarray as xr
-from iotaa import asset, ready, refs
+from iotaa import asset, ready, refs, task
 from pytest import fixture, mark
 
 from wxvx import time, variables, workflow
@@ -103,10 +103,21 @@ def test_workflow_grib_index_remote(code, ts, url):
     status.assert_called_with(url=url)
 
 
-def test_workflow_verify_all():
-    pass
+def test_workflow_verify_all(config):
+    @task
+    def test_verify_one(**kwargs):
+        yield "test %s %s" % (str(kwargs["var"]), str(kwargs["validtime"]))
+        yield asset(kwargs, lambda: True)
+        yield None
+
+    with patch.object(workflow, "verify_one", test_verify_one):
+        val = workflow.verify_all(config=config)
+    validtimes = time.validtimes(cycles=config["cycles"], leadtimes=config["leadtimes"])
+    assert len(refs(val)) == len(validtimes) * len(config["variables"])
+    assert set(x["validtime"] for x in refs(val)) == set(validtimes)
 
 
+@mark.skip()
 def test_workflow_verify_one():
     pass
 

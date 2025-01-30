@@ -2,11 +2,11 @@
 Tests for wxvx.time.
 """
 
-# pylint: disable=invalid-name,protected-access,redefined-outer-name
+# pylint: disable=invalid-name,protected-access
 
 from datetime import datetime, timedelta
 
-from pytest import fixture, mark, raises
+from pytest import mark, raises
 
 from wxvx import time
 from wxvx.util import WXVXError
@@ -88,22 +88,3 @@ def test_time_TimeCoords():
     assert tc.iso == "2024-01-28T12:00:00"
     assert tc.timestamp == 1706443200
     assert tc.yyyymmdd == "20240128"
-
-
-# Fixtures
-
-
-@fixture
-def config():
-    return {
-        "cycles": {
-            "start": "2024-12-19T18:00:00",
-            "stop": "2024-12-20T06:00:00",
-            "step": "12:00:00",
-        },
-        "leadtimes": {
-            "start": "00:00:00",
-            "stop": "12:00:00",
-            "step": "06:00:00",
-        },
-    }

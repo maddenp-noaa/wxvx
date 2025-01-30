@@ -108,10 +108,10 @@ def verify_all(config: dict):
         levels = var.get("levels", [None])
         for level in levels:
             variables.add(Var(name=var["name"], levtype=var["levtype"], level=level))
-    var_validtime_pairs = []
+    verify_ones = []
     for validtime in validtimes(cycles=config["cycles"], leadtimes=config["leadtimes"]):
-        for var in sorted(list(variables))[:2]:
-            var_validtime_pairs.append(
+        for var in sorted(list(variables)):
+            verify_ones.append(
                 verify_one(
                     forecast=Path(config["forecast"]),
                     var=var,
@@ -122,7 +122,7 @@ def verify_all(config: dict):
                 )
             )
     yield taskname
-    yield var_validtime_pairs
+    yield verify_ones
 
 
 @tasks  # PM change to @task
