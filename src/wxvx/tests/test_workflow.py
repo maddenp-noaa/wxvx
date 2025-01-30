@@ -4,7 +4,7 @@ Tests for wxvx.workflow.
 
 # pylint: disable=protected-access,redefined-outer-name
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from textwrap import dedent
 from unittest.mock import ANY, Mock, patch
@@ -159,4 +159,6 @@ def url():
 
 @fixture
 def validtime(da):
-    return time.TimeCoords(dt=datetime.utcfromtimestamp(da.time.values[0]))
+    cycle = datetime.fromtimestamp(int(da.time.values[0]))
+    leadtime = timedelta(hours=int(da.lead_time.values[0]))
+    return time.TimeCoords(cycle=cycle, leadtime=leadtime)

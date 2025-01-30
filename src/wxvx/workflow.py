@@ -50,7 +50,7 @@ def forecast_var(var: Var, validtime: TimeCoords, forecast: Path, rundir: Path):
 def grib_message(var: Var, variables: set[Var], validtime: TimeCoords, rundir: Path, url: str):
     fn = "%s.baseline.grib2" % var
     path = rundir / "baseline" / validtime.yyyymmdd / validtime.hh / fn
-    ts = validtime.dt.isoformat()
+    ts = validtime.validtime.isoformat()
     taskname = "%s GRIB message %s" % (ts, var)
     idxdata = grib_index_data(
         variables=variables, validtime=validtime, rundir=rundir, url=f"{url}.idx", ts=ts

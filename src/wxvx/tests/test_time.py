@@ -15,14 +15,16 @@ from wxvx.util import WXVXError
 
 
 def test_time_validtimes(config):
-    actual = [x.dt for x in time.validtimes(cycles=config["cycles"], leadtimes=config["leadtimes"])]
-    expected = [
+    actual = set(
+        x.validtime for x in time.validtimes(cycles=config["cycles"], leadtimes=config["leadtimes"])
+    )
+    expected = {
         datetime(2024, 12, 19, 18),
         datetime(2024, 12, 20, 0),
         datetime(2024, 12, 20, 6),
         datetime(2024, 12, 20, 12),
         datetime(2024, 12, 20, 18),
-    ]
+    }
     assert actual == expected
 
 
@@ -77,14 +79,15 @@ def test_time__timedelta(step, expected):
 
 
 def test_time_TimeCoords():
-    t = datetime(2024, 1, 28, 12)
-    tc = time.TimeCoords(dt=t)
-    assert hash(tc) == t.timestamp()
-    assert tc < time.TimeCoords(dt=t + timedelta(hours=1))
-    assert tc == time.TimeCoords(dt=t + timedelta(hours=0))
-    assert tc > time.TimeCoords(dt=t - timedelta(hours=1))
-    assert repr(tc) == "2024-01-28T12:00:00"
-    assert tc.hh == "12"
-    assert tc.iso == "2024-01-28T12:00:00"
-    assert tc.timestamp == 1706443200
+    cycle = datetime(2024, 1, 28, 12)
+    leadtime = timedelta(hours=1)
+    tc = time.TimeCoords(cycle=cycle, leadtime=leadtime)
+    assert hash(tc) == (cycle + leadtime).timestamp()
+    assert tc < time.TimeCoords(cycle=cycle, leadtime=timedelta(hours=2))
+    assert tc == time.TimeCoords(cycle=cycle, leadtime=timedelta(hours=1))
+    assert tc > time.TimeCoords(cycle=cycle, leadtime=timedelta(hours=0))
+    assert repr(tc) == "2024-01-28T13:00:00"
+    assert tc.hh == "13"
+    assert tc.iso == "2024-01-28T13:00:00"
+    assert tc.timestamp == 1706446800
     assert tc.yyyymmdd == "20240128"

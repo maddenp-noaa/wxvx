@@ -10,32 +10,40 @@ from wxvx.util import WXVXError
 
 @dataclass
 class TimeCoords:
-    dt: datetime
+    cycle: datetime
+    leadtime: timedelta
+
+    def __eq__(self, other):
+        return hash(self) == hash(other)
 
     def __hash__(self):
         return int(self.timestamp)
 
     def __lt__(self, other):
-        return self.dt < other.dt
+        return self.validtime < other.validtime
 
     def __repr__(self):
         return self.iso
 
     @property
     def hh(self) -> str:
-        return self.dt.strftime("%H")
+        return self.validtime.strftime("%H")
 
     @property
     def iso(self) -> str:
-        return self.dt.isoformat()
+        return self.validtime.isoformat()
 
     @property
     def timestamp(self) -> float:
-        return self.dt.timestamp()
+        return self.validtime.timestamp()
 
     @property
     def yyyymmdd(self) -> str:
-        return self.dt.strftime("%Y%m%d")
+        return self.validtime.strftime("%Y%m%d")
+
+    @property
+    def validtime(self) -> datetime:
+        return self.cycle + self.leadtime
 
 
 def validtimes(cycles: dict[str, str], leadtimes: dict[str, str]) -> list[TimeCoords]:
@@ -46,7 +54,7 @@ def validtimes(cycles: dict[str, str], leadtimes: dict[str, str]) -> list[TimeCo
         _cycles(start=cycles_start, step=cycles_step, stop=cycles_stop),
         _leadtimes(leadtimes_start, leadtimes_step, leadtimes_stop),
     )
-    return sorted(set(TimeCoords(cycle + leadtime) for cycle, leadtime in pairs))
+    return sorted(set(TimeCoords(cycle=cycle, leadtime=leadtime) for cycle, leadtime in pairs))
 
 
 # Private
