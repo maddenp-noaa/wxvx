@@ -51,14 +51,14 @@ def config():
         "baseline": "https://some.url/{yyyymmdd}/{hh}/a.grib2",
         "cycles": {
             "start": "2024-12-19T18:00:00",
-            "stop": "2024-12-20T06:00:00",
             "step": "12:00:00",
+            "stop": "2024-12-20T06:00:00",
         },
         "forecast": "/path/to/forecast.zarr",
         "leadtimes": {
             "start": "00:00:00",
-            "stop": "12:00:00",
             "step": "06:00:00",
+            "stop": "12:00:00",
         },
         "rundir": "/path/to/run",
         "threads": 1,
