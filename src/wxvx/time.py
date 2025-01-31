@@ -10,7 +10,7 @@ from wxvx.util import WXVXError
 # Public
 
 
-class TimeCoords:
+class ValidTime:
 
     def __init__(self, cycle: datetime, leadtime: timedelta):
         self._cycle = cycle
@@ -29,8 +29,8 @@ class TimeCoords:
         return self.iso
 
     @cached_property
-    def cycle(self) -> TimeCoords:
-        return TimeCoords(cycle=self._cycle, leadtime=timedelta(hours=0))
+    def cycle(self) -> ValidTime:
+        return ValidTime(cycle=self._cycle, leadtime=timedelta(hours=0))
 
     @property
     def hh(self) -> str:
@@ -53,7 +53,7 @@ class TimeCoords:
         return self._cycle + self.leadtime
 
 
-def timecoords(cycles: dict[str, str], leadtimes: dict[str, str]) -> list[TimeCoords]:
+def validtime(cycles: dict[str, str], leadtimes: dict[str, str]) -> list[ValidTime]:
     range_params = lambda section: [section[param] for param in ("start", "step", "stop")]
     cycles_start, cycles_step, cycles_stop = range_params(cycles)
     leadtimes_start, leadtimes_step, leadtimes_stop = range_params(leadtimes)
@@ -61,7 +61,7 @@ def timecoords(cycles: dict[str, str], leadtimes: dict[str, str]) -> list[TimeCo
         _cycles(start=cycles_start, step=cycles_step, stop=cycles_stop),
         _leadtimes(leadtimes_start, leadtimes_step, leadtimes_stop),
     )
-    return sorted(set(TimeCoords(cycle=cycle, leadtime=leadtime) for cycle, leadtime in pairs))
+    return sorted(set(ValidTime(cycle=cycle, leadtime=leadtime) for cycle, leadtime in pairs))
 
 
 # Private

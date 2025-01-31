@@ -9,7 +9,7 @@ import xarray as xr
 from iotaa import asset, external, refs, task, tasks
 
 from wxvx.net import fetch, status
-from wxvx.time import TimeCoords, timecoords
+from wxvx.time import ValidTime, validtime
 from wxvx.variables import GFSVar, Var, set_cf_metadata
 
 
@@ -33,18 +33,18 @@ def forecast_dataset(forecast: Path):
 
 
 @task
-def forecast_var(var: Var, tc: TimeCoords, forecast: Path, rundir: Path):
+def forecast_var(var: Var, vt: ValidTime, forecast: Path, rundir: Path):
     fn = "%s.forecast.nc" % var
-    path = rundir / "forecast" / tc.yyyymmdd / tc.hh / fn
-    taskname = "Forecast variable %s at %s" % (var, tc)
+    path = rundir / "forecast" / vt.yyyymmdd / vt.hh / fn
+    taskname = "Forecast variable %s at %s" % (var, vt)
     fd = forecast_dataset(forecast=forecast)
     yield taskname
     yield asset(path, path.is_file)
     yield fd
     da = (
         refs(fd)[GFSVar.gfsvar(var.name)]
-        .sel(time=np.datetime64(str(tc.cycle.iso)))
-        .sel(lead_time=np.timedelta64(int(tc.leadtime.total_seconds()), "s"))
+        .sel(time=np.datetime64(str(vt.cycle.iso)))
+        .sel(lead_time=np.timedelta64(int(vt.leadtime.total_seconds()), "s"))
     )
     set_cf_metadata(da=da, taskname=taskname)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -52,12 +52,12 @@ def forecast_var(var: Var, tc: TimeCoords, forecast: Path, rundir: Path):
 
 
 @task
-def grib_message(var: Var, variables: set[Var], tc: TimeCoords, rundir: Path, url: str):
+def grib_message(var: Var, variables: set[Var], vt: ValidTime, rundir: Path, url: str):
     fn = "%s.baseline.grib2" % var
-    path = rundir / "baseline" / tc.yyyymmdd / tc.hh / fn
-    ts = tc.validtime.isoformat()
+    path = rundir / "baseline" / vt.yyyymmdd / vt.hh / fn
+    ts = vt.validtime.isoformat()
     taskname = "%s GRIB message %s" % (ts, var)
-    idxdata = grib_index_data(variables=variables, tc=tc, rundir=rundir, url=f"{url}.idx", ts=ts)
+    idxdata = grib_index_data(variables=variables, vt=vt, rundir=rundir, url=f"{url}.idx", ts=ts)
     yield taskname
     yield asset(path, path.is_file)
     yield idxdata
@@ -68,9 +68,9 @@ def grib_message(var: Var, variables: set[Var], tc: TimeCoords, rundir: Path, ur
 
 
 @task
-def grib_index_data(variables: set[Var], tc: TimeCoords, rundir: Path, url: str, ts: str):
+def grib_index_data(variables: set[Var], vt: ValidTime, rundir: Path, url: str, ts: str):
     idxdata: dict[str, GFSVar] = {}
-    idxfile = grib_index_local(tc=tc, rundir=rundir, url=url, ts=ts)
+    idxfile = grib_index_local(vt=vt, rundir=rundir, url=url, ts=ts)
     yield "%s GRIB index data" % ts
     yield asset(idxdata, lambda: bool(idxdata))
     yield idxfile
@@ -88,9 +88,9 @@ def grib_index_data(variables: set[Var], tc: TimeCoords, rundir: Path, url: str,
 
 
 @task
-def grib_index_local(tc: TimeCoords, rundir: Path, url: str, ts: str):
+def grib_index_local(vt: ValidTime, rundir: Path, url: str, ts: str):
     taskname = "%s GRIB index local" % ts
-    path = rundir / "baseline" / tc.yyyymmdd / tc.hh / Path(urlparse(url).path).name
+    path = rundir / "baseline" / vt.yyyymmdd / vt.hh / Path(urlparse(url).path).name
     yield taskname
     yield asset(path, path.is_file)
     yield grib_index_remote(url=url, ts=ts)
@@ -112,14 +112,14 @@ def verify_all(config: dict):
         for level in levels:
             variables.add(Var(name=var["name"], levtype=var["levtype"], level=level))
     verify_ones = []
-    for tc in timecoords(cycles=config["cycles"], leadtimes=config["leadtimes"]):
+    for vt in validtime(cycles=config["cycles"], leadtimes=config["leadtimes"]):
         for var in sorted(list(variables)):
             verify_ones.append(
                 verify_one(
                     forecast=Path(config["forecast"]),
                     var=var,
                     variables=variables,
-                    tc=tc,
+                    vt=vt,
                     rundir=Path(config["rundir"]),
                     baseline=config["baseline"],
                 )
@@ -130,10 +130,10 @@ def verify_all(config: dict):
 
 @tasks  # PM change to @task
 def verify_one(
-    forecast: Path, var: Var, variables: set[Var], tc: TimeCoords, rundir: Path, baseline: str
+    forecast: Path, var: Var, variables: set[Var], vt: ValidTime, rundir: Path, baseline: str
 ):
-    url = baseline.format(yyyymmdd=tc.yyyymmdd, hh=tc.hh)
-    fv = forecast_var(var=var, tc=tc, forecast=forecast, rundir=rundir)
-    gm = grib_message(var=var, variables=variables, tc=tc, rundir=rundir, url=url)
-    yield "Verification of %s at %s" % (var, tc)
+    url = baseline.format(yyyymmdd=vt.yyyymmdd, hh=vt.hh)
+    fv = forecast_var(var=var, vt=vt, forecast=forecast, rundir=rundir)
+    gm = grib_message(var=var, variables=variables, vt=vt, rundir=rundir, url=url)
+    yield "Verification of %s at %s" % (var, vt)
     yield [fv, gm]

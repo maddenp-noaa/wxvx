@@ -35,20 +35,20 @@ def test_workflow_forecast_dataset(da, fakefs):
     assert refs(val).HGT == da
 
 
-def test_workflow_forecast_var(check_cf_metadata, da, tmp_path, tc):
+def test_workflow_forecast_var(check_cf_metadata, da, tmp_path, vt):
     var = variables.Var(name="gh", levtype="isobaricInhPa", level="1000")
     forecast = tmp_path / "raw.forecast.nc"
     da.to_netcdf(path=forecast)
-    val = workflow.forecast_var(var=var, tc=tc, forecast=forecast, rundir=tmp_path)
+    val = workflow.forecast_var(var=var, vt=vt, forecast=forecast, rundir=tmp_path)
     assert ready(val)
     check_cf_metadata(xr.open_dataset(refs(val))["HGT"])
 
 
-def test_workflow_grib_message(fakefs, idxdata, testvars, url, tc):
+def test_workflow_grib_message(fakefs, idxdata, testvars, url, vt):
     var = variables.Var(name="t", levtype="isobaricInhPa", level="900")
     with patch.object(workflow, "grib_index_data") as grib_index_data:
         grib_index_data().ready = False
-        val = workflow.grib_message(var=var, variables=testvars, tc=tc, rundir=fakefs, url=url)
+        val = workflow.grib_message(var=var, variables=testvars, vt=vt, rundir=fakefs, url=url)
         path = refs(val)
         assert not path.exists()
         grib_index_data().ready = True
@@ -56,11 +56,11 @@ def test_workflow_grib_message(fakefs, idxdata, testvars, url, tc):
         with patch.object(workflow, "fetch") as fetch:
             fetch.side_effect = lambda taskname, url, path, headers: path.touch()
             path.parent.mkdir(parents=True, exist_ok=True)
-            workflow.grib_message(var=var, variables=testvars, tc=tc, rundir=fakefs, url=url)
+            workflow.grib_message(var=var, variables=testvars, vt=vt, rundir=fakefs, url=url)
         assert path.exists()
 
 
-def test_workflow_grib_index_data(fakefs, idxdata, testvars, ts, url, tc):
+def test_workflow_grib_index_data(fakefs, idxdata, testvars, ts, url, vt):
     gribidx = """
     1:0:d=2024040103:HGT:900 mb:anl:
     2:1:d=2024040103:FOO:900 mb:anl:
@@ -71,21 +71,21 @@ def test_workflow_grib_index_data(fakefs, idxdata, testvars, ts, url, tc):
     grib_index_local = Mock()
     grib_index_local()._assets = asset(idxfile, idxfile.exists)
     with patch.object(workflow, "grib_index_local", grib_index_local):
-        val = workflow.grib_index_data(variables=testvars, tc=tc, rundir=fakefs, url=url, ts=ts)
+        val = workflow.grib_index_data(variables=testvars, vt=vt, rundir=fakefs, url=url, ts=ts)
     assert refs(val) == idxdata
 
 
-def test_workflow_grib_index_local(fakefs, ts, url, tc):
+def test_workflow_grib_index_local(fakefs, ts, url, vt):
     url = f"{url}.idx"
     with patch.object(workflow, "status", return_value=404):
-        val = workflow.grib_index_local(tc=tc, rundir=fakefs, url=url, ts=ts)
+        val = workflow.grib_index_local(vt=vt, rundir=fakefs, url=url, ts=ts)
     path: Path = refs(val)
     assert not path.exists()
     path.parent.mkdir(parents=True, exist_ok=True)
     with patch.object(workflow, "status", return_value=200):
         with patch.object(workflow, "fetch") as fetch:
             fetch.side_effect = lambda taskname, url, path: path.touch()
-            workflow.grib_index_local(tc=tc, rundir=fakefs, url=url, ts=ts)
+            workflow.grib_index_local(vt=vt, rundir=fakefs, url=url, ts=ts)
         fetch.assert_called_once_with(taskname=ANY, url=url, path=path)
     assert path.exists()
 
@@ -100,15 +100,15 @@ def test_workflow_grib_index_remote(code, ts, url):
 def test_workflow_verify_all(config):
     @task
     def test_verify_one(**kwargs):
-        yield "test %s %s" % (str(kwargs["var"]), str(kwargs["tc"]))
+        yield "test %s %s" % (str(kwargs["var"]), str(kwargs["vt"]))
         yield asset(kwargs, lambda: True)
         yield None
 
     with patch.object(workflow, "verify_one", test_verify_one):
         val = workflow.verify_all(config=config)
-    timecoords = time.timecoords(cycles=config["cycles"], leadtimes=config["leadtimes"])
-    assert len(refs(val)) == len(timecoords) * len(config["variables"])
-    assert set(x["tc"] for x in refs(val)) == set(timecoords)
+    validtime = time.validtime(cycles=config["cycles"], leadtimes=config["leadtimes"])
+    assert len(refs(val)) == len(validtime) * len(config["variables"])
+    assert set(x["vt"] for x in refs(val)) == set(validtime)
 
 
 @mark.skip()
@@ -137,13 +137,6 @@ def idxdata():
 
 
 @fixture
-def tc(da):
-    cycle = datetime.fromtimestamp(int(da.time.values[0]))
-    leadtime = timedelta(hours=int(da.lead_time.values[0]))
-    return time.TimeCoords(cycle=cycle, leadtime=leadtime)
-
-
-@fixture
 def testvars():
     return {variables.Var(name=name, levtype="isobaricInhPa", level="900") for name in ("gh", "t")}
 
@@ -156,3 +149,10 @@ def ts():
 @fixture
 def url():
     return "https://some.url/path/to/a.grib2"
+
+
+@fixture
+def vt(da):
+    cycle = datetime.fromtimestamp(int(da.time.values[0]))
+    leadtime = timedelta(hours=int(da.lead_time.values[0]))
+    return time.ValidTime(cycle=cycle, leadtime=leadtime)
