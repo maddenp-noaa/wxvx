@@ -15,16 +15,21 @@ from wxvx.util import WXVXError
 
 
 def test_time_ValidTime():
-    cycle = datetime(2024, 1, 28, 12)
+    cycle = datetime(2025, 1, 28, 12)
     leadtime = timedelta(hours=1)
     validtime = time.ValidTime(cycle=cycle, leadtime=leadtime)
     assert hash(validtime) == (cycle + leadtime).timestamp()
     assert validtime < time.ValidTime(cycle=cycle, leadtime=timedelta(hours=2))
     assert validtime == time.ValidTime(cycle=cycle, leadtime=timedelta(hours=1))
     assert validtime > time.ValidTime(cycle=cycle, leadtime=timedelta(hours=0))
-    assert repr(validtime) == "2024-01-28T13:00:00"
+    assert repr(validtime) == "2025-01-28T13:00:00"
     assert validtime.hh == "13"
-    assert validtime.yyyymmdd == "20240128"
+    assert validtime.yyyymmdd == "20250128"
+
+
+def test_time_hh():
+    assert time.hh(datetime(2025, 1, 30, 6)) == "06"
+    assert time.hh(datetime(2025, 1, 30, 18)) == "18"
 
 
 def test_time_validtimes(config):
@@ -39,6 +44,10 @@ def test_time_validtimes(config):
         datetime(2024, 12, 20, 18),
     }
     assert actual == expected
+
+
+def test_time_yyyymmdd():
+    assert time.yyyymmdd(datetime(2025, 1, 30, 18)) == "20250130"
 
 
 def test_time__cycles(config):

@@ -35,10 +35,6 @@ def hh(dt: datetime) -> str:
     return dt.strftime("%H")
 
 
-def yyyymmdd(dt: datetime) -> str:
-    return dt.strftime("%Y%m%d")
-
-
 def validtimes(cycles: dict[str, str], leadtimes: dict[str, str]) -> list[ValidTime]:
     range_params = lambda section: [section[param] for param in ("start", "step", "stop")]
     cycles_start, cycles_step, cycles_stop = range_params(cycles)
@@ -48,6 +44,10 @@ def validtimes(cycles: dict[str, str], leadtimes: dict[str, str]) -> list[ValidT
         _leadtimes(leadtimes_start, leadtimes_step, leadtimes_stop),
     )
     return sorted(set(ValidTime(cycle=cycle, leadtime=leadtime) for cycle, leadtime in pairs))
+
+
+def yyyymmdd(dt: datetime) -> str:
+    return dt.strftime("%Y%m%d")
 
 
 # Private
