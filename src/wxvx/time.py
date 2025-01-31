@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from functools import cached_property
 from itertools import product
 from typing import overload
 
@@ -13,44 +12,31 @@ from wxvx.util import WXVXError
 class ValidTime:
 
     def __init__(self, cycle: datetime, leadtime: timedelta):
-        self._cycle = cycle
+        self.cycle = cycle
         self.leadtime = leadtime
+        self.validtime = self.cycle + self.leadtime
+        self.hh = hh(self.validtime)
+        self.yyyymmdd = yyyymmdd(self.validtime)
 
     def __eq__(self, other):
         return hash(self) == hash(other)
 
     def __hash__(self):
-        return int(self.timestamp)
+        return int(self.validtime.timestamp())
 
     def __lt__(self, other):
-        return self.validtime < other.validtime
+        return hash(self) < hash(other)
 
     def __repr__(self):
-        return self.iso
-
-    @cached_property
-    def cycle(self) -> ValidTime:
-        return ValidTime(cycle=self._cycle, leadtime=timedelta(hours=0))
-
-    @property
-    def hh(self) -> str:
-        return self.validtime.strftime("%H")
-
-    @property
-    def iso(self) -> str:
         return self.validtime.isoformat()
 
-    @property
-    def timestamp(self) -> float:
-        return self.validtime.timestamp()
 
-    @property
-    def yyyymmdd(self) -> str:
-        return self.validtime.strftime("%Y%m%d")
+def hh(dt: datetime) -> str:
+    return dt.strftime("%H")
 
-    @property
-    def validtime(self) -> datetime:
-        return self._cycle + self.leadtime
+
+def yyyymmdd(dt: datetime) -> str:
+    return dt.strftime("%Y%m%d")
 
 
 def validtimes(cycles: dict[str, str], leadtimes: dict[str, str]) -> list[ValidTime]:

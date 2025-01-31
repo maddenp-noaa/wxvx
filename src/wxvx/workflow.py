@@ -43,7 +43,7 @@ def forecast_var(var: Var, validtime: ValidTime, forecast: Path, rundir: Path):
     yield fd
     da = (
         refs(fd)[GFSVar.gfsvar(var.name)]
-        .sel(time=np.datetime64(str(validtime.cycle.iso)))
+        .sel(time=np.datetime64(str(validtime.cycle.isoformat())))
         .sel(lead_time=np.timedelta64(int(validtime.leadtime.total_seconds()), "s"))
     )
     set_cf_metadata(da=da, taskname=taskname)

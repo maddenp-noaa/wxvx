@@ -24,8 +24,6 @@ def test_time_ValidTime():
     assert validtime > time.ValidTime(cycle=cycle, leadtime=timedelta(hours=0))
     assert repr(validtime) == "2024-01-28T13:00:00"
     assert validtime.hh == "13"
-    assert validtime.iso == "2024-01-28T13:00:00"
-    assert validtime.timestamp == 1706446800
     assert validtime.yyyymmdd == "20240128"
 
 
