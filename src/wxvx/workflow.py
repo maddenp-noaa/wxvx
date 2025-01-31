@@ -54,8 +54,9 @@ def forecast_var(var: Var, validtime: ValidTime, forecast: Path, rundir: Path):
 @task
 def grib_message(var: Var, variables: set[Var], validtime: ValidTime, rundir: Path, url: str):
     fn = "%s.baseline.grib2" % var
+    # baseline_cycle = ValidTime(cycle=validtime.t)
     path = rundir / "baseline" / validtime.yyyymmdd / validtime.hh / fn
-    ts = validtime.validtime.isoformat()
+    ts = validtime.t.isoformat()
     taskname = "%s GRIB message %s" % (ts, var)
     idxdata = grib_index_data(
         variables=variables, validtime=validtime, rundir=rundir, url=f"{url}.idx", ts=ts
@@ -136,6 +137,7 @@ def verify_one(
 ):
     url = baseline.format(yyyymmdd=validtime.yyyymmdd, hh=validtime.hh)
     fv = forecast_var(var=var, validtime=validtime, forecast=forecast, rundir=rundir)
+    assert fv
     gm = grib_message(var=var, variables=variables, validtime=validtime, rundir=rundir, url=url)
     yield "Verification of %s at %s" % (var, validtime)
-    yield [fv, gm]
+    yield gm  # [fv, gm]

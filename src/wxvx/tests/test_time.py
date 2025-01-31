@@ -27,6 +27,18 @@ def test_time_ValidTime():
     assert validtime.yyyymmdd == "20250128"
 
 
+def test_time_ValidTime_no_leadtime():
+    cycle = datetime(2025, 1, 28, 12)
+    validtime = time.ValidTime(cycle=cycle)
+    assert hash(validtime) == cycle.timestamp()
+    assert validtime < time.ValidTime(cycle=cycle, leadtime=timedelta(hours=1))
+    assert validtime == time.ValidTime(cycle=cycle, leadtime=timedelta(hours=0))
+    assert validtime > time.ValidTime(cycle=cycle, leadtime=timedelta(hours=-1))
+    assert repr(validtime) == "2025-01-28T12:00:00"
+    assert validtime.hh == "12"
+    assert validtime.yyyymmdd == "20250128"
+
+
 def test_time_hh():
     assert time.hh(datetime(2025, 1, 30, 6)) == "06"
     assert time.hh(datetime(2025, 1, 30, 18)) == "18"
@@ -34,7 +46,7 @@ def test_time_hh():
 
 def test_time_validtimes(config):
     actual = set(
-        x.validtime for x in time.validtimes(cycles=config["cycles"], leadtimes=config["leadtimes"])
+        x.t for x in time.validtimes(cycles=config["cycles"], leadtimes=config["leadtimes"])
     )
     expected = {
         datetime(2024, 12, 19, 18),

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 from itertools import product
-from typing import overload
+from typing import Optional, overload
 
 from wxvx.util import WXVXError
 
@@ -11,24 +11,24 @@ from wxvx.util import WXVXError
 
 class ValidTime:
 
-    def __init__(self, cycle: datetime, leadtime: timedelta):
+    def __init__(self, cycle: datetime, leadtime: Optional[timedelta] = None):
         self.cycle = cycle
-        self.leadtime = leadtime
-        self.validtime = self.cycle + self.leadtime
-        self.hh = hh(self.validtime)
-        self.yyyymmdd = yyyymmdd(self.validtime)
+        self.leadtime = leadtime or timedelta(hours=0)
+        self.t = self.cycle + self.leadtime
+        self.hh = hh(self.t)
+        self.yyyymmdd = yyyymmdd(self.t)
 
     def __eq__(self, other):
         return hash(self) == hash(other)
 
     def __hash__(self):
-        return int(self.validtime.timestamp())
+        return int(self.t.timestamp())
 
     def __lt__(self, other):
         return hash(self) < hash(other)
 
     def __repr__(self):
-        return self.validtime.isoformat()
+        return self.t.isoformat()
 
 
 def hh(dt: datetime) -> str:
