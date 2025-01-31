@@ -64,7 +64,7 @@ def test_workflow_grib_message(fakefs, idxdata, testvars, url, validtime):
         assert path.exists()
 
 
-def test_workflow_grib_index_data(fakefs, idxdata, testvars, ts, url, validtime):
+def test_workflow_grib_index_data(fakefs, idxdata, testvars, url, validtime):
     gribidx = """
     1:0:d=2024040103:HGT:900 mb:anl:
     2:1:d=2024040103:FOO:900 mb:anl:
@@ -76,30 +76,31 @@ def test_workflow_grib_index_data(fakefs, idxdata, testvars, ts, url, validtime)
     grib_index_local()._assets = asset(idxfile, idxfile.exists)
     with patch.object(workflow, "grib_index_local", grib_index_local):
         val = workflow.grib_index_data(
-            variables=testvars, validtime=validtime, rundir=fakefs, url=url, ts=ts
+            variables=testvars, validtime=validtime, rundir=fakefs, url=url
         )
     assert refs(val) == idxdata
 
 
-def test_workflow_grib_index_local(fakefs, ts, url, validtime):
+def test_workflow_grib_index_local(fakefs, url, validtime):
     url = f"{url}.idx"
     with patch.object(workflow, "status", return_value=404):
-        val = workflow.grib_index_local(validtime=validtime, rundir=fakefs, url=url, ts=ts)
+        val = workflow.grib_index_local(validtime=validtime, rundir=fakefs, url=url)
     path: Path = refs(val)
     assert not path.exists()
     path.parent.mkdir(parents=True, exist_ok=True)
     with patch.object(workflow, "status", return_value=200):
         with patch.object(workflow, "fetch") as fetch:
             fetch.side_effect = lambda taskname, url, path: path.touch()
-            workflow.grib_index_local(validtime=validtime, rundir=fakefs, url=url, ts=ts)
+            workflow.grib_index_local(validtime=validtime, rundir=fakefs, url=url)
         fetch.assert_called_once_with(taskname=ANY, url=url, path=path)
     assert path.exists()
 
 
 @mark.parametrize("code", [200, 404])
-def test_workflow_grib_index_remote(code, ts, url):
+def test_workflow_grib_index_remote(code, url):
+    validtime = time.ValidTime(cycle=datetime(2025, 1, 30, 12))
     with patch.object(workflow, "status", return_value=code) as status:
-        assert ready(workflow.grib_index_remote(url=url, ts=ts)) is (code == 200)
+        assert ready(workflow.grib_index_remote(url=url, validtime=validtime)) is (code == 200)
     status.assert_called_with(url=url)
 
 
@@ -145,11 +146,6 @@ def idxdata():
 @fixture
 def testvars():
     return {variables.Var(name=name, levtype="isobaricInhPa", level="900") for name in ("gh", "t")}
-
-
-@fixture
-def ts():
-    return datetime.utcnow().isoformat()
 
 
 @fixture

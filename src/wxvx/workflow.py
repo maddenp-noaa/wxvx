@@ -53,13 +53,12 @@ def forecast_var(var: Var, validtime: ValidTime, forecast: Path, rundir: Path):
 
 @task
 def grib_message(var: Var, variables: set[Var], validtime: ValidTime, rundir: Path, url: str):
+    taskname = "%s GRIB message %s" % (validtime.t.isoformat(), var)
     leadtime = "%03d" % (validtime.leadtime.total_seconds() // 3600)
     fn = "%s.baseline.grib2" % var
     path = rundir / "baseline" / validtime.yyyymmdd / validtime.hh / leadtime / fn
-    ts = validtime.t.isoformat()
-    taskname = "%s GRIB message %s" % (ts, var)
     idxdata = grib_index_data(
-        variables=variables, validtime=validtime, rundir=rundir, url=f"{url}.idx", ts=ts
+        variables=variables, validtime=validtime, rundir=rundir, url=f"{url}.idx"
     )
     yield taskname
     yield asset(path, path.is_file)
@@ -71,10 +70,10 @@ def grib_message(var: Var, variables: set[Var], validtime: ValidTime, rundir: Pa
 
 
 @task
-def grib_index_data(variables: set[Var], validtime: ValidTime, rundir: Path, url: str, ts: str):
+def grib_index_data(variables: set[Var], validtime: ValidTime, rundir: Path, url: str):
     idxdata: dict[str, GFSVar] = {}
-    idxfile = grib_index_local(validtime=validtime, rundir=rundir, url=url, ts=ts)
-    yield "%s GRIB index data" % ts
+    idxfile = grib_index_local(validtime=validtime, rundir=rundir, url=url)
+    yield "%s GRIB index data" % validtime.t.isoformat()
     yield asset(idxdata, lambda: bool(idxdata))
     yield idxfile
     lines = refs(idxfile).read_text(encoding="utf-8").strip().split("\n")
@@ -91,18 +90,20 @@ def grib_index_data(variables: set[Var], validtime: ValidTime, rundir: Path, url
 
 
 @task
-def grib_index_local(validtime: ValidTime, rundir: Path, url: str, ts: str):
-    taskname = "%s GRIB index local" % ts
-    path = rundir / "baseline" / validtime.yyyymmdd / validtime.hh / Path(urlparse(url).path).name
+def grib_index_local(validtime: ValidTime, rundir: Path, url: str):
+    taskname = "%s GRIB index local" % validtime.t.isoformat()
+    leadtime = "%03d" % (validtime.leadtime.total_seconds() // 3600)
+    fn = Path(urlparse(url).path).name
+    path = rundir / "baseline" / validtime.yyyymmdd / validtime.hh / leadtime / fn
     yield taskname
     yield asset(path, path.is_file)
-    yield grib_index_remote(url=url, ts=ts)
+    yield grib_index_remote(url=url, validtime=validtime)
     fetch(taskname=taskname, url=url, path=path)
 
 
 @external
-def grib_index_remote(url: str, ts: str):
-    yield "%s GRIB index remote %s" % (ts, url)
+def grib_index_remote(url: str, validtime: ValidTime):
+    yield "%s GRIB index remote %s" % (validtime.t.isoformat(), url)
     yield asset(url, lambda: status(url=url) == 200)
 
 
