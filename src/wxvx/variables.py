@@ -61,7 +61,7 @@ class GFSVar(Var):
         self.lastbyte: Optional[int] = lastbyte if lastbyte > -1 else None
         self._keys = (
             {"name", "levtype", "level", "firstbyte", "lastbyte"}
-            if self.level
+            if self.level is not None
             else {"name", "levtype", "firstbyte", "lastbyte"}
         )
 
@@ -99,7 +99,7 @@ def set_cf_metadata(da: xr.DataArray, taskname: str) -> None:
     da.attrs["Conventions"] = "CF-1.8"
     da["latitude_longitude"] = int()
     da.latitude_longitude.attrs["grid_mapping_name"] = "latitude_longitude"
-    for var, long_name, standard_name, units in (
+    for name, long_name, standard_name, units in (
         ["HGT", "Geopotential Height", "geopotential_height", "m"],
         ["REFC", "Composite Reflectivity", "unknown", "dBZ"],
         ["SPFH", "Specific Humidity", "specific_humidity", "1"],
@@ -115,24 +115,25 @@ def set_cf_metadata(da: xr.DataArray, taskname: str) -> None:
             "standard_name": standard_name,
             "units": units,
         }
-        if da.name == var:
-            logging.debug("%s: Setting %s on %s", taskname, updates, var)
+        if da.name == name:
+            logging.debug("%s: Setting %s on %s", taskname, updates, name)
             da.attrs.update(updates)
-    for var, long_name, standard_name, units in (
+    for name, long_name, standard_name, units in (
         ["latitude", "latitude", "latitude", "degrees_north"],
         ["level", "pressure level", "air_pressure", "hPa"],
         ["longitude", "longitude", "longitude", "degrees_east"],
     ):
-        updates = {"long_name": long_name, "standard_name": standard_name, "units": units}
-        logging.debug("%s: Setting %s on %s", taskname, updates, var)
-        da[var].attrs.update(updates)
-    for var, long_name, standard_name in (
+        if hasattr(da, name):
+            updates = {"long_name": long_name, "standard_name": standard_name, "units": units}
+            logging.debug("%s: Setting %s on %s", taskname, updates, name)
+            da[name].attrs.update(updates)
+    for name, long_name, standard_name in (
         ["lead_time", "Forecast Period", "forecast_period"],
         ["time", "Forecast Reference Time", "forecast_reference_time"],
     ):
         updates = {"long_name": long_name, "standard_name": standard_name}
-        logging.debug("%s: Setting %s on %s", taskname, updates, var)
-        da[var].attrs.update(updates)
+        logging.debug("%s: Setting %s on %s", taskname, updates, name)
+        da[name].attrs.update(updates)
 
 
 def _levelstr2num(levelstr: str) -> Union[float, int]:

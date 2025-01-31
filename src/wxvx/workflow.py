@@ -47,7 +47,7 @@ def forecast_var(var: Var, validtime: ValidTime, forecast: Path, rundir: Path):
         .sel(time=np.datetime64(str(validtime.cycle.isoformat())))
         .sel(lead_time=np.timedelta64(int(validtime.leadtime.total_seconds()), "s"))
     )
-    if var.level:
+    if var.level is not None:
         da = da.sel(level=var.level)
     set_cf_metadata(da=da, taskname=taskname)
     path.parent.mkdir(parents=True, exist_ok=True)
