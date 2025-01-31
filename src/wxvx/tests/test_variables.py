@@ -86,3 +86,8 @@ def test_variables_GFSVar__levinfo(expected, levstr):
 def test_variables_set_cf_metadata(da, check_cf_metadata):
     variables.set_cf_metadata(da=da, taskname="test")
     check_cf_metadata(da)
+
+
+@mark.parametrize(("s", "expected"), [("900", 900), ("1013.1", 1013.1)])
+def test__levelstr2num(s, expected):
+    assert variables._levelstr2num(levelstr=s) == expected

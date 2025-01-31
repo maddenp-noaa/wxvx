@@ -94,13 +94,6 @@ class GFSVar(Var):
         return self.stdvar(self.name)
 
 
-def _levelstr2num(levelstr: str) -> Union[float, int]:
-    try:
-        return int(levelstr)
-    except ValueError:
-        return float(levelstr)
-
-
 def set_cf_metadata(da: xr.DataArray, taskname: str) -> None:
     logging.info("%s: Setting CF metadata on %s", taskname, da.name)
     da.attrs["Conventions"] = "CF-1.8"
@@ -140,3 +133,10 @@ def set_cf_metadata(da: xr.DataArray, taskname: str) -> None:
         updates = {"long_name": long_name, "standard_name": standard_name}
         logging.debug("%s: Setting %s on %s", taskname, updates, var)
         da[var].attrs.update(updates)
+
+
+def _levelstr2num(levelstr: str) -> Union[float, int]:
+    try:
+        return int(levelstr)
+    except ValueError:
+        return float(levelstr)
