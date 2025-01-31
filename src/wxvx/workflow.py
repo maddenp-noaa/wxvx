@@ -130,12 +130,7 @@ def verify_all(config: dict):
 
 @tasks  # PM change to @task
 def verify_one(
-    forecast: Path,
-    var: Var,
-    variables: set[Var],
-    tc: TimeCoords,
-    rundir: Path,
-    baseline: str,
+    forecast: Path, var: Var, variables: set[Var], tc: TimeCoords, rundir: Path, baseline: str
 ):
     url = baseline.format(yyyymmdd=tc.yyyymmdd, hh=tc.hh)
     fv = forecast_var(var=var, tc=tc, forecast=forecast, rundir=rundir)
