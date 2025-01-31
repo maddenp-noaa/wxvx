@@ -14,9 +14,24 @@ from wxvx.util import WXVXError
 # Tests
 
 
-def test_time_validtime(config):
+def test_time_ValidTime():
+    cycle = datetime(2024, 1, 28, 12)
+    leadtime = timedelta(hours=1)
+    validtime = time.ValidTime(cycle=cycle, leadtime=leadtime)
+    assert hash(validtime) == (cycle + leadtime).timestamp()
+    assert validtime < time.ValidTime(cycle=cycle, leadtime=timedelta(hours=2))
+    assert validtime == time.ValidTime(cycle=cycle, leadtime=timedelta(hours=1))
+    assert validtime > time.ValidTime(cycle=cycle, leadtime=timedelta(hours=0))
+    assert repr(validtime) == "2024-01-28T13:00:00"
+    assert validtime.hh == "13"
+    assert validtime.iso == "2024-01-28T13:00:00"
+    assert validtime.timestamp == 1706446800
+    assert validtime.yyyymmdd == "20240128"
+
+
+def test_time_validtimes(config):
     actual = set(
-        x.validtime for x in time.validtime(cycles=config["cycles"], leadtimes=config["leadtimes"])
+        x.validtime for x in time.validtimes(cycles=config["cycles"], leadtimes=config["leadtimes"])
     )
     expected = {
         datetime(2024, 12, 19, 18),
@@ -76,18 +91,3 @@ def test_time__leadtimes(config):
 )
 def test_time__timedelta(step, expected):
     assert time._timedelta(step=step) == expected
-
-
-def test_time_ValidTime():
-    cycle = datetime(2024, 1, 28, 12)
-    leadtime = timedelta(hours=1)
-    vt = time.ValidTime(cycle=cycle, leadtime=leadtime)
-    assert hash(vt) == (cycle + leadtime).timestamp()
-    assert vt < time.ValidTime(cycle=cycle, leadtime=timedelta(hours=2))
-    assert vt == time.ValidTime(cycle=cycle, leadtime=timedelta(hours=1))
-    assert vt > time.ValidTime(cycle=cycle, leadtime=timedelta(hours=0))
-    assert repr(vt) == "2024-01-28T13:00:00"
-    assert vt.hh == "13"
-    assert vt.iso == "2024-01-28T13:00:00"
-    assert vt.timestamp == 1706446800
-    assert vt.yyyymmdd == "20240128"

@@ -53,7 +53,7 @@ class ValidTime:
         return self._cycle + self.leadtime
 
 
-def validtime(cycles: dict[str, str], leadtimes: dict[str, str]) -> list[ValidTime]:
+def validtimes(cycles: dict[str, str], leadtimes: dict[str, str]) -> list[ValidTime]:
     range_params = lambda section: [section[param] for param in ("start", "step", "stop")]
     cycles_start, cycles_step, cycles_stop = range_params(cycles)
     leadtimes_start, leadtimes_step, leadtimes_stop = range_params(leadtimes)
