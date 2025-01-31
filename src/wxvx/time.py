@@ -1,5 +1,7 @@
-from dataclasses import dataclass
+from __future__ import annotations
+
 from datetime import datetime, timedelta
+from functools import cached_property
 from itertools import product
 from typing import overload
 
@@ -8,10 +10,11 @@ from wxvx.util import WXVXError
 # Public
 
 
-@dataclass
 class TimeCoords:
-    cycle: datetime
-    leadtime: timedelta
+
+    def __init__(self, cycle: datetime, leadtime: timedelta):
+        self._cycle = cycle
+        self.leadtime = leadtime
 
     def __eq__(self, other):
         return hash(self) == hash(other)
@@ -24,6 +27,10 @@ class TimeCoords:
 
     def __repr__(self):
         return self.iso
+
+    @cached_property
+    def cycle(self) -> TimeCoords:
+        return TimeCoords(cycle=self._cycle, leadtime=timedelta(hours=0))
 
     @property
     def hh(self) -> str:
@@ -43,7 +50,7 @@ class TimeCoords:
 
     @property
     def validtime(self) -> datetime:
-        return self.cycle + self.leadtime
+        return self._cycle + self.leadtime
 
 
 def timecoords(cycles: dict[str, str], leadtimes: dict[str, str]) -> list[TimeCoords]:
