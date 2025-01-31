@@ -8,6 +8,7 @@ import numpy as np
 import xarray as xr
 from iotaa import asset, external, refs, task, tasks
 
+from wxvx import time
 from wxvx.net import fetch, status
 from wxvx.time import ValidTime, validtimes
 from wxvx.variables import GFSVar, Var, set_cf_metadata
@@ -35,9 +36,11 @@ def forecast_dataset(forecast: Path):
 @task
 def forecast_var(var: Var, validtime: ValidTime, forecast: Path, rundir: Path):
     fd = forecast_dataset(forecast=forecast)
+    yyyymmdd = time.yyyymmdd(dt=validtime.cycle)
+    hh = time.hh(dt=validtime.cycle)
     leadtime = "%03d" % (validtime.leadtime.total_seconds() // 3600)
     fn = "%s.forecast.nc" % var
-    path = rundir / "forecast" / validtime.yyyymmdd / validtime.hh / leadtime / fn
+    path = rundir / "forecast" / yyyymmdd / hh / leadtime / fn
     taskname = "%s netCDF variable at %s" % (var, validtime)
     yield taskname
     yield asset(path, path.is_file)
@@ -138,10 +141,13 @@ def verify_all(config: dict):
 def verify_one(
     forecast: Path, var: Var, variables: set[Var], validtime: ValidTime, rundir: Path, baseline: str
 ):
-    url = baseline.format(yyyymmdd=validtime.yyyymmdd, hh=validtime.hh)
     fv = forecast_var(var=var, validtime=validtime, forecast=forecast, rundir=rundir)
     gm = grib_message(
-        var=var, variables=variables, validtime=ValidTime(cycle=validtime.t), rundir=rundir, url=url
+        var=var,
+        variables=variables,
+        validtime=ValidTime(cycle=validtime.t),
+        rundir=rundir,
+        url=baseline.format(yyyymmdd=validtime.yyyymmdd, hh=validtime.hh),
     )
     yield "Verification of %s at %s" % (var, validtime)
     yield [fv, gm]
