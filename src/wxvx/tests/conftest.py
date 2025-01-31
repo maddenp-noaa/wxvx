@@ -78,7 +78,7 @@ def da() -> xr.DataArray:
         coords=dict(
             latitude=(["latitude", "longitude"], np.zeros((1, 1))),
             longitude=(["latitude", "longitude"], np.zeros((1, 1))),
-            level=(["level"], np.zeros((1,))),
+            level=(["level"], np.array([1000])),
             time=np.zeros((1,)),
             lead_time=np.zeros((1,)),
         ),

@@ -22,22 +22,22 @@ def test_variables_Var_no_level():
     assert hash(var) == hash(("foo", "surface", None))
     assert var < variables.Var("qux", "surface")
     assert var > variables.Var("bar", "surface")
-    assert repr(var) == "Var(levtype=surface, name=foo)"
+    assert repr(var) == "Var(levtype='surface', name='foo')"
     assert str(var) == "foo-surface"
 
 
 def test_variables_Var_with_level():
-    var = variables.Var(name="foo", levtype="isobaricInhPa", level="1000")
+    var = variables.Var(name="foo", levtype="isobaricInhPa", level=1000)
     assert var.name == "foo"
     assert var.levtype == "isobaricInhPa"
-    assert var.level == "1000"
+    assert var.level == 1000
     assert var._keys == {"name", "levtype", "level"}
-    assert var == variables.Var("foo", "isobaricInhPa", "1000")
-    assert var != variables.Var("bar", "isobaricInhPa", "1000")
-    assert hash(var) == hash(("foo", "isobaricInhPa", "1000"))
-    assert var < variables.Var("qux", "isobaricInhPa", "1000")
-    assert var > variables.Var("foo", "isobaricInhPa", "900")
-    assert repr(var) == "Var(level=1000, levtype=isobaricInhPa, name=foo)"
+    assert var == variables.Var("foo", "isobaricInhPa", 1000)
+    assert var != variables.Var("bar", "isobaricInhPa", 1000)
+    assert hash(var) == hash(("foo", "isobaricInhPa", 1000))
+    assert var < variables.Var("qux", "isobaricInhPa", 1000)
+    assert var > variables.Var("foo", "isobaricInhPa", 900)
+    assert repr(var) == "Var(level='1000', levtype='isobaricInhPa', name='foo')"
     assert str(var) == "foo-isobaricInhPa-1000"
 
 
@@ -45,7 +45,7 @@ def test_variables_GFSVar():
     keys = {"name", "levtype", "firstbyte", "lastbyte"}
     var = variables.GFSVar(name="TMP", levstr="900 mb", firstbyte=1, lastbyte=2)
     assert var.levtype == "isobaricInhPa"
-    assert var.level == "900"
+    assert var.level == 900
     assert var.firstbyte == 1
     assert var.lastbyte == 2
     assert var._keys == {*keys, "level"}
@@ -64,7 +64,7 @@ def test_variables_GFSVar_stdvar(expected, name):
 
 
 @mark.parametrize(
-    ("expected", "levstr"), [("900", "900 mb"), ("1013.1", "1013.1 mb"), (None, "surface")]
+    ("expected", "levstr"), [(900, "900 mb"), (1013.1, "1013.1 mb"), (None, "surface")]
 )
 def test_variables_GFSVar__level_pressure(expected, levstr):
     assert variables.GFSVar._level_pressure(levstr) == expected
@@ -74,7 +74,7 @@ def test_variables_GFSVar__level_pressure(expected, levstr):
     ("expected", "levstr"),
     [
         (("atmosphere", None), "entire atmosphere"),
-        (("isobaricInhPa", "900"), "900 mb"),
+        (("isobaricInhPa", 900), "900 mb"),
         (("surface", None), "surface"),
         ((variables.UNKNOWN, None), "something else"),
     ],

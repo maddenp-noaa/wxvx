@@ -36,7 +36,7 @@ def test_workflow_forecast_dataset(da, fakefs):
 
 
 def test_workflow_forecast_var(check_cf_metadata, da, tmp_path, validtime):
-    var = variables.Var(name="gh", levtype="isobaricInhPa", level="1000")
+    var = variables.Var(name="gh", levtype="isobaricInhPa", level=1000)
     forecast = tmp_path / "raw.forecast.nc"
     da.to_netcdf(path=forecast)
     val = workflow.forecast_var(var=var, validtime=validtime, forecast=forecast, rundir=tmp_path)
@@ -45,7 +45,7 @@ def test_workflow_forecast_var(check_cf_metadata, da, tmp_path, validtime):
 
 
 def test_workflow_grib_message(fakefs, idxdata, testvars, url, validtime):
-    var = variables.Var(name="t", levtype="isobaricInhPa", level="900")
+    var = variables.Var(name="t", levtype="isobaricInhPa", level=900)
     with patch.object(workflow, "grib_index_data") as grib_index_data:
         grib_index_data().ready = False
         val = workflow.grib_message(
@@ -145,7 +145,7 @@ def idxdata():
 
 @fixture
 def testvars():
-    return {variables.Var(name=name, levtype="isobaricInhPa", level="900") for name in ("gh", "t")}
+    return {variables.Var(name=name, levtype="isobaricInhPa", level=900) for name in ("gh", "t")}
 
 
 @fixture

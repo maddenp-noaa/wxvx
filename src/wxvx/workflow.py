@@ -38,7 +38,7 @@ def forecast_var(var: Var, validtime: ValidTime, forecast: Path, rundir: Path):
     leadtime = "%03d" % (validtime.leadtime.total_seconds() // 3600)
     fn = "%s.forecast.nc" % var
     path = rundir / "forecast" / validtime.yyyymmdd / validtime.hh / leadtime / fn
-    taskname = "Forecast variable %s at %s" % (var, validtime)
+    taskname = "%s netCDF variable at %s" % (var, validtime)
     yield taskname
     yield asset(path, path.is_file)
     yield fd
@@ -47,6 +47,8 @@ def forecast_var(var: Var, validtime: ValidTime, forecast: Path, rundir: Path):
         .sel(time=np.datetime64(str(validtime.cycle.isoformat())))
         .sel(lead_time=np.timedelta64(int(validtime.leadtime.total_seconds()), "s"))
     )
+    if var.level:
+        da = da.sel(level=var.level)
     set_cf_metadata(da=da, taskname=taskname)
     path.parent.mkdir(parents=True, exist_ok=True)
     da.to_netcdf(path=path)
@@ -60,7 +62,7 @@ def grib_message(var: Var, variables: set[Var], validtime: ValidTime, rundir: Pa
         variables=variables, validtime=validtime, rundir=rundir, url=f"{url}.idx"
     )
     path = rundir / "baseline" / validtime.yyyymmdd / validtime.hh / leadtime / fn
-    taskname = "%s GRIB message %s" % (validtime.t.isoformat(), var)
+    taskname = "%s GRIB message at %s" % (var, validtime.t.isoformat())
     yield taskname
     yield asset(path, path.is_file)
     yield idxdata
@@ -138,9 +140,8 @@ def verify_one(
 ):
     url = baseline.format(yyyymmdd=validtime.yyyymmdd, hh=validtime.hh)
     fv = forecast_var(var=var, validtime=validtime, forecast=forecast, rundir=rundir)
-    assert fv
     gm = grib_message(
         var=var, variables=variables, validtime=ValidTime(cycle=validtime.t), rundir=rundir, url=url
     )
     yield "Verification of %s at %s" % (var, validtime)
-    yield gm  # [fv, gm]
+    yield [fv, gm]

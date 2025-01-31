@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import Optional
+from typing import Optional, Union
 
 import xarray as xr
 
@@ -9,11 +9,11 @@ UNKNOWN = "unknown"
 
 class Var:
 
-    def __init__(self, name: str, levtype: str, level: Optional[str] = None):
+    def __init__(self, name: str, levtype: str, level: Optional[Union[float, int]] = None):
         self.name = name
         self.levtype = levtype
-        self.level = str(level) if level else None
-        self._keys = {"name", "levtype", "level"} if self.level else {"name", "levtype"}
+        self.level = level
+        self._keys = {"name", "levtype", "level"} if self.level is not None else {"name", "levtype"}
 
     def __eq__(self, other):
         return hash(self) == hash(other)
@@ -26,11 +26,11 @@ class Var:
 
     def __repr__(self):
         keys = sorted(list(self._keys))
-        vals = [f"{k}={v}" for k, v in zip(keys, [getattr(self, key) for key in keys])]
+        vals = [f"{k}='{v}'" for k, v in zip(keys, [getattr(self, key) for key in keys])]
         return "%s(%s)" % (self.__class__.__name__, ", ".join(vals))
 
     def __str__(self):
-        level = f"{int(self.level):04}" if self.level else None
+        level = f"{self.level:04}" if self.level is not None else None
         vals = filter(None, [self._stdname, self.levtype, level])
         return "-".join(vals)
 
@@ -74,15 +74,17 @@ class GFSVar(Var):
         return cls.GFS2STD.get(name, UNKNOWN)
 
     @staticmethod
-    def _level_pressure(levstr: str) -> Optional[str]:
-        return m[1] if (m := re.match(r"^([0-9\.]+) mb$", levstr)) else None
+    def _level_pressure(levstr: str) -> Optional[Union[float, int]]:
+        if m := re.match(r"^([0-9\.]+) mb$", levstr):
+            return _levelstr2num(m[1])
+        return None
 
     @staticmethod
-    def _levinfo(levstr: str) -> tuple[str, Optional[str]]:
+    def _levinfo(levstr: str) -> tuple[str, Optional[Union[float, int]]]:
         if m := re.match(r"^entire atmosphere$", levstr):
             return ("atmosphere", None)
         if m := re.match(r"^(\d+(\.\d+)?) mb$", levstr):
-            return ("isobaricInhPa", m[1])
+            return ("isobaricInhPa", _levelstr2num(m[1]))
         if m := re.match(r"^surface$", levstr):
             return ("surface", None)
         return (UNKNOWN, None)
@@ -90,6 +92,13 @@ class GFSVar(Var):
     @property
     def _stdname(self) -> str:
         return self.stdvar(self.name)
+
+
+def _levelstr2num(levelstr: str) -> Union[float, int]:
+    try:
+        return int(levelstr)
+    except ValueError:
+        return float(levelstr)
 
 
 def set_cf_metadata(da: xr.DataArray, taskname: str) -> None:
