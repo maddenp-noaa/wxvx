@@ -9,7 +9,7 @@ leadtimes:
   step: "01:00:00"
   stop: "01:00:00"
 meta:
-  levels: &levels [200, 300, 475, 800, 825, 850, 875, 900, 925, 950, 975, 1000]
+  levels: &levels [900, 1000] # [200, 300, 475, 800, 825, 850, 875, 900, 925, 950, 975, 1000]
 rundir: /tmp/wxvx/
 threads: 1
 variables:
@@ -18,20 +18,20 @@ variables:
     name: gh
   - levtype: atmosphere
     name: refc
-  - levels: *levels
-    levtype: isobaricInhPa
-    name: q
+#   - levels: *levels
+#     levtype: isobaricInhPa
+#     name: q
   - levtype: surface
     name: t
-  - levels: *levels
-    levtype: isobaricInhPa
-    name: t
-  - levels: *levels
-    levtype: isobaricInhPa
-    name: u
-  - levels: *levels
-    levtype: isobaricInhPa
-    name: v
-  - levels: *levels
-    levtype: isobaricInhPa
-    name: w
+#   - levels: *levels
+#     levtype: isobaricInhPa
+#     name: t
+#   - levels: *levels
+#     levtype: isobaricInhPa
+#     name: u
+#   - levels: *levels
+#     levtype: isobaricInhPa
+#     name: v
+#   - levels: *levels
+#     levtype: isobaricInhPa
+#     name: w
