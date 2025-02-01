@@ -1,8 +1,8 @@
-from collections.abc import Generator
-from contextlib import contextmanager
+from __future__ import annotations
+
 from importlib import resources
 from pathlib import Path
-from typing import TextIO
+from typing import cast
 
 pkgname = __name__.split(".", maxsplit=1)[0]
 
@@ -10,12 +10,10 @@ pkgname = __name__.split(".", maxsplit=1)[0]
 class WXVXError(Exception): ...
 
 
-@contextmanager
-def resource(relpath: str) -> Generator[TextIO, None, None]:
+def resource(relpath: str | Path) -> str:
     with resource_path(relpath).open("r") as f:
-        yield f
+        return f.read()
 
 
-def resource_path(relpath: str) -> Path:
-    with resources.as_file(resources.files(f"{pkgname}.resources")) as prefix:
-        return prefix / relpath
+def resource_path(relpath: str | Path) -> Path:
+    return cast(Path, resources.files(f"{pkgname}.resources").joinpath(str(relpath)))

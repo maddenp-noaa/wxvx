@@ -71,8 +71,7 @@ def _parse_args(argv: list[str]) -> Namespace:
 
 
 def _version() -> str:
-    with resource("info.json") as f:
-        info = json.load(f)
+    info = json.loads(resource("info.json"))
     return "version %s build %s" % (info["version"], info["buildnum"])
 
 
@@ -81,6 +80,5 @@ class ShowConfig(Action):
         super().__init__(option_strings, dest, **kwargs)
 
     def __call__(self, parser, namespace, values, option_string=None):  # noqa: ARG002
-        with resource("config.yaml") as f:
-            print(f.read().strip())
+        print(resource("config.yaml").strip())
         sys.exit(0)

@@ -1,5 +1,5 @@
 {% set info = load_file_data("wxvx/resources/info.json") %}
-{% set minpy = "3.9" %}
+{% set python = "python 3.12" %}
 
 package:
   name: wxvx
@@ -13,14 +13,14 @@ build:
 requirements:
   host:
     - pip
-    - python 3.10 # {{ minpy }}
+    - {{ python }}
     - setuptools
   run:
     - iotaa >=1.1.2
     - metkit 11.0.*
     - netcdf4 >=1.7,<2
-    - python 3.10 # >={{ minpy }}
-    - pyyaml 6
+    - {{ python }}
+    - pyyaml 6.*
     - requests >=2.32,<3
     - uwtools 2.6.*
     - xarray >=2023.12
@@ -35,7 +35,7 @@ test:
     - pytest 8.3.*
     - pytest-cov 6.0.*
     - pytest-xdist 3.6.*
-    - python 3.10 # {{ minpy }}
+    - {{ python }}
     - ruff 0.9.*
 about:
   license: APACHE
