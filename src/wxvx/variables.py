@@ -1,15 +1,33 @@
+from __future__ import annotations
+
 import logging
 import re
-from typing import Optional, Union
+from typing import TYPE_CHECKING
 
-import xarray as xr
+if TYPE_CHECKING:
+    import xarray as xr  # pragma: no cover
+
+
+GFS2STD = {
+    "HGT": "gh",
+    "REFC": "refc",
+    "SPFH": "q",
+    "T2M": "t",
+    "TMP": "t",
+    "UGRD": "u",
+    "VGRD": "v",
+    "VVEL": "w",
+}
 
 UNKNOWN = "unknown"
 
 
 class Var:
+    """
+    A generic variable.
+    """
 
-    def __init__(self, name: str, levtype: str, level: Optional[Union[float, int]] = None):
+    def __init__(self, name: str, levtype: str, level: float | None = None):
         self.name = name
         self.levtype = levtype
         self.level = level
@@ -25,7 +43,7 @@ class Var:
         return str(self) < str(other)
 
     def __repr__(self):
-        keys = sorted(list(self._keys))
+        keys = sorted(self._keys)
         vals = [f"{k}='{v}'" for k, v in zip(keys, [getattr(self, key) for key in keys])]
         return "%s(%s)" % (self.__class__.__name__, ", ".join(vals))
 
@@ -40,25 +58,15 @@ class Var:
 
 
 class GFSVar(Var):
-
-    GFS2STD = {
-        "HGT": "gh",
-        "REFC": "refc",
-        "SPFH": "q",
-        "T2M": "t",
-        "TMP": "t",
-        "UGRD": "u",
-        "VGRD": "v",
-        "VVEL": "w",
-    }
-
-    STD2GFS = {v: k for k, v in GFS2STD.items()}
+    """
+    A GFS-style variable.
+    """
 
     def __init__(self, name: str, levstr: str, firstbyte: int, lastbyte: int):
         levtype, level = self._levinfo(levstr)
         super().__init__(name=name, levtype=levtype, level=level)
         self.firstbyte: int = firstbyte
-        self.lastbyte: Optional[int] = lastbyte if lastbyte > -1 else None
+        self.lastbyte: int | None = lastbyte if lastbyte > -1 else None
         self._keys = (
             {"name", "levtype", "level", "firstbyte", "lastbyte"}
             if self.level is not None
@@ -67,20 +75,20 @@ class GFSVar(Var):
 
     @classmethod
     def gfsvar(cls, name: str) -> str:
-        return cls.STD2GFS.get(name, UNKNOWN)
+        return {v: k for k, v in GFS2STD.items()}.get(name, UNKNOWN)
 
     @classmethod
     def stdvar(cls, name: str) -> str:
-        return cls.GFS2STD.get(name, UNKNOWN)
+        return GFS2STD.get(name, UNKNOWN)
 
     @staticmethod
-    def _level_pressure(levstr: str) -> Optional[Union[float, int]]:
+    def _level_pressure(levstr: str) -> float | int | None:
         if m := re.match(r"^([0-9\.]+) mb$", levstr):
             return _levelstr2num(m[1])
         return None
 
     @staticmethod
-    def _levinfo(levstr: str) -> tuple[str, Optional[Union[float, int]]]:
+    def _levinfo(levstr: str) -> tuple[str, float | int | None]:
         if m := re.match(r"^entire atmosphere$", levstr):
             return ("atmosphere", None)
         if m := re.match(r"^(\d+(\.\d+)?) mb$", levstr):
@@ -97,7 +105,7 @@ class GFSVar(Var):
 def set_cf_metadata(da: xr.DataArray, taskname: str) -> None:
     logging.info("%s: Setting CF metadata on %s", taskname, da.name)
     da.attrs["Conventions"] = "CF-1.8"
-    da["latitude_longitude"] = int()
+    da["latitude_longitude"] = 0
     da.latitude_longitude.attrs["grid_mapping_name"] = "latitude_longitude"
     for name, long_name, standard_name, units in (
         ["HGT", "Geopotential Height", "geopotential_height", "m"],
@@ -136,7 +144,7 @@ def set_cf_metadata(da: xr.DataArray, taskname: str) -> None:
         da[name].attrs.update(updates)
 
 
-def _levelstr2num(levelstr: str) -> Union[float, int]:
+def _levelstr2num(levelstr: str) -> float | int:
     try:
         return int(levelstr)
     except ValueError:

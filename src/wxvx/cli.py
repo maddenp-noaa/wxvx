@@ -80,7 +80,7 @@ class ShowConfig(Action):
     def __init__(self, option_strings, dest, **kwargs):
         super().__init__(option_strings, dest, **kwargs)
 
-    def __call__(self, parser, namespace, values, option_string=None):
+    def __call__(self, parser, namespace, values, option_string=None):  # noqa: ARG002
         with resource("config.yaml") as f:
             print(f.read().strip())
         sys.exit(0)

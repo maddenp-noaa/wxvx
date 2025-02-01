@@ -2,8 +2,6 @@
 Tests for wxvx.net.
 """
 
-# pylint: disable=invalid-name,protected-access
-
 from pytest import mark
 
 from wxvx import variables

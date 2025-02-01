@@ -1,8 +1,8 @@
+from datetime import datetime, timezone
+
 import numpy as np
 import xarray as xr
 from pytest import fixture
-
-# pylint: disable=redefined-outer-name
 
 
 @fixture
@@ -48,23 +48,31 @@ def check_cf_metadata():
 @fixture
 def config():
     return {
-        "baseline": "https://some.url/{yyyymmdd}/{hh}/a.grib2",
+        "baseline": "/".join(
+            [
+                "https://noaa-hrrr-bdp-pds.s3.amazonaws.com",
+                "hrrr.{yyyymmdd}",
+                "conus",
+                "hrrr.t{hh}z.wrfprsf{ff}.grib2",
+            ]
+        ),
         "cycles": {
             "start": "2024-12-19T18:00:00",
             "step": "12:00:00",
             "stop": "2024-12-20T06:00:00",
         },
-        "forecast": "/path/to/forecast.zarr",
+        "forecast": "/path/to/forecast",
         "leadtimes": {
             "start": "00:00:00",
             "step": "06:00:00",
             "stop": "12:00:00",
         },
-        "rundir": "/path/to/run",
-        "threads": 1,
+        "rundir": "/path/to/rundir",
+        "threads": 4,
         "variables": [
-            {"levels": [1000], "levtype": "isobaricInhPa", "name": "gh"},
-            {"levtype": "surface", "name": "t"},
+            {"name": "q", "levtype": "isobaricInhPa", "levels": [1000]},
+            {"name": "refc", "levtype": "atmosphere"},
+            {"name": "t", "levtype": "surface"},
         ],
     }
 
@@ -83,3 +91,13 @@ def da() -> xr.DataArray:
             lead_time=np.zeros((1,)),
         ),
     )
+
+
+@fixture
+def utc():
+    def datetime_utc(*args, **kwargs) -> datetime:
+        # See https://github.com/python/mypy/issues/6799
+        dt = datetime(*args, **kwargs, tzinfo=timezone.utc)  # type: ignore[misc]
+        return dt.replace(tzinfo=None)
+
+    return datetime_utc

@@ -2,8 +2,6 @@
 Tests for wxvx.cli.
 """
 
-# pylint: disable=invalid-name,protected-access,redefined-outer-name
-
 import re
 from pathlib import Path
 from unittest.mock import DEFAULT as D
@@ -14,7 +12,6 @@ from pytest import mark, raises
 
 import wxvx
 from wxvx import cli
-from wxvx.tests.test_schema import config  # pylint: disable=unused-import
 from wxvx.util import pkgname, resource_path
 
 # Tests

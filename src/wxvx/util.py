@@ -1,7 +1,8 @@
+from collections.abc import Generator
 from contextlib import contextmanager
 from importlib import resources
 from pathlib import Path
-from typing import Generator, TextIO
+from typing import TextIO
 
 pkgname = __name__.split(".", maxsplit=1)[0]
 

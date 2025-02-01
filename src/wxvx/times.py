@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 from itertools import product
-from typing import Optional, overload
+from typing import overload
 
 from wxvx.util import WXVXError
 
@@ -10,8 +10,11 @@ from wxvx.util import WXVXError
 
 
 class ValidTime:
+    """
+    Time coordinates.
+    """
 
-    def __init__(self, cycle: datetime, leadtime: Optional[timedelta] = None):
+    def __init__(self, cycle: datetime, leadtime: timedelta | None = None):
         self.cycle = cycle
         self.leadtime = leadtime or timedelta(hours=0)
         self.t = self.cycle + self.leadtime
@@ -43,7 +46,7 @@ def validtimes(cycles: dict[str, str], leadtimes: dict[str, str]) -> list[ValidT
         _cycles(start=cycles_start, step=cycles_step, stop=cycles_stop),
         _leadtimes(leadtimes_start, leadtimes_step, leadtimes_stop),
     )
-    return sorted(set(ValidTime(cycle=cycle, leadtime=leadtime) for cycle, leadtime in pairs))
+    return sorted({ValidTime(cycle=cycle, leadtime=leadtime) for cycle, leadtime in pairs})
 
 
 def yyyymmdd(dt: datetime) -> str:
@@ -80,5 +83,4 @@ def _leadtimes(start: str, step: str, stop: str) -> list[timedelta]:
 def _timedelta(step: str) -> timedelta:
     keys = ["hours", "minutes", "seconds"]
     args = dict(zip(keys, map(int, step.split(":"))))
-    td = timedelta(**args)
-    return td
+    return timedelta(**args)

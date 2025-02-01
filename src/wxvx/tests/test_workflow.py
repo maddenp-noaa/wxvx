@@ -2,9 +2,7 @@
 Tests for wxvx.workflow.
 """
 
-# pylint: disable=protected-access,redefined-outer-name
-
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from textwrap import dedent
 from unittest.mock import ANY, Mock, patch
@@ -13,7 +11,7 @@ import xarray as xr
 from iotaa import asset, ready, refs, task
 from pytest import fixture, mark
 
-from wxvx import time, variables, workflow
+from wxvx import times, variables, workflow
 
 # Tests
 
@@ -32,7 +30,7 @@ def test_workflow_forecast_dataset(da, fakefs):
     with patch.object(workflow.xr, "open_dataset", return_value=da.to_dataset()):
         val = workflow.forecast_dataset(forecast=path)
     assert ready(val)
-    assert refs(val).HGT == da
+    assert da == refs(val).HGT
 
 
 def test_workflow_forecast_var(check_cf_metadata, da, tmp_path, validtime):
@@ -56,7 +54,7 @@ def test_workflow_grib_message(fakefs, idxdata, testvars, url, validtime):
         grib_index_data().ready = True
         grib_index_data()._assets = asset(idxdata, lambda: True)
         with patch.object(workflow, "fetch") as fetch:
-            fetch.side_effect = lambda taskname, url, path, headers: path.touch()
+            fetch.side_effect = lambda taskname, url, path, headers: path.touch()  # noqa: ARG005
             path.parent.mkdir(parents=True, exist_ok=True)
             workflow.grib_message(
                 var=var, variables=testvars, validtime=validtime, rundir=fakefs, url=url
@@ -90,15 +88,15 @@ def test_workflow_grib_index_local(fakefs, url, validtime):
     path.parent.mkdir(parents=True, exist_ok=True)
     with patch.object(workflow, "status", return_value=200):
         with patch.object(workflow, "fetch") as fetch:
-            fetch.side_effect = lambda taskname, url, path: path.touch()
+            fetch.side_effect = lambda taskname, url, path: path.touch()  # noqa: ARG005
             workflow.grib_index_local(validtime=validtime, rundir=fakefs, url=url)
         fetch.assert_called_once_with(taskname=ANY, url=url, path=path)
     assert path.exists()
 
 
 @mark.parametrize("code", [200, 404])
-def test_workflow_grib_index_remote(code, url):
-    validtime = time.ValidTime(cycle=datetime(2025, 1, 30, 12))
+def test_workflow_grib_index_remote(code, url, utc):
+    validtime = times.ValidTime(cycle=utc(2025, 1, 30, 12))
     with patch.object(workflow, "status", return_value=code) as status:
         assert ready(workflow.grib_index_remote(url=url, validtime=validtime)) is (code == 200)
     status.assert_called_with(url=url)
@@ -113,9 +111,9 @@ def test_workflow_verify_all(config):
 
     with patch.object(workflow, "verify_one", test_verify_one):
         val = workflow.verify_all(config=config)
-    validtime = time.validtimes(cycles=config["cycles"], leadtimes=config["leadtimes"])
+    validtime = times.validtimes(cycles=config["cycles"], leadtimes=config["leadtimes"])
     assert len(refs(val)) == len(validtime) * len(config["variables"])
-    assert set(x["validtime"] for x in refs(val)) == set(validtime)
+    assert {x["validtime"] for x in refs(val)} == set(validtime)
 
 
 @mark.skip()
@@ -155,6 +153,6 @@ def url():
 
 @fixture
 def validtime(da):
-    cycle = datetime.fromtimestamp(int(da.time.values[0]))
+    cycle = datetime.fromtimestamp(int(da.time.values[0]), tz=timezone.utc)
     leadtime = timedelta(hours=int(da.lead_time.values[0]))
-    return time.ValidTime(cycle=cycle, leadtime=leadtime)
+    return times.ValidTime(cycle=cycle, leadtime=leadtime)

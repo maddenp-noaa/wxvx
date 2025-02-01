@@ -2,8 +2,6 @@
 Granular tests of config.schema.
 """
 
-# pylint: disable=redefined-outer-name
-
 import json
 import re
 from copy import deepcopy
@@ -122,38 +120,6 @@ def test_schema_variables(logged, config, fs):
 
 
 @fixture
-def config():
-    return {
-        "baseline": "/".join(
-            [
-                "https://noaa-hrrr-bdp-pds.s3.amazonaws.com",
-                "hrrr.{yyyymmdd}",
-                "conus",
-                "hrrr.t{hh}z.wrfprsf{ff}.grib2",
-            ]
-        ),
-        "cycles": {
-            "start": "2024-04-01T01:00:00",
-            "step": "01:00:00",
-            "stop": "2024-04-07T22:00:00",
-        },
-        "forecast": "/tmp/forecast",
-        "leadtimes": {
-            "start": "01:00:00",
-            "step": "01:00:00",
-            "stop": "01:00:00",
-        },
-        "rundir": "/tmp/rundir",
-        "threads": 4,
-        "variables": [
-            {"name": "q", "levtype": "isobaricInhPa", "levels": [1000]},
-            {"name": "refc", "levtype": "atmosphere"},
-            {"name": "t", "levtype": "surface"},
-        ],
-    }
-
-
-@fixture
 def logged(caplog):
     def logged_(s: str):
         found = any(re.match(rf"^.*{s}.*$", message) for message in caplog.messages)
@@ -174,7 +140,7 @@ def validator(fs: FakeFilesystem, *args: Any) -> Callable:
     """
     schema_path = resource_path("config.jsonschema")
     fs.add_real_file(schema_path)
-    with open(schema_path, "r", encoding="utf-8") as f:
+    with schema_path.open() as f:
         schema = json.load(f)
     defs = schema.get("$defs", {})
     for arg in args:

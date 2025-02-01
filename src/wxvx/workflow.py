@@ -8,9 +8,9 @@ import numpy as np
 import xarray as xr
 from iotaa import asset, external, refs, task, tasks
 
-from wxvx import time
+from wxvx import times
 from wxvx.net import fetch, status
-from wxvx.time import ValidTime, validtimes
+from wxvx.times import ValidTime, validtimes
 from wxvx.variables import GFSVar, Var, set_cf_metadata
 
 
@@ -36,8 +36,9 @@ def forecast_dataset(forecast: Path):
 @task
 def forecast_var(var: Var, validtime: ValidTime, forecast: Path, rundir: Path):
     fd = forecast_dataset(forecast=forecast)
-    yyyymmdd = time.yyyymmdd(dt=validtime.cycle)
-    hh = time.hh(dt=validtime.cycle)
+    cycle = validtime.cycle.replace(tzinfo=None)
+    yyyymmdd = times.yyyymmdd(dt=cycle)
+    hh = times.hh(dt=cycle)
     leadtime = "%03d" % (validtime.leadtime.total_seconds() // 3600)
     fn = "%s.forecast.nc" % var
     path = rundir / "forecast" / yyyymmdd / hh / leadtime / fn
@@ -47,7 +48,7 @@ def forecast_var(var: Var, validtime: ValidTime, forecast: Path, rundir: Path):
     yield fd
     da = (
         refs(fd)[GFSVar.gfsvar(var.name)]
-        .sel(time=np.datetime64(str(validtime.cycle.isoformat())))
+        .sel(time=np.datetime64(str(cycle.isoformat())))
         .sel(lead_time=np.timedelta64(int(validtime.leadtime.total_seconds()), "s"))
     )
     if var.level is not None:
@@ -120,19 +121,18 @@ def verify_all(config: dict):
         levels = var.get("levels", [None])
         for level in levels:
             variables.add(Var(name=var["name"], levtype=var["levtype"], level=level))
-    verify_ones = []
-    for validtime in validtimes(cycles=config["cycles"], leadtimes=config["leadtimes"]):
-        for var in sorted(list(variables)):
-            verify_ones.append(
-                verify_one(
-                    forecast=Path(config["forecast"]),
-                    var=var,
-                    variables=variables,
-                    validtime=validtime,
-                    rundir=Path(config["rundir"]),
-                    baseline=config["baseline"],
-                )
-            )
+    verify_ones = [
+        verify_one(
+            forecast=Path(config["forecast"]),
+            var=var,
+            variables=variables,
+            validtime=validtime,
+            rundir=Path(config["rundir"]),
+            baseline=config["baseline"],
+        )
+        for validtime in validtimes(cycles=config["cycles"], leadtimes=config["leadtimes"])
+        for var in sorted(variables)
+    ]
     yield "Verification"
     yield verify_ones
 
