@@ -1,5 +1,29 @@
 # wxvx
 
+A workflow tool for weather-model verification, leveraging [`uwtools`](https://github.com/ufs-community/uwtools) to drive [MET](https://github.com/dtcenter/MET)/[METplus](https://github.com/dtcenter/METplus).
+
+## Installation
+
+First, download, install, and activate [Miniforge](https://github.com/conda-forge/miniforge), the [conda-forge](https://conda-forge.org/) project's implementation of [Miniconda](https://docs.anaconda.com/miniconda/). This can be skipped if you already have a conda installation you want to use. Only Linux `aarch64` and `x86_64` systems are currently supported, and the example shown is for Linux `aarch64`. Download the `x86_64` installer for Intel/AMD systems.
+
+``` bash
+wget https://github.com/conda-forge/miniforge/releases/download/24.11.3-0/Miniforge3-Linux-aarch64.sh
+bash Miniforge3-Linux-aarch64.sh -bfp conda
+rm Miniforge3-Linux-aarch64.sh
+. conda/etc/profile.d/conda.sh
+conda activate
+```
+
+Next, create and activate a conda virtual environment providing the latest `wxvx` version. Append the flags `-c conda-forge --override-channels` to the `conda create` command if using a non-conda-forge conda installation.
+
+``` bash
+conda create -y -n wxvx -c ufs-community -c maddenp wxvx
+conda activate wxvx
+wxvx --version
+```
+
+The environment includes the [`metkit`](https://github.com/maddenp-noaa/metkit) package, which provides [MET](https://github.com/dtcenter/MET) and select [METplus](https://github.com/dtcenter/METplus) executables and data files. See the [`metkit` docs](https://github.com/maddenp-noaa/metkit/blob/main/README.md) for more information.
+
 ## Use
 
 ```
@@ -64,6 +88,24 @@ Use the `-s` / `--show` CLI switch to show a pro-forma config with realistic val
 - The `variables:` block may be an arbitrarily long sequence of variable descriptions. Generic variable names and level types follow ECMWF conventions. See the [Parameter Database](https://codes.ecmwf.int/grib/param-db/) for details.
 - Currently supported level types are: `atmosphere`, `heightAboveGround`, `isobaricInhPa`, `surface`.
 - A `levels:` value should only be specified for variable supporting it, currently: `heightAboveGround`, `isobaricInhPa`.
+
+## Development
+
+In the `base` environment of a [Miniforge](https://github.com/conda-forge/miniforge) installation, install the [`condev`](https://github.com/maddenp/condev) package. Append the flags `-c conda-forge --override-channels` to the `conda create` command if using a non-conda-forge conda installation.
+
+``` bash
+conda install -y -c maddenp condev
+```
+
+Now, in the root directory of a `wxvx` git clone:
+
+``` bash
+make devshell
+```
+
+This will create and activate a conda virtual environment named `DEV-wxvx`, where all build, run, and test requirement packages are available, and the code under `src/wxvx/` is live-linked into the environment, such that code changes are immediately live and testable. Several `make` targets are available: `make format` automatically formats Python code and JSON documents, and `make tests` runs all code-quality checks (equivalent to `make lint && make typecheck && make unittest`). A common development idiom is to periodically run `make format && make test`.
+
+When you are finished, you can type `exit` to return to your initial shell. The `DEV-wxvx` environment will still be available, and a future `make devshell` command will more-or-less instantly activate it again.
 
 ## TODO
 
