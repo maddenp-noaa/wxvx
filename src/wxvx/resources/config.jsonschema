@@ -1,0 +1,168 @@
+{
+  "$defs": {
+    "datetime": {
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}$",
+      "type": "string"
+    },
+    "time": {
+      "pattern": "^[0-9]{2}:[0-9]{2}:[0-9]{2}$",
+      "type": "string"
+    },
+    "timedelta": {
+      "pattern": "^[0-9]{2}:[0-9]{2}:[0-9]{2}$",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "baseline": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "template": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "template"
+      ],
+      "type": "object"
+    },
+    "cycles": {
+      "additionalProperties": false,
+      "properties": {
+        "start": {
+          "$ref": "#/$defs/datetime"
+        },
+        "step": {
+          "$ref": "#/$defs/timedelta"
+        },
+        "stop": {
+          "$ref": "#/$defs/datetime"
+        }
+      },
+      "required": [
+        "start",
+        "step",
+        "stop"
+      ],
+      "type": "object"
+    },
+    "forecast": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "path"
+      ],
+      "type": "object"
+    },
+    "leadtimes": {
+      "additionalProperties": false,
+      "properties": {
+        "start": {
+          "$ref": "#/$defs/time"
+        },
+        "step": {
+          "$ref": "#/$defs/timedelta"
+        },
+        "stop": {
+          "$ref": "#/$defs/time"
+        }
+      },
+      "required": [
+        "start",
+        "step",
+        "stop"
+      ],
+      "type": "object"
+    },
+    "meta": {
+      "type": "object"
+    },
+    "threads": {
+      "type": "integer"
+    },
+    "variables": {
+      "patternProperties": {
+        "^.*$": {
+          "additionalProperties": false,
+          "allOf": [
+            {
+              "else": {
+                "not": {
+                  "required": [
+                    "levels"
+                  ]
+                }
+              },
+              "if": {
+                "properties": {
+                  "levtype": {
+                    "enum": [
+                      "heightAboveGround",
+                      "isobaricInhPa"
+                    ]
+                  }
+                }
+              },
+              "then": {
+                "required": [
+                  "levels"
+                ]
+              }
+            }
+          ],
+          "properties": {
+            "levels": {
+              "items": {
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            "levtype": {
+              "enum": [
+                "atmosphere",
+                "heightAboveGround",
+                "isobaricInhPa",
+                "surface"
+              ]
+            },
+            "stdname": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "levtype",
+            "stdname"
+          ],
+          "type": "object"
+        }
+      },
+      "type": "object"
+    },
+    "workdir": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "baseline",
+    "cycles",
+    "forecast",
+    "leadtimes",
+    "threads",
+    "variables",
+    "workdir"
+  ],
+  "type": "object"
+}

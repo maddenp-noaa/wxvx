@@ -1,0 +1,148 @@
+boot = {
+  interval = PCTILE;
+  n_rep = 0;
+  rep_prop = 1.0;
+  rng = "mt19937";
+  seed = "";
+}
+cat_thresh = [ NA ];
+censor_thresh = [];
+censor_val = [];
+ci_alpha  = [ 0.05 ];
+climo_cdf = {
+  cdf_bins = 1.0;
+  center_bins = FALSE;
+  direct_prob = FALSE;
+  write_bins = TRUE;
+}
+climo_mean = {
+  day_interval = 31;
+  field = [];
+  file_name = [];
+  hour_interval = 6;
+  regrid = {
+    method = NEAREST;
+    shape = SQUARE;
+    vld_thresh = 0.5;
+    width = 1;
+  }
+  time_interp_method = DW_MEAN;
+}
+climo_stdev = climo_mean;
+cnt_logic = UNION;
+cnt_thresh = [ NA ];
+desc = "NA";
+distance_map = {
+  baddeley_max_dist = NA;
+  baddeley_p = 2;
+  beta_value(n) = n * n / 2.0;
+  fom_alpha = 0.1;
+  zhu_weight = 0.5;
+}
+eclv_points = 0.05;
+fcst = {
+  field = [
+    {
+      name = "{{ forecast_name }}";
+      level = [ "{{ forecast_level }}" ];
+    }
+  ];
+  file_type = NETCDF_NCCF;
+}
+fourier = {
+  wave_1d_beg = [];
+  wave_1d_end = [];
+}
+gradient = {
+  dx = [ 1 ];
+  dy = [ 1 ];
+}
+grid_weight_flag = NONE;
+hss_ec_value = NA;
+interp = {
+  field = BOTH;
+  shape = SQUARE;
+  type = [
+    {
+      method = NEAREST;
+      width = 1;
+    }
+  ];
+  vld_thresh = 1.0;
+}
+mask = {
+  grid = [ "FULL" ];
+  poly = [];
+}
+model = "{{ model }}";
+nbrhd = {
+  cov_thresh = [ >=0.5 ];
+  field = BOTH;
+  shape = SQUARE;
+  vld_thresh = 1.0;
+  width = [ 1 ];
+}
+nc_pairs_flag = {
+  apply_mask = FALSE;
+  climo = FALSE;
+  climo_cdp = FALSE;
+  diff = FALSE;
+  distance_map = FALSE;
+  fourier = FALSE;
+  gradient = FALSE;
+  latlon = FALSE;
+  nbrhd = FALSE;
+  raw = FALSE;
+  seeps = FALSE;
+  weight = FALSE;
+}
+nc_pairs_var_name = "";
+nc_pairs_var_suffix = "";
+obs = {
+  field = [
+    {
+      name = "{{ baseline_name }}";
+      level = [ "{{ baseline_level }}" ];
+    }
+  ];
+  file_type = GRIB2;
+}
+obtype = "{{ obtype }}";
+output_flag = {
+  cnt = STAT;
+  ctc = NONE;
+  cts = NONE;
+  dmap = NONE;
+  eclv = NONE;
+  fho = NONE;
+  grad = NONE;
+  mctc = NONE;
+  mcts = NONE;
+  nbrcnt = NONE;
+  nbrctc = NONE;
+  nbrcts = NONE;
+  pct = NONE;
+  pjc = NONE;
+  prc = NONE;
+  pstd = NONE;
+  sal1l2 = NONE;
+  seeps = NONE;
+  sl1l2 = NONE;
+  val1l2 = NONE;
+  vcnt = NONE;
+  vl1l2 = NONE;
+}
+output_prefix = "";
+rank_corr_flag = FALSE;
+regrid = {
+  method = BUDGET;
+  shape = SQUARE;
+  to_grid = FCST;
+  vld_thresh = 0.5;
+  width = 2;
+}
+seeps_p1_thresh = NA;
+tmp_dir = "{{ tmpdir }}";
+version = "V11.0.0";
+wind_logic = UNION;
+wind_thresh = [ NA ];

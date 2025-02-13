@@ -1,0 +1,50 @@
+baseline:
+  name: HRRR
+  template: https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.{yyyymmdd}/conus/hrrr.t{hh}z.wrfprsf00.grib2
+cycles:
+  start: "2024-04-01T01:00:00"
+  step: "01:00:00"
+  stop: "2024-04-07T22:00:00"
+forecast:
+  name: GraphHRRR
+  path: /path/to/forecast.zarr
+leadtimes:
+  start: "02:00:00"
+  step: "01:00:00"
+  stop: "02:00:00"
+meta:
+  levels: &levels [200, 300, 475, 800, 825, 850, 875, 900, 925, 950, 975, 1000]
+threads: 0
+variables:
+  HGT:
+    levels: *levels
+    levtype: isobaricInhPa
+    stdname: gh
+  REFC:
+    levtype: atmosphere
+    stdname: refc
+  SPFH:
+    levels: *levels
+    levtype: isobaricInhPa
+    stdname: q
+  T2M:
+    levels: [2]
+    levtype: heightAboveGround
+    stdname: 2t
+  TMP:
+    levels: *levels
+    levtype: isobaricInhPa
+    stdname: t
+  UGRD:
+    levels: *levels
+    levtype: isobaricInhPa
+    stdname: u
+  VGRD:
+    levels: *levels
+    levtype: isobaricInhPa
+    stdname: v
+  VVEL:
+    levels: *levels
+    levtype: isobaricInhPa
+    stdname: w
+workdir: /path/to/workdir/

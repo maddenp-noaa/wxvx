@@ -1,0 +1,41 @@
+{
+  "build": "py_0",
+  "buildnum": 0,
+  "name": "wxvx",
+  "packages": {
+    "dev": [
+      "docformatter ==1.7.*",
+      "iotaa >=1.1.2",
+      "jq ==1.7.*",
+      "make ==4.4.*",
+      "metkit ==11.0.*",
+      "mypy ==1.14.*",
+      "netcdf4 >=1.7,<2",
+      "pip",
+      "pyfakefs ==5.7.*",
+      "pytest ==8.3.*",
+      "pytest-cov ==6.0.*",
+      "pytest-xdist ==3.6.*",
+      "python ==3.10,>=3.10",
+      "pyyaml ==6.*",
+      "requests >=2.32,<3",
+      "ruff ==0.9.*",
+      "setuptools",
+      "uwtools ==2.6.*",
+      "xarray >=2023.12",
+      "zarr >=2.17,<3"
+    ],
+    "run": [
+      "iotaa >=1.1.2",
+      "metkit ==11.0.*",
+      "netcdf4 >=1.7,<2",
+      "python >=3.10",
+      "pyyaml ==6.*",
+      "requests >=2.32,<3",
+      "uwtools ==2.6.*",
+      "xarray >=2023.12",
+      "zarr >=2.17,<3"
+    ]
+  },
+  "version": "0.1.0"
+}
