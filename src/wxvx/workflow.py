@@ -151,7 +151,7 @@ def plot(c: Config, varname: str):
     rundir = c.workdir / "run" / "plot"
     path = rundir / f"plot-{varname}.png"
     taskname = "Plotted stat data %s" % path
-    reformatted = reformat(c)
+    reformatted = reformat(c, rundir)
     cfgfile = plot_config(c, rundir, varname, plotfn=path.name, statfn=refs(reformatted).name)
     cmd = "line.py %s >%s 2>&1" % (refs(cfgfile).name, f"plot-{varname}.log")
     script = runscript(taskname, basepath=path, content=cmd)
@@ -213,8 +213,7 @@ def plot_config(c: Config, rundir: Path, varname: str, plotfn: str, statfn: str)
 
 
 @task
-def reformat(c: Config):
-    rundir = c.workdir / "run" / "plot"
+def reformat(c: Config, rundir: Path):
     path = rundir / "reformat.data"
     taskname = "Reformatted stat data %s" % path
     cfgfile = reformat_config(rundir)

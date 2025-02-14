@@ -180,7 +180,7 @@ def test_workflow_reformat(c, fakefs):
         patch.object(workflow, "mpexec", side_effect=lambda *_: path.touch()) as mpexec,
     ):
         rundir.mkdir(parents=True)
-        val = workflow.reformat(c=c)
+        val = workflow.reformat(c=c, rundir=rundir)
     runscript = str((rundir / refs(val).stem).with_suffix(".sh"))
     mpexec.assert_called_once_with(runscript, rundir, taskname)
     assert ready(val)
