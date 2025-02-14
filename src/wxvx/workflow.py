@@ -114,8 +114,8 @@ def grib_message(c: Config, tc: TimeCoords, var: Var, vxvars: VXVarsT):
     leadtime = "%03d" % (tc.leadtime.total_seconds() // 3600)
     fn = "%s.grib2" % var
     path = c.workdir / "baseline" / tc.yyyymmdd / tc.hh / leadtime / fn
-    yyyymmdd, hh, _ = tcinfo(TimeCoords(cycle=tc.validtime))
-    url = c.baseline.template.format(yyyymmdd=yyyymmdd, hh=hh)
+    yyyymmdd, hh, leadtime = tcinfo(TimeCoords(cycle=tc.validtime), leadtime_digits=2)
+    url = c.baseline.template.format(yyyymmdd=yyyymmdd, hh=hh, ff=leadtime)
     idxdata = grib_index_data(c, vxvars, tc, url=f"{url}.idx")
     yield taskname
     yield asset(path, path.is_file)
