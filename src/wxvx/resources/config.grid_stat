@@ -132,7 +132,7 @@ output_flag = {
   vcnt = NONE;
   vl1l2 = NONE;
 }
-output_prefix = "";
+output_prefix = "{{ prefix }}";
 rank_corr_flag = FALSE;
 regrid = {
   method = BUDGET;

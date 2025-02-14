@@ -127,7 +127,7 @@ def grib_message(c: Config, tc: TimeCoords, var: Var, vxvars: VXVarsT):
 
 
 @task
-def grid_stat_config(c: Config, basepath: Path, varname: str, rundir: Path, var: Var):
+def grid_stat_config(c: Config, basepath: Path, varname: str, rundir: Path, var: Var, prefix: str):
     path = (basepath.parent / basepath.stem).with_suffix(".config")
     taskname = "Verification config %s" % path
     yield taskname
@@ -140,6 +140,7 @@ def grid_stat_config(c: Config, basepath: Path, varname: str, rundir: Path, var:
         "forecast_name": varname,
         "model": c.forecast.name,
         "obtype": c.baseline.name,
+        "prefix": prefix,
         "tmpdir": rundir,
     }
     render(values_src=values, input_file=resource_path("config.grid_stat"), output_file=path)
@@ -248,15 +249,16 @@ def runscript(taskname: str, basepath: Path, content: str):
 
 
 @task
-def stat(c: Config, varname: str, tc: TimeCoords, var: Var, vxvars: VXVarsT):
+def stat(c: Config, varname: str, tc: TimeCoords, var: Var, vxvars: VXVarsT, prefix: str):
     taskname = "MET grid_stat results for %s at %s" % (var, tc)
     yyyymmdd, hh, leadtime = tcinfo(tc)
     rundir = c.workdir / "run" / yyyymmdd / hh / leadtime
     yyyymmdd_valid, hh_valid, _ = tcinfo(TimeCoords(tc.validtime))
-    path = rundir / ("grid_stat_000000L_%s_%s0000V.stat" % (yyyymmdd_valid, hh_valid))
+    fn = "grid_stat_%s_000000L_%s_%s0000V.stat" % (prefix, yyyymmdd_valid, hh_valid)
+    path = rundir / fn
     forecast = forecast_variable(c, varname, tc, var)
     baseline = grib_message(c, TimeCoords(cycle=tc.validtime), var, vxvars)
-    cfgfile = grid_stat_config(c, path, varname, rundir, var)
+    cfgfile = grid_stat_config(c, path, varname, rundir, var, prefix)
     log = f"{path.stem}.log"
     content = f"""
     export OMP_NUM_THREADS=1
@@ -277,7 +279,7 @@ def stats(c: Config):
         for level in attrs.get("levels", [None]):
             vxvars[varname] = Var(name=attrs["stdname"], levtype=attrs["levtype"], level=level)
     reqs = [
-        stat(c, varname, tc, var, vxvars)
+        stat(c, varname, tc, var, vxvars, "forecast")
         for tc in validtimes(c.cycles, c.leadtimes)
         for varname, var in vxvars.items()
     ]
