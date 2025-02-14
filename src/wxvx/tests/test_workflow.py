@@ -88,17 +88,17 @@ def test_workflow_grib_index_data(c, idxdata, testvars, tc):
         yield "mock"
         yield asset(idxfile, idxfile.exists)
 
-    with patch.object(workflow, "grib_index_local", mock):
+    with patch.object(workflow, "grib_index_file", mock):
         val = workflow.grib_index_data(
             outdir=c.workdir, vxvars=testvars, tc=tc, url=c.baseline.template
         )
     assert refs(val) == idxdata
 
 
-def test_workflow_grib_index_local(c, tc):
+def test_workflow_grib_index_file(c, tc):
     url = f"{c.baseline.template}.idx"
     with patch.object(workflow, "status", return_value=404):
-        val = workflow.grib_index_local(outdir=c.workdir, tc=tc, url=url)
+        val = workflow.grib_index_file(outdir=c.workdir, tc=tc, url=url)
     path: Path = refs(val)
     assert not path.exists()
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -107,7 +107,7 @@ def test_workflow_grib_index_local(c, tc):
         patch.object(workflow, "fetch") as fetch,
     ):
         fetch.side_effect = lambda taskname, url, path: path.touch()  # noqa: ARG005
-        workflow.grib_index_local(outdir=c.workdir, tc=tc, url=url)
+        workflow.grib_index_file(outdir=c.workdir, tc=tc, url=url)
     fetch.assert_called_once_with(ANY, url, path)
     assert path.exists()
 
@@ -215,7 +215,7 @@ def test_workflow_stat(c, fakefs, tc, testvars):
         yield asset(Path("/some/file"), lambda: True)
 
     rundir = fakefs / "run" / "stat" / "19700101" / "00" / "000"
-    taskname = "MET grid_stat results for 2t-heightAboveGround-0002 at 1970-01-01T00:00:00"
+    taskname = "MET grid_stat results for 2t-heightAboveGround-0002 at 19700101 00Z 000"
     var = variables.Var(name="2t", levtype="heightAboveGround", level=2)
     kwargs = dict(c=c, varname="T2M", tc=tc, var=var, vxvars=testvars, prefix="foo")
     with (
