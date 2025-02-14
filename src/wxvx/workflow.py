@@ -255,19 +255,19 @@ def statfile(c: Config, varname: str, tc: TimeCoords, var: Var, vxvars: VXVarsT)
     rundir = c.workdir / "run" / yyyymmdd / hh / leadtime
     yyyymmdd_valid, hh_valid, _ = tcinfo(TimeCoords(tc.validtime))
     path = rundir / ("grid_stat_000000L_%s_%s0000V.stat" % (yyyymmdd_valid, hh_valid))
-    fv = forecast_variable(c, varname, tc, var)
-    gm = grib_message(c, TimeCoords(cycle=tc.validtime), var, vxvars)
-    gsc = grid_stat_config(c, path, varname, rundir, var)
+    forecast = forecast_variable(c, varname, tc, var)
+    baseline = grib_message(c, TimeCoords(cycle=tc.validtime), var, vxvars)
+    cfgfile = grid_stat_config(c, path, varname, rundir, var)
     log = f"{path.stem}.log"
     content = f"""
     export OMP_NUM_THREADS=1
-    grid_stat -v 3 {refs(fv)} {refs(gm)} {refs(gsc).name} >{log} 2>&1
+    grid_stat -v 3 {refs(forecast)} {refs(baseline)} {refs(cfgfile).name} >{log} 2>&1
     """
-    rs = runscript(taskname, basepath=path, content=dedent(content).strip())
+    script = runscript(taskname, basepath=path, content=dedent(content).strip())
     yield taskname
     yield asset(path, path.is_file)
-    yield [fv, gm, gsc, rs]
-    mpexec(str(refs(rs)), rundir, taskname)
+    yield [forecast, baseline, cfgfile, script]
+    mpexec(str(refs(script)), rundir, taskname)
 
 
 @task
