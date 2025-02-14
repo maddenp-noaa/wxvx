@@ -48,8 +48,9 @@ def test_times_hh(utc):
 def test_times_tcinfo(utc):
     cycle = utc(2025, 2, 11, 3)
     leadtime = timedelta(hours=8)
-    expected = ("20250211", "03", "008")
-    assert times.tcinfo(tc=times.TimeCoords(cycle=cycle, leadtime=leadtime)) == expected
+    tc = times.TimeCoords(cycle=cycle, leadtime=leadtime)
+    assert times.tcinfo(tc=tc) == ("20250211", "03", "008")
+    assert times.tcinfo(tc=tc, leadtime_digits=2) == ("20250211", "03", "08")
 
 
 def test_times_validtimes(config_data, utc):

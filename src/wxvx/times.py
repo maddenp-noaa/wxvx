@@ -41,8 +41,9 @@ def hh(dt: datetime) -> str:
     return dt.strftime("%H")
 
 
-def tcinfo(tc: TimeCoords) -> tuple[str, str, str]:
-    return (yyyymmdd(dt=tc.cycle), hh(dt=tc.cycle), "%03d" % (tc.leadtime.total_seconds() // 3600))
+def tcinfo(tc: TimeCoords, leadtime_digits: int = 3) -> tuple[str, str, str]:
+    fmt = f"%0{leadtime_digits}d"
+    return (yyyymmdd(dt=tc.cycle), hh(dt=tc.cycle), fmt % (tc.leadtime.total_seconds() // 3600))
 
 
 def validtimes(cycles: Cycles, leadtimes: Leadtimes) -> list[TimeCoords]:
