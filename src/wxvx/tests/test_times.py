@@ -13,11 +13,12 @@ from wxvx.util import WXVXError
 # Tests
 
 
-def test_times_TimeCoords(utc):
+@mark.parametrize("leadtime", [timedelta(hours=1), 1])
+def test_times_TimeCoords(leadtime, utc):
     cycle = utc(2025, 1, 28, 12)
-    leadtime = timedelta(hours=1)
     tc = times.TimeCoords(cycle=cycle, leadtime=leadtime)
-    assert hash(tc) == (cycle + leadtime).timestamp()
+    ltobj = leadtime if isinstance(leadtime, timedelta) else timedelta(hours=leadtime)
+    assert hash(tc) == (cycle + ltobj).timestamp()
     assert tc < times.TimeCoords(cycle=cycle, leadtime=timedelta(hours=2))
     assert tc == times.TimeCoords(cycle=cycle, leadtime=timedelta(hours=1))
     assert tc > times.TimeCoords(cycle=cycle, leadtime=timedelta(hours=0))
