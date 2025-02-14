@@ -27,6 +27,11 @@ def leadtimes(config_data):
     return types.Leadtimes(**config_data["leadtimes"])
 
 
+@fixture
+def plot(config_data):
+    return types.Plot(**config_data["plot"])
+
+
 # Tests
 
 
@@ -72,12 +77,22 @@ def test_Leadtimes(config_data, leadtimes):
     assert obj != other
 
 
-def test_Config(baseline, config_data, cycles, forecast, leadtimes):
+def test_Plot(config_data, plot):
+    obj = plot
+    assert obj.baseline is True
+    other = types.Plot(**config_data["plot"])
+    assert obj == other
+    other.baseline = False
+    assert obj != other
+
+
+def test_Config(baseline, config_data, cycles, forecast, leadtimes, plot):
     obj = types.Config(config_data=config_data)
     assert obj.baseline == baseline
     assert obj.cycles == cycles
     assert obj.forecast == forecast
     assert obj.leadtimes == leadtimes
+    assert obj.plot == plot
     assert obj.variables == config_data["variables"]
     assert obj.workdir == Path(config_data["workdir"])
     other = types.Config(config_data=config_data)

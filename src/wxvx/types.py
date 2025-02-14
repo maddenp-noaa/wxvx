@@ -35,12 +35,18 @@ class Leadtimes:
     stop: str
 
 
+@dataclass
+class Plot:
+    baseline: bool
+
+
 class Config:
     def __init__(self, config_data: dict):
         self.baseline = Baseline(**config_data["baseline"])
         self.cycles = Cycles(**config_data["cycles"])
         self.forecast = Forecast(**config_data["forecast"])
         self.leadtimes = Leadtimes(**config_data["leadtimes"])
+        self.plot = Plot(**config_data["plot"])
         self.variables = config_data["variables"]
         self.workdir = Path(config_data["workdir"])
 
