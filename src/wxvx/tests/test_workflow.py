@@ -212,7 +212,7 @@ def test_workflow_stat(c, fakefs, tc, testvars):
         yield "mock"
         yield asset(Path("/some/file"), lambda: True)
 
-    rundir = fakefs / "run" / "19700101" / "00" / "000"
+    rundir = fakefs / "run" / "stat" / "19700101" / "00" / "000"
     taskname = "MET grid_stat results for 2t-heightAboveGround-0002 at 1970-01-01T00:00:00"
     var = variables.Var(name="2t", levtype="heightAboveGround", level=2)
     kwargs = dict(c=c, varname="T2M", tc=tc, var=var, vxvars=testvars, prefix="foo")

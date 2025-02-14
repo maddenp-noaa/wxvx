@@ -252,7 +252,7 @@ def runscript(taskname: str, basepath: Path, content: str):
 def stat(c: Config, varname: str, tc: TimeCoords, var: Var, vxvars: VXVarsT, prefix: str):
     taskname = "MET grid_stat results for %s at %s" % (var, tc)
     yyyymmdd, hh, leadtime = tcinfo(tc)
-    rundir = c.workdir / "run" / yyyymmdd / hh / leadtime
+    rundir = c.workdir / "run" / "stat" / yyyymmdd / hh / leadtime
     yyyymmdd_valid, hh_valid, _ = tcinfo(TimeCoords(tc.validtime))
     fn = "grid_stat_%s_000000L_%s_%s0000V.stat" % (prefix, yyyymmdd_valid, hh_valid)
     path = rundir / fn
