@@ -257,7 +257,7 @@ def stat(c: Config, varname: str, tc: TimeCoords, var: Var, vxvars: VXVarsT, pre
     path = rundir / fn
     forecast = forecast_variable(c, varname, tc, var)
     # forecast = grib_message(c, tc, var, vxvars)
-    baseline = grib_message(c, tc, var, vxvars)
+    baseline = grib_message(c, TimeCoords(cycle=tc.cycle), var, vxvars)
     cfgfile = grid_stat_config(c, path, varname, rundir, var, prefix)
     log = f"{path.stem}.log"
     content = f"""

@@ -17,9 +17,9 @@ class TimeCoords:
     Time coordinates.
     """
 
-    def __init__(self, cycle: datetime, leadtime: timedelta | None = None):
+    def __init__(self, cycle: datetime, leadtime: int | timedelta = 0):
         self.cycle = cycle.replace(tzinfo=None)  # All wxvx times are UTC
-        self.leadtime = leadtime or timedelta(hours=0)
+        self.leadtime = timedelta(hours=leadtime) if isinstance(leadtime, int) else leadtime
         self.validtime = self.cycle + self.leadtime
         self.yyyymmdd = yyyymmdd(self.validtime)
         self.hh = hh(self.validtime)
