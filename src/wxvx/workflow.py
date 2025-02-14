@@ -254,11 +254,9 @@ def statfile(c: Config, varname: str, tc: TimeCoords, var: Var, vxvars: VXVarsT)
     yyyymmdd, hh, leadtime = tcinfo(tc)
     rundir = c.workdir / "run" / yyyymmdd / hh / leadtime
     yyyymmdd_valid, hh_valid, _ = tcinfo(TimeCoords(tc.validtime))
-    fn = "grid_stat_000000L_%s_%s0000V.stat" % (yyyymmdd_valid, hh_valid)
-    path = rundir / fn
+    path = rundir / ("grid_stat_000000L_%s_%s0000V.stat" % (yyyymmdd_valid, hh_valid))
     fv = forecast_variable(c, varname, tc, var)
-    tcvalid = TimeCoords(cycle=tc.validtime)
-    gm = grib_message(c, tcvalid, var, vxvars)
+    gm = grib_message(c, TimeCoords(cycle=tc.validtime), var, vxvars)
     gsc = grid_stat_config(c, path, varname, rundir, var)
     log = f"{path.stem}.log"
     content = f"""
