@@ -70,6 +70,8 @@ The content of the YAML configuration file supplied via `-c` / `--config` is des
 │   step:        │   Interval between leadtimes as hh[:mm[:ss]] │
 │   stop:        │   Last leadtime as hh[:mm[:ss]]              │
 │ meta:          │ Optional free-form data section              │
+│ plot:          │ Plotting options                             │
+│   baseline     │   Plot baseline-model forecast               │
 │ threads:       │ Number of concurrent threads to use          │
 │ variables:     │ Mapping describing variables to verify       │
 │   VAR:         │   Forecast-dataset variable name             │

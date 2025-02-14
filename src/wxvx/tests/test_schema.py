@@ -22,14 +22,23 @@ def test_schema(logged, config_data, fs):
     # Basic correctness:
     assert ok(config)
     # Certain top-level keys are required:
-    for key in ["baseline", "cycles", "forecast", "leadtimes", "threads", "workdir"]:
+    for key in [
+        "baseline",
+        "cycles",
+        "forecast",
+        "leadtimes",
+        "plot",
+        "threads",
+        "variables",
+        "workdir",
+    ]:
         assert not ok(with_del(config, key))
         assert logged(f"'{key}' is a required property")
     # Addional keys are not allowed:
     assert not ok(with_set(config, 42, "n"))
     assert logged("'n' was unexpected")
     # Some keys have dict values:
-    for key in ["cycles", "leadtimes"]:
+    for key in ["cycles", "leadtimes", "plot", "variables"]:
         assert not ok(with_set(config, None, key))
         assert logged("None is not of type 'object'")
     # Some keys have int values:
@@ -121,6 +130,23 @@ def test_schema_meta(config_data, fs, logged):
     assert ok(with_set(config, {}, "meta"))
     assert not ok(with_set(config, [], "meta"))
     assert logged("is not of type 'object'")
+
+
+def test_schema_plot(config_data, fs, logged):
+    ok = validator(fs, "properties", "plot")
+    config = config_data["plot"]
+    # Basic correctness:
+    assert ok(config)
+    # Certain top-level keys are required:
+    for key in ["baseline"]:
+        assert not ok(with_del(config, key))
+        assert logged(f"'{key}' is a required property")
+    # Addional keys are not allowed:
+    assert not ok(with_set(config, 42, "n"))
+    # Some keys have bool values:
+    for key in ["baseline"]:
+        assert not ok(with_set(config, None, key))
+        assert logged("None is not of type 'boolean'")
 
 
 def test_schema_variables(logged, config_data, fs):

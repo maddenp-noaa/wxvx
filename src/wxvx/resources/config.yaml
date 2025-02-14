@@ -14,6 +14,8 @@ leadtimes:
   stop: "02:00:00"
 meta:
   levels: &levels [200, 300, 475, 800, 825, 850, 875, 900, 925, 950, 975, 1000]
+plot:
+  baseline: true
 threads: 0
 variables:
   HGT:

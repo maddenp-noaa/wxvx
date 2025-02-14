@@ -90,6 +90,18 @@
     "meta": {
       "type": "object"
     },
+    "plot": {
+      "additionalProperties": false,
+      "properties": {
+        "baseline": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "baseline"
+      ],
+      "type": "object"
+    },
     "threads": {
       "type": "integer"
     },
@@ -160,6 +172,7 @@
     "cycles",
     "forecast",
     "leadtimes",
+    "plot",
     "threads",
     "variables",
     "workdir"

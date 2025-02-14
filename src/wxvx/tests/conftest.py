@@ -79,11 +79,25 @@ def config_data():
             "step": "06:00:00",
             "stop": "12:00:00",
         },
+        "plot": {
+            "baseline": True,
+        },
         "threads": 4,
         "variables": {
-            "REFC": {"stdname": "refc", "levtype": "atmosphere"},
-            "SPFH": {"stdname": "q", "levtype": "isobaricInhPa", "levels": [1000]},
-            "T2M": {"stdname": "2t", "levtype": "heightAboveGround", "levels": [2]},
+            "REFC": {
+                "stdname": "refc",
+                "levtype": "atmosphere",
+            },
+            "SPFH": {
+                "stdname": "q",
+                "levtype": "isobaricInhPa",
+                "levels": [1000],
+            },
+            "T2M": {
+                "stdname": "2t",
+                "levtype": "heightAboveGround",
+                "levels": [2],
+            },
         },
         "workdir": "/path/to/workdir",
     }
