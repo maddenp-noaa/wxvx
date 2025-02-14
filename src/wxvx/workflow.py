@@ -1,8 +1,8 @@
 import logging
-import stat
 from itertools import pairwise
 from pathlib import Path
 from shutil import copyfile
+from stat import S_IEXEC
 from textwrap import dedent
 from urllib.parse import urlparse
 from warnings import catch_warnings, simplefilter
@@ -151,13 +151,13 @@ def plot(c: Config, varname: str):
     path = rundir / f"plot-{varname}.png"
     taskname = "Plotted stat data %s" % path
     reformatted = reformat(c)
-    pc = plot_config(c, rundir, varname, plotfn=path.name, statfn=refs(reformatted).name)
-    cmd = "line.py %s >%s 2>&1" % (refs(pc).name, f"plot-{varname}.log")
-    rs = runscript(taskname, basepath=path, content=cmd)
+    cfgfile = plot_config(c, rundir, varname, plotfn=path.name, statfn=refs(reformatted).name)
+    cmd = "line.py %s >%s 2>&1" % (refs(cfgfile).name, f"plot-{varname}.log")
+    script = runscript(taskname, basepath=path, content=cmd)
     yield taskname
     yield asset(path, path.is_file)
-    yield [pc, reformatted, rs]
-    mpexec(str(refs(rs)), rundir, taskname)
+    yield [cfgfile, reformatted, script]
+    mpexec(str(refs(script)), rundir, taskname)
 
 
 @task
@@ -216,14 +216,13 @@ def reformat(c: Config):
     rundir = c.workdir / "run" / "plot"
     path = rundir / "reformat.data"
     taskname = "Reformatted stat data %s" % path
-    rc = reformat_config(rundir)
-    stats = statfiles(c)
-    cmd = "write_stat_ascii.py %s >reformat.log 2>&1" % refs(rc).name
-    rs = runscript(taskname, basepath=path, content=cmd)
+    cfgfile = reformat_config(rundir)
+    cmd = "write_stat_ascii.py %s >reformat.log 2>&1" % refs(cfgfile).name
+    script = runscript(taskname, basepath=path, content=cmd)
     yield taskname
     yield asset(path, path.is_file)
-    yield [rc, rs, stats]
-    mpexec(str(refs(rs)), rundir, taskname)
+    yield [cfgfile, script, stats(c)]
+    mpexec(str(refs(script)), rundir, taskname)
 
 
 @task
@@ -245,11 +244,11 @@ def runscript(taskname: str, basepath: Path, content: str):
     yield None
     with path.open("w") as f:
         print(f"#!/usr/bin/env bash\n\n{content}", file=f)
-    path.chmod(path.stat().st_mode | stat.S_IEXEC)
+    path.chmod(path.stat().st_mode | S_IEXEC)
 
 
 @task
-def statfile(c: Config, varname: str, tc: TimeCoords, var: Var, vxvars: VXVarsT):
+def stat(c: Config, varname: str, tc: TimeCoords, var: Var, vxvars: VXVarsT):
     taskname = "MET grid_stat results for %s at %s" % (var, tc)
     yyyymmdd, hh, leadtime = tcinfo(tc)
     rundir = c.workdir / "run" / yyyymmdd / hh / leadtime
@@ -271,14 +270,14 @@ def statfile(c: Config, varname: str, tc: TimeCoords, var: Var, vxvars: VXVarsT)
 
 
 @task
-def statfiles(c: Config):
+def stats(c: Config):
     taskname = "MET grid_stat results for %s" % c.forecast.path
     vxvars = {}
     for varname, attrs in c.variables.items():
         for level in attrs.get("levels", [None]):
             vxvars[varname] = Var(name=attrs["stdname"], levtype=attrs["levtype"], level=level)
     reqs = [
-        statfile(c, varname, tc, var, vxvars)
+        stat(c, varname, tc, var, vxvars)
         for tc in validtimes(c.cycles, c.leadtimes)
         for varname, var in vxvars.items()
     ]

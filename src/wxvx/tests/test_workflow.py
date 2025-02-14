@@ -175,7 +175,7 @@ def test_workflow_reformat(c, fakefs):
     taskname = f"Reformatted stat data {path}"
     with (
         patch.object(workflow, "reformat_config", mock),
-        patch.object(workflow, "statfiles", mock),
+        patch.object(workflow, "stats", mock),
         patch.object(workflow, "mpexec", side_effect=lambda *_: path.touch()) as mpexec,
     ):
         rundir.mkdir(parents=True)
@@ -205,7 +205,7 @@ def test_workflow_runscript(fakefs):
     assert expected.is_file()
 
 
-def test_workflow_statfile(c, fakefs, tc, testvars):
+def test_workflow_stat(c, fakefs, tc, testvars):
     @external
     def mock(*_args, **_kwargs):
         yield "mock"
@@ -221,17 +221,17 @@ def test_workflow_statfile(c, fakefs, tc, testvars):
         patch.object(workflow, "grid_stat_config", mock),
         patch.object(workflow, "mpexec") as mpexec,
     ):
-        statfile = refs(workflow.statfile(**kwargs, dry_run=True))
-        assert not statfile.is_file()
-        mpexec.side_effect = lambda *_: statfile.touch()
+        stat = refs(workflow.stat(**kwargs, dry_run=True))
+        assert not stat.is_file()
+        mpexec.side_effect = lambda *_: stat.touch()
         rundir.mkdir(parents=True)
-        workflow.statfile(**kwargs)
-    runscript = str((rundir / statfile.stem).with_suffix(".sh"))
+        workflow.stat(**kwargs)
+    runscript = str((rundir / stat.stem).with_suffix(".sh"))
     mpexec.assert_called_once_with(runscript, rundir, taskname)
-    assert statfile.is_file()
+    assert stat.is_file()
 
 
-def test_workflow_statfiles(c, fakefs):
+def test_workflow_stats(c, fakefs):
     target = fakefs / "target" / "stats"
     link = c.workdir / "run" / "plot" / "stats"
 
@@ -241,8 +241,8 @@ def test_workflow_statfiles(c, fakefs):
         yield asset(target, lambda: True)
 
     assert not link.exists()
-    with patch.object(workflow, "statfile", mock):
-        workflow.statfiles(c=c)
+    with patch.object(workflow, "stat", mock):
+        workflow.stats(c=c)
     assert link.is_symlink()
     assert link.resolve() == target
 
