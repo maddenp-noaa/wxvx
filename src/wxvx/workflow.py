@@ -111,9 +111,9 @@ def grib_index_remote(url: str, tc: TimeCoords):
 @task
 def grib_message(c: Config, tc: TimeCoords, var: Var, vxvars: VXVarsT):
     taskname = "%s GRIB message at %s" % (var, tc)
-    leadtime = "%03d" % (tc.leadtime.total_seconds() // 3600)
+    lt4path = "%03d" % (tc.leadtime.total_seconds() // 3600)
     fn = "%s.grib2" % var
-    path = c.workdir / "baseline" / tc.yyyymmdd / tc.hh / leadtime / fn
+    path = c.workdir / "baseline" / tc.yyyymmdd / tc.hh / lt4path / fn
     yyyymmdd, hh, leadtime = tcinfo(TimeCoords(cycle=tc.validtime), leadtime_digits=2)
     url = c.baseline.template.format(yyyymmdd=yyyymmdd, hh=hh, ff=leadtime)
     idxdata = grib_index_data(c, vxvars, tc, url=f"{url}.idx")
@@ -140,7 +140,7 @@ def grid_stat_config(c: Config, basepath: Path, varname: str, rundir: Path, var:
         "forecast_name": varname,
         "model": c.forecast.name,
         "obtype": c.baseline.name,
-        "prefix": prefix,
+        "prefix": f"{prefix}",
         "tmpdir": rundir,
     }
     render(values_src=values, input_file=resource_path("config.grid_stat"), output_file=path)
@@ -256,6 +256,7 @@ def stat(c: Config, varname: str, tc: TimeCoords, var: Var, vxvars: VXVarsT, pre
     fn = "grid_stat_%s_000000L_%s_%s0000V.stat" % (prefix, yyyymmdd_valid, hh_valid)
     path = rundir / fn
     forecast = forecast_variable(c, varname, tc, var)
+    # forecast = grib_message(c, tc, var, vxvars)
     baseline = grib_message(c, TimeCoords(cycle=tc.validtime), var, vxvars)
     cfgfile = grid_stat_config(c, path, varname, rundir, var, prefix)
     log = f"{path.stem}.log"
@@ -278,7 +279,7 @@ def stats(c: Config):
         for level in attrs.get("levels", [None]):
             vxvars[varname] = Var(name=attrs["stdname"], levtype=attrs["levtype"], level=level)
     reqs = [
-        stat(c, varname, tc, var, vxvars, "forecast")
+        stat(c, varname, tc, var, vxvars, "forecast_%s" % str(var).replace("-", "_"))
         for tc in validtimes(c.cycles, c.leadtimes)
         for varname, var in vxvars.items()
     ]
