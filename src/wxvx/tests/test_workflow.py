@@ -89,14 +89,16 @@ def test_workflow_grib_index_data(c, idxdata, testvars, tc):
         yield asset(idxfile, idxfile.exists)
 
     with patch.object(workflow, "grib_index_local", mock):
-        val = workflow.grib_index_data(c=c, vxvars=testvars, tc=tc, url=c.baseline.template)
+        val = workflow.grib_index_data(
+            outdir=c.workdir, vxvars=testvars, tc=tc, url=c.baseline.template
+        )
     assert refs(val) == idxdata
 
 
 def test_workflow_grib_index_local(c, tc):
     url = f"{c.baseline.template}.idx"
     with patch.object(workflow, "status", return_value=404):
-        val = workflow.grib_index_local(c, tc, url)
+        val = workflow.grib_index_local(outdir=c.workdir, tc=tc, url=url)
     path: Path = refs(val)
     assert not path.exists()
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -105,7 +107,7 @@ def test_workflow_grib_index_local(c, tc):
         patch.object(workflow, "fetch") as fetch,
     ):
         fetch.side_effect = lambda taskname, url, path: path.touch()  # noqa: ARG005
-        workflow.grib_index_local(c, tc, url)
+        workflow.grib_index_local(outdir=c.workdir, tc=tc, url=url)
     fetch.assert_called_once_with(ANY, url, path)
     assert path.exists()
 

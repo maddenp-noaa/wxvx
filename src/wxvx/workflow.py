@@ -69,10 +69,11 @@ def forecast_variable(c: Config, varname: str, tc: TimeCoords, var: Var):
 
 
 @task
-def grib_index_data(c: Config, vxvars: VXVarsT, tc: TimeCoords, url: str):
-    taskname = "%s GRIB index data" % tc
+def grib_index_data(outdir: Path, vxvars: VXVarsT, tc: TimeCoords, url: str):
+    yyyymmdd, hh, leadtime = tcinfo(tc)
+    taskname = "GRIB index data %s %sZ %s" % (yyyymmdd, hh, leadtime)
     idxdata: dict[str, HRRRVar] = {}
-    idxfile = grib_index_local(c, tc, url)
+    idxfile = grib_index_local(outdir, tc, url)
     yield taskname
     yield asset(idxdata, lambda: bool(idxdata))
     yield idxfile
@@ -90,11 +91,10 @@ def grib_index_data(c: Config, vxvars: VXVarsT, tc: TimeCoords, url: str):
 
 
 @task
-def grib_index_local(c: Config, tc: TimeCoords, url: str):
-    taskname = "%s GRIB index local" % tc
-    leadtime = "%03d" % (tc.leadtime.total_seconds() // 3600)
-    fn = Path(urlparse(url).path).name
-    path = c.workdir / "baseline" / tc.yyyymmdd / tc.hh / leadtime / fn
+def grib_index_local(outdir: Path, tc: TimeCoords, url: str):
+    yyyymmdd, hh, leadtime = tcinfo(tc)
+    taskname = "GRIB index local %s %sZ %s" % (yyyymmdd, hh, leadtime)
+    path = outdir / Path(urlparse(url).path).name
     yield taskname
     yield asset(path, path.is_file)
     yield grib_index_remote(url, tc)
@@ -110,13 +110,12 @@ def grib_index_remote(url: str, tc: TimeCoords):
 
 @task
 def grib_message(c: Config, tc: TimeCoords, var: Var, vxvars: VXVarsT):
-    yyyymmdd, hh, leadtime = tcinfo(TimeCoords(cycle=tc.validtime), leadtime_digits=2)
+    yyyymmdd, hh, leadtime = tcinfo(tc)
     taskname = "%s GRIB message %s %sZ %s" % (var, yyyymmdd, hh, leadtime)
-    lt4path = "%03d" % (tc.leadtime.total_seconds() // 3600)
-    fn = "%s.grib2" % var
-    path = c.workdir / "baseline" / tc.yyyymmdd / tc.hh / lt4path / fn
-    url = c.baseline.template.format(yyyymmdd=yyyymmdd, hh=hh, ff=leadtime)
-    idxdata = grib_index_data(c, vxvars, tc, url=f"{url}.idx")
+    outdir = c.workdir / "baseline" / yyyymmdd / hh / leadtime
+    path = outdir / f"{var}.grib2"
+    url = c.baseline.template.format(yyyymmdd=yyyymmdd, hh=hh, ff="%02d" % int(leadtime))
+    idxdata = grib_index_data(outdir, vxvars, tc, url=f"{url}.idx")
     yield taskname
     yield asset(path, path.is_file)
     yield idxdata
