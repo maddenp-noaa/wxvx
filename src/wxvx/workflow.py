@@ -110,11 +110,11 @@ def grib_index_remote(url: str, tc: TimeCoords):
 
 @task
 def grib_message(c: Config, tc: TimeCoords, var: Var, vxvars: VXVarsT):
-    taskname = "%s GRIB message at %s" % (var, tc)
+    yyyymmdd, hh, leadtime = tcinfo(TimeCoords(cycle=tc.validtime), leadtime_digits=2)
+    taskname = "%s GRIB message %s %sZ %s" % (var, yyyymmdd, hh, leadtime)
     lt4path = "%03d" % (tc.leadtime.total_seconds() // 3600)
     fn = "%s.grib2" % var
     path = c.workdir / "baseline" / tc.yyyymmdd / tc.hh / lt4path / fn
-    yyyymmdd, hh, leadtime = tcinfo(TimeCoords(cycle=tc.validtime), leadtime_digits=2)
     url = c.baseline.template.format(yyyymmdd=yyyymmdd, hh=hh, ff=leadtime)
     idxdata = grib_index_data(c, vxvars, tc, url=f"{url}.idx")
     yield taskname
@@ -257,7 +257,7 @@ def stat(c: Config, varname: str, tc: TimeCoords, var: Var, vxvars: VXVarsT, pre
     path = rundir / fn
     forecast = forecast_variable(c, varname, tc, var)
     # forecast = grib_message(c, tc, var, vxvars)
-    baseline = grib_message(c, TimeCoords(cycle=tc.validtime), var, vxvars)
+    baseline = grib_message(c, tc, var, vxvars)
     cfgfile = grid_stat_config(c, path, varname, rundir, var, prefix)
     log = f"{path.stem}.log"
     content = f"""
