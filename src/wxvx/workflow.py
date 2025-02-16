@@ -42,7 +42,7 @@ def forecast_dataset(fcstpath: Path):
 @task
 def forecast_variable(c: Config, varname: str, tc: TimeCoords, var: Var):
     yyyymmdd, hh, leadtime = tcinfo(tc)
-    path = c.workdir / "forecast" / yyyymmdd / hh / leadtime / f"{var}.nc"
+    path = c.workdir / "grids" / yyyymmdd / hh / leadtime / f"{var}.nc"
     taskname = "Forecast grid %s" % path
     fd = forecast_dataset(c.forecast.path)
     yield taskname
@@ -108,7 +108,7 @@ def grib_index_remote(url: str):
 @task
 def grib_message(c: Config, tc: TimeCoords, var: Var, vxvars: VXVarsT):
     yyyymmdd, hh, leadtime = tcinfo(tc)
-    outdir = c.workdir / "baseline" / yyyymmdd / hh / leadtime
+    outdir = c.workdir / "grids" / yyyymmdd / hh / leadtime
     path = outdir / f"{var}.grib2"
     taskname = "Baseline grid %s" % path
     url = c.baseline.template.format(yyyymmdd=yyyymmdd, hh=hh, ff="%02d" % int(leadtime))
