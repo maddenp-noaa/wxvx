@@ -97,14 +97,13 @@ def grib_index_file(outdir: Path, tc: TimeCoords, url: str):
     path = outdir / Path(urlparse(url).path).name
     yield taskname
     yield asset(path, path.is_file)
-    yield grib_index_remote(url, tc)
+    yield grib_index_remote(url)
     fetch(taskname, url, path)
 
 
 @external
-def grib_index_remote(url: str, tc: TimeCoords):
-    yyyymmdd, hh, leadtime = tcinfo(tc)
-    taskname = "GRIB index remote at %s %sZ %s from %s" % (yyyymmdd, hh, leadtime, url)
+def grib_index_remote(url: str):
+    taskname = "GRIB index remote %s" % url
     yield taskname
     yield asset(url, lambda: status(url) == 200)
 
@@ -154,7 +153,7 @@ def plot(c: Config, varname: str):
     reformatted = reformat(c, rundir)
     cfgfile = plot_config(c, rundir, varname, plotfn=path.name, statfn=refs(reformatted).name)
     cmd = "line.py %s >%s 2>&1" % (refs(cfgfile).name, f"plot-{varname}.log")
-    script = runscript(taskname, basepath=path, content=cmd)
+    script = runscript(basepath=path, content=cmd)
     yield taskname
     yield asset(path, path.is_file)
     yield [cfgfile, reformatted, script]
@@ -218,7 +217,7 @@ def reformat(c: Config, rundir: Path):
     taskname = "Reformatted stat data %s" % path
     cfgfile = reformat_config(rundir)
     cmd = "write_stat_ascii.py %s >reformat.log 2>&1" % refs(cfgfile).name
-    script = runscript(taskname, basepath=path, content=cmd)
+    script = runscript(basepath=path, content=cmd)
     yield taskname
     yield asset(path, path.is_file)
     yield [cfgfile, script, stats(c)]
@@ -237,9 +236,9 @@ def reformat_config(rundir: Path):
 
 
 @task
-def runscript(taskname: str, basepath: Path, content: str):
+def runscript(basepath: Path, content: str):
     path = (basepath.parent / basepath.stem).with_suffix(".sh")
-    yield "%s: Runscript %s" % (taskname, path)
+    yield "Runscript %s" % path
     yield asset(path, path.is_file)
     yield None
     with path.open("w") as f:
@@ -263,7 +262,7 @@ def stat(c: Config, varname: str, tc: TimeCoords, var: Var, vxvars: VXVarsT, pre
     export OMP_NUM_THREADS=1
     grid_stat -v 3 {refs(forecast)} {refs(baseline)} {refs(cfgfile).name} >{log} 2>&1
     """
-    script = runscript(taskname, basepath=path, content=dedent(content).strip())
+    script = runscript(basepath=path, content=dedent(content).strip())
     yield taskname
     yield asset(path, path.is_file)
     yield [forecast, baseline, cfgfile, script]

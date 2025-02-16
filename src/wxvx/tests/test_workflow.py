@@ -113,11 +113,10 @@ def test_workflow_grib_index_file(c, tc):
 
 
 @mark.parametrize("code", [200, 404])
-def test_workflow_grib_index_remote(c, code, utc):
+def test_workflow_grib_index_remote(c, code):
     url = c.baseline.template
-    tc = times.TimeCoords(cycle=utc(2025, 1, 30, 12))
     with patch.object(workflow, "status", return_value=code) as status:
-        assert ready(workflow.grib_index_remote(url=url, tc=tc)) is (code == 200)
+        assert ready(workflow.grib_index_remote(url=url)) is (code == 200)
     status.assert_called_with(url)
 
 
@@ -202,7 +201,7 @@ def test_workflow_reformat_config(fakefs, fs):
 def test_workflow_runscript(fakefs):
     expected = fakefs / "foo.sh"
     assert not expected.is_file()
-    val = workflow.runscript(taskname="foo", basepath=fakefs / "foo.png", content="commands")
+    val = workflow.runscript(basepath=fakefs / "foo.png", content="commands")
     assert ready(val)
     assert refs(val) == expected
     assert expected.is_file()
