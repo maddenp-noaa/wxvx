@@ -19,8 +19,8 @@ from wxvx.util import pkgname, resource_path
 
 
 def test_cli_main(config_data, fs):
-    fs.add_real_file(resource_path("info.json"))
     fs.add_real_file(resource_path("config.jsonschema"))
+    fs.add_real_file(resource_path("info.json"))
     with patch.multiple(cli, workflow=D, sys=D, use_uwtools_logger=D) as mocks:
         cf = fs.create_file("/path/to/config.yaml", contents=yaml.safe_dump(config_data))
         argv = [pkgname, "-c", cf.path]
@@ -41,6 +41,19 @@ def test_cli_main_bad_config(fs):
         with raises(SystemExit) as e:
             cli.main()
     assert e.value.code == 1
+
+
+@mark.parametrize("switch", ["-k", "--check"])
+def test_cli_main_check_config(fs, switch):
+    fs.add_real_file(resource_path("config.jsonschema"))
+    fs.add_real_file(resource_path("config.yaml"))
+    fs.add_real_file(resource_path("info.json"))
+    with (
+        patch.object(cli.sys, "argv", [pkgname, switch, "-c", str(resource_path("config.yaml"))]),
+        patch.object(cli.workflow, "verification") as verification,
+    ):
+        cli.main()
+    verification.assert_not_called()
 
 
 @mark.parametrize("c", ["-c", "--config"])

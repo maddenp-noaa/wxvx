@@ -27,8 +27,7 @@ The activated virtual environment includes the [`metkit`](https://github.com/mad
 ## Use
 
 ```
-$ wxvx --help
-usage: wxvx -c FILE [-d] [-h] [-s] [-v]
+usage: wxvx -c FILE [-d] [-h] [-k] [-s] [-v]
 
 wxvx
 
@@ -41,6 +40,8 @@ Optional arguments:
       Log all messages
   -h, --help
       Show help and exit
+  -k, --check
+      Check config and exit
   -s, --show
       Show a pro-forma config and exit
   -v, --version

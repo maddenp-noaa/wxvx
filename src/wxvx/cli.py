@@ -20,7 +20,8 @@ def main() -> None:
     config_data.dereference()
     if not validate(schema_file=resource_path("config.jsonschema"), config_data=config_data):
         sys.exit(1)
-    workflow.verification(Config(config_data.data), threads=config_data["threads"])
+    if not args.check:
+        workflow.verification(Config(config_data.data), threads=config_data["threads"])
 
 
 # Private
@@ -53,6 +54,12 @@ def _parse_args(argv: list[str]) -> Namespace:
         "--help",
         action="help",
         help="Show help and exit",
+    )
+    optional.add_argument(
+        "-k",
+        "--check",
+        action="store_true",
+        help="Check config and exit",
     )
     optional.add_argument(
         "-s",
