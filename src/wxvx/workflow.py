@@ -22,14 +22,13 @@ from wxvx.variables import HRRRVar, Var, cf_compliant_dataset, forecast_var_unit
 
 @external
 def existing(path: Path):
-    taskname = "Existing path %s" % path
-    yield taskname
+    yield path
     yield asset(path, path.exists)
 
 
 @task
 def forecast_dataset(fcstpath: Path):
-    taskname = "Forecast %s" % fcstpath
+    taskname = "Forecast dataset from %s" % fcstpath
     ds = xr.Dataset()
     yield taskname
     yield asset(ds, lambda: bool(ds))
@@ -43,8 +42,8 @@ def forecast_dataset(fcstpath: Path):
 @task
 def forecast_variable(c: Config, varname: str, tc: TimeCoords, var: Var):
     yyyymmdd, hh, leadtime = tcinfo(tc)
-    taskname = "Forecast variable %s at %s %sZ %s" % (var, yyyymmdd, hh, leadtime)
     path = c.workdir / "forecast" / yyyymmdd / hh / leadtime / f"{var}.nc"
+    taskname = "Forecast grid %s" % path
     fd = forecast_dataset(c.forecast.path)
     yield taskname
     yield asset(path, path.is_file)
@@ -71,9 +70,9 @@ def forecast_variable(c: Config, varname: str, tc: TimeCoords, var: Var):
 @task
 def grib_index_data(outdir: Path, vxvars: VXVarsT, tc: TimeCoords, url: str):
     yyyymmdd, hh, leadtime = tcinfo(tc)
-    taskname = "GRIB index data at %s %sZ %s" % (yyyymmdd, hh, leadtime)
+    taskname = "GRIB index data %s %sZ %s" % (yyyymmdd, hh, leadtime)
     idxdata: dict[str, HRRRVar] = {}
-    idxfile = grib_index_file(outdir, tc, url)
+    idxfile = grib_index_file(outdir, url)
     yield taskname
     yield asset(idxdata, lambda: bool(idxdata))
     yield idxfile
@@ -91,10 +90,9 @@ def grib_index_data(outdir: Path, vxvars: VXVarsT, tc: TimeCoords, url: str):
 
 
 @task
-def grib_index_file(outdir: Path, tc: TimeCoords, url: str):
-    yyyymmdd, hh, leadtime = tcinfo(tc)
-    taskname = "GRIB index file at %s %sZ %s" % (yyyymmdd, hh, leadtime)
+def grib_index_file(outdir: Path, url: str):
     path = outdir / Path(urlparse(url).path).name
+    taskname = "GRIB index file %s" % path
     yield taskname
     yield asset(path, path.is_file)
     yield grib_index_remote(url)
@@ -103,17 +101,16 @@ def grib_index_file(outdir: Path, tc: TimeCoords, url: str):
 
 @external
 def grib_index_remote(url: str):
-    taskname = "GRIB index remote %s" % url
-    yield taskname
+    yield url
     yield asset(url, lambda: status(url) == 200)
 
 
 @task
 def grib_message(c: Config, tc: TimeCoords, var: Var, vxvars: VXVarsT):
     yyyymmdd, hh, leadtime = tcinfo(tc)
-    taskname = "GRIB message %s at %s %sZ %s" % (var, yyyymmdd, hh, leadtime)
     outdir = c.workdir / "baseline" / yyyymmdd / hh / leadtime
     path = outdir / f"{var}.grib2"
+    taskname = "Baseline grid %s" % path
     url = c.baseline.template.format(yyyymmdd=yyyymmdd, hh=hh, ff="%02d" % int(leadtime))
     idxdata = grib_index_data(outdir, vxvars, tc, url=f"{url}.idx")
     yield taskname
@@ -149,7 +146,7 @@ def grid_stat_config(c: Config, basepath: Path, varname: str, rundir: Path, var:
 def plot(c: Config, varname: str):
     rundir = c.workdir / "run" / "plot"
     path = rundir / f"plot-{varname}.png"
-    taskname = "Plotted stat data %s" % path
+    taskname = "Plot of stat data %s" % path
     reformatted = reformat(c, rundir)
     cfgfile = plot_config(c, rundir, varname, plotfn=path.name, statfn=refs(reformatted).name)
     cmd = "line.py %s >%s 2>&1" % (refs(cfgfile).name, f"plot-{varname}.log")
@@ -214,7 +211,7 @@ def plot_config(c: Config, rundir: Path, varname: str, plotfn: str, statfn: str)
 @task
 def reformat(c: Config, rundir: Path):
     path = rundir / "reformat.data"
-    taskname = "Reformatted stat data %s" % path
+    taskname = "Reformatted grid_stat results %s" % path
     cfgfile = reformat_config(rundir)
     cmd = "write_stat_ascii.py %s >reformat.log 2>&1" % refs(cfgfile).name
     script = runscript(basepath=path, content=cmd)
@@ -249,7 +246,7 @@ def runscript(basepath: Path, content: str):
 @task
 def stat(c: Config, varname: str, tc: TimeCoords, var: Var, vxvars: VXVarsT, prefix: str):
     yyyymmdd, hh, leadtime = tcinfo(tc)
-    taskname = "MET grid_stat results for %s at %s %sZ %s" % (var, yyyymmdd, hh, leadtime)
+    taskname = "MET grid_stat result %s at %s %sZ %s" % (var, yyyymmdd, hh, leadtime)
     rundir = c.workdir / "run" / "stat" / yyyymmdd / hh / leadtime
     yyyymmdd_valid, hh_valid, _ = tcinfo(TimeCoords(tc.validtime))
     fn = "grid_stat_%s_000000L_%s_%s0000V.stat" % (prefix, yyyymmdd_valid, hh_valid)

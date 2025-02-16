@@ -95,10 +95,10 @@ def test_workflow_grib_index_data(c, idxdata, testvars, tc):
     assert refs(val) == idxdata
 
 
-def test_workflow_grib_index_file(c, tc):
+def test_workflow_grib_index_file(c):
     url = f"{c.baseline.template}.idx"
     with patch.object(workflow, "status", return_value=404):
-        val = workflow.grib_index_file(outdir=c.workdir, tc=tc, url=url)
+        val = workflow.grib_index_file(outdir=c.workdir, url=url)
     path: Path = refs(val)
     assert not path.exists()
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -107,7 +107,7 @@ def test_workflow_grib_index_file(c, tc):
         patch.object(workflow, "fetch") as fetch,
     ):
         fetch.side_effect = lambda taskname, url, path: path.touch()  # noqa: ARG005
-        workflow.grib_index_file(outdir=c.workdir, tc=tc, url=url)
+        workflow.grib_index_file(outdir=c.workdir, url=url)
     fetch.assert_called_once_with(ANY, url, path)
     assert path.exists()
 
@@ -139,7 +139,7 @@ def test_workflow_plot(c, fakefs):
 
     rundir = fakefs / "run" / "plot"
     path = rundir / "plot-T2M.png"
-    taskname = f"Plotted stat data {path}"
+    taskname = f"Plot of stat data {path}"
     with (
         patch.object(workflow, "reformat", mock),
         patch.object(workflow, "plot_config", mock),
@@ -174,7 +174,7 @@ def test_workflow_reformat(c, fakefs):
 
     rundir = fakefs / "run" / "plot"
     path = rundir / "reformat.data"
-    taskname = f"Reformatted stat data {path}"
+    taskname = f"Reformatted grid_stat results {path}"
     with (
         patch.object(workflow, "reformat_config", mock),
         patch.object(workflow, "stats", mock),
@@ -214,7 +214,7 @@ def test_workflow_stat(c, fakefs, tc, testvars):
         yield asset(Path("/some/file"), lambda: True)
 
     rundir = fakefs / "run" / "stat" / "19700101" / "00" / "000"
-    taskname = "MET grid_stat results for 2t-heightAboveGround-0002 at 19700101 00Z 000"
+    taskname = "MET grid_stat result 2t-heightAboveGround-0002 at 19700101 00Z 000"
     var = variables.Var(name="2t", levtype="heightAboveGround", level=2)
     kwargs = dict(c=c, varname="T2M", tc=tc, var=var, vxvars=testvars, prefix="foo")
     with (
