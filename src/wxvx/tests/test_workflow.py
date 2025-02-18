@@ -35,45 +35,6 @@ def test_workflow_forecast_dataset(da, fakefs):
     assert (da == refs(val).HGT).all()
 
 
-@mark.parametrize(("fail", "stdname", "varname"), [(False, "gh", "HGT"), (True, "foo", "FOO")])
-def test_workflow_forecast_variable(
-    caplog, c_real, check_cf_metadata, da, fail, stdname, tc, varname
-):
-    var = variables.Var(name=stdname, levtype="isobaricInhPa", level=1000)
-    fcstpath = Path(c_real.workdir, "raw.forecast.nc")
-    c_real.forecast.path = fcstpath
-    da.to_netcdf(path=fcstpath)
-    val = workflow.forecast_variable(c=c_real, varname=varname, tc=tc, var=var)
-    if fail:
-        assert not ready(val)
-        msg = f"Variable FOO valid at {tc.validtime.isoformat()} not found"
-        assert msg in "\n".join(caplog.messages)
-    else:
-        assert ready(val)
-        check_cf_metadata(ds=xr.open_dataset(refs(val), decode_timedelta=True), name="HGT")
-
-
-def test_workflow_grib_message(c, idxdata, testvars, tc):
-    var = variables.Var(name="t", levtype="isobaricInhPa", level=900)
-    ready = Event()
-
-    @external
-    def mock(*_args, **_kwargs):
-        yield "mock"
-        yield asset(idxdata, ready.is_set)
-
-    with patch.object(workflow, "grib_index_data", mock):
-        val = workflow.grib_message(c=c, tc=tc, var=var, vxvars=testvars)
-        path = refs(val)
-        assert not path.exists()
-        ready.set()
-        with patch.object(workflow, "fetch") as fetch:
-            fetch.side_effect = lambda taskname, url, path, headers: path.touch()  # noqa: ARG005
-            path.parent.mkdir(parents=True, exist_ok=True)
-            workflow.grib_message(c=c, tc=tc, var=var, vxvars=testvars)
-        assert path.exists()
-
-
 def test_workflow_grib_index_data(c, idxdata, testvars, tc):
     gribidx = """
     1:0:d=2024040103:HGT:900 mb:anl:
@@ -118,6 +79,43 @@ def test_workflow_grib_index_remote(c, code):
     with patch.object(workflow, "status", return_value=code) as status:
         assert ready(workflow.grib_index_remote(url=url)) is (code == 200)
     status.assert_called_with(url)
+
+
+def test_workflow_grid_grib(c, idxdata, testvars, tc):
+    var = variables.Var(name="t", levtype="isobaricInhPa", level=900)
+    ready = Event()
+
+    @external
+    def mock(*_args, **_kwargs):
+        yield "mock"
+        yield asset(idxdata, ready.is_set)
+
+    with patch.object(workflow, "grib_index_data", mock):
+        val = workflow.grid_grib(c=c, tc=tc, var=var, vxvars=testvars)
+        path = refs(val)
+        assert not path.exists()
+        ready.set()
+        with patch.object(workflow, "fetch") as fetch:
+            fetch.side_effect = lambda taskname, url, path, headers: path.touch()  # noqa: ARG005
+            path.parent.mkdir(parents=True, exist_ok=True)
+            workflow.grid_grib(c=c, tc=tc, var=var, vxvars=testvars)
+        assert path.exists()
+
+
+@mark.parametrize(("fail", "stdname", "varname"), [(False, "gh", "HGT"), (True, "foo", "FOO")])
+def test_workflow_grid_nc(caplog, c_real, check_cf_metadata, da, fail, stdname, tc, varname):
+    var = variables.Var(name=stdname, levtype="isobaricInhPa", level=1000)
+    fcstpath = Path(c_real.workdir, "raw.forecast.nc")
+    c_real.forecast.path = fcstpath
+    da.to_netcdf(path=fcstpath)
+    val = workflow.grid_nc(c=c_real, varname=varname, tc=tc, var=var)
+    if fail:
+        assert not ready(val)
+        msg = f"Variable FOO valid at {tc.validtime.isoformat()} not found"
+        assert msg in "\n".join(caplog.messages)
+    else:
+        assert ready(val)
+        check_cf_metadata(ds=xr.open_dataset(refs(val), decode_timedelta=True), name="HGT")
 
 
 def test_workflow_grid_stat_config(c, fakefs, fs):
@@ -218,8 +216,8 @@ def test_workflow_stat(c, fakefs, tc, testvars):
     var = variables.Var(name="2t", levtype="heightAboveGround", level=2)
     kwargs = dict(c=c, varname="T2M", tc=tc, var=var, vxvars=testvars, prefix="foo")
     with (
-        patch.object(workflow, "forecast_variable", mock),
-        patch.object(workflow, "grib_message", mock),
+        patch.object(workflow, "grid_grib", mock),
+        patch.object(workflow, "grid_nc", mock),
         patch.object(workflow, "grid_stat_config", mock),
         patch.object(workflow, "mpexec") as mpexec,
     ):

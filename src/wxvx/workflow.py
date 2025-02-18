@@ -40,34 +40,6 @@ def forecast_dataset(fcstpath: Path):
 
 
 @task
-def forecast_variable(c: Config, varname: str, tc: TimeCoords, var: Var):
-    yyyymmdd, hh, leadtime = tcinfo(tc)
-    path = c.workdir / "grids" / yyyymmdd / hh / leadtime / f"{var}.nc"
-    taskname = "Forecast grid %s" % path
-    fd = forecast_dataset(c.forecast.path)
-    yield taskname
-    yield asset(path, path.is_file)
-    yield fd
-    try:
-        da = (
-            refs(fd)[varname]
-            .sel(time=np.datetime64(str(tc.cycle.isoformat())))
-            .sel(lead_time=np.timedelta64(int(tc.leadtime.total_seconds()), "s"))
-        )
-    except KeyError as e:
-        msg = "Variable %s valid at %s not found in %s" % (varname, tc, c.forecast.path)
-        raise WXVXError(msg) from e
-    if var.level is not None and hasattr(da, "level"):
-        da = da.sel(level=var.level)
-    da["time"] = da.time + da.lead_time
-    da = da.drop_vars("lead_time")
-    ds = cf_compliant_dataset(da, taskname)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    ds.to_netcdf(path)
-    logging.info("%s: Wrote %s", taskname, path)
-
-
-@task
 def grib_index_data(outdir: Path, vxvars: VXVarsT, tc: TimeCoords, url: str):
     yyyymmdd, hh, leadtime = tcinfo(tc)
     taskname = "GRIB index data %s %sZ %s" % (yyyymmdd, hh, leadtime)
@@ -106,7 +78,7 @@ def grib_index_remote(url: str):
 
 
 @task
-def grib_message(c: Config, tc: TimeCoords, var: Var, vxvars: VXVarsT):
+def grid_grib(c: Config, tc: TimeCoords, var: Var, vxvars: VXVarsT):
     yyyymmdd, hh, leadtime = tcinfo(tc)
     outdir = c.workdir / "grids" / yyyymmdd / hh / leadtime
     path = outdir / f"{var}.grib2"
@@ -120,6 +92,34 @@ def grib_message(c: Config, tc: TimeCoords, var: Var, vxvars: VXVarsT):
     fb, lb = var_idxdata.firstbyte, var_idxdata.lastbyte
     headers = {"Range": "bytes=%s" % (f"{fb}-{lb}" if lb else fb)}
     fetch(taskname, url, path, headers)
+
+
+@task
+def grid_nc(c: Config, varname: str, tc: TimeCoords, var: Var):
+    yyyymmdd, hh, leadtime = tcinfo(tc)
+    path = c.workdir / "grids" / yyyymmdd / hh / leadtime / f"{var}.nc"
+    taskname = "Forecast grid %s" % path
+    fd = forecast_dataset(c.forecast.path)
+    yield taskname
+    yield asset(path, path.is_file)
+    yield fd
+    try:
+        da = (
+            refs(fd)[varname]
+            .sel(time=np.datetime64(str(tc.cycle.isoformat())))
+            .sel(lead_time=np.timedelta64(int(tc.leadtime.total_seconds()), "s"))
+        )
+    except KeyError as e:
+        msg = "Variable %s valid at %s not found in %s" % (varname, tc, c.forecast.path)
+        raise WXVXError(msg) from e
+    if var.level is not None and hasattr(da, "level"):
+        da = da.sel(level=var.level)
+    da["time"] = da.time + da.lead_time
+    da = da.drop_vars("lead_time")
+    ds = cf_compliant_dataset(da, taskname)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    ds.to_netcdf(path)
+    logging.info("%s: Wrote %s", taskname, path)
 
 
 @task
@@ -251,8 +251,8 @@ def stat(c: Config, varname: str, tc: TimeCoords, var: Var, vxvars: VXVarsT, pre
     yyyymmdd_valid, hh_valid, _ = tcinfo(TimeCoords(tc.validtime))
     fn = "grid_stat_%s_000000L_%s_%s0000V.stat" % (prefix, yyyymmdd_valid, hh_valid)
     path = rundir / fn
-    forecast = forecast_variable(c, varname, tc, var)
-    baseline = grib_message(c, TimeCoords(cycle=tc.validtime, leadtime=0), var, vxvars)
+    forecast = grid_nc(c, varname, tc, var)
+    baseline = grid_grib(c, TimeCoords(cycle=tc.validtime, leadtime=0), var, vxvars)
     cfgfile = grid_stat_config(c, path, varname, rundir, var, prefix)
     log = f"{path.stem}.log"
     content = f"""
