@@ -26,7 +26,6 @@ output_flag = {
 }
 output_prefix = "{{ prefix }}";
 regrid = {
-  method = BILIN;
   to_grid = FCST;
 }
 tmp_dir = "{{ tmpdir }}";

@@ -3,6 +3,6 @@ input_stats_aggregated: True
 line_type: CNT
 log_directory: .
 log_filename: /dev/stdout
-log_level: info
+log_level: debug
 output_dir: .
 output_filename: reformat.data

@@ -132,10 +132,10 @@ def grid_stat_config(c: Config, basepath: Path, varname: str, rundir: Path, var:
     values = {
         "baseline_level": HRRRVar.metlevel(levtype=var.levtype, level=var.level),
         "baseline_name": HRRRVar.varname(name=var.name, levtype=var.levtype),
-        "forecast_level": "(*,*)", # PM KEEP THIS
-        "forecast_name": varname, # PM KEEP THIS
-        # "forecast_level": HRRRVar.metlevel(levtype=var.levtype, level=var.level),
-        # "forecast_name": HRRRVar.varname(name=var.name, levtype=var.levtype),
+        # "forecast_level": "(*,*)", # PM KEEP THIS
+        # "forecast_name": varname, # PM KEEP THIS
+        "forecast_level": HRRRVar.metlevel(levtype=var.levtype, level=var.level),
+        "forecast_name": HRRRVar.varname(name=var.name, levtype=var.levtype),
         "model": c.forecast.name,
         "obtype": c.baseline.name,
         "prefix": f"{prefix}",
@@ -151,8 +151,8 @@ def plot(c: Config, varname: str):
     taskname = "Plot of stat data %s" % path
     reformatted = reformat(c, rundir)
     cfgfile = plot_config(c, rundir, varname, plotfn=path.name, statfn=refs(reformatted).name)
-    cmd = "line.py %s >%s 2>&1" % (refs(cfgfile).name, f"plot-{varname}.log")
-    script = runscript(basepath=path, content=cmd)
+    content = "line.py %s >%s 2>&1" % (refs(cfgfile).name, f"plot-{varname}.log")
+    script = runscript(basepath=path, content=content)
     yield taskname
     yield asset(path, path.is_file)
     yield [cfgfile, reformatted, script]
@@ -215,8 +215,11 @@ def reformat(c: Config, rundir: Path):
     path = rundir / "reformat.data"
     taskname = "Reformatted grid_stat results %s" % path
     cfgfile = reformat_config(rundir)
-    cmd = "write_stat_ascii.py %s >reformat.log 2>&1" % refs(cfgfile).name
-    script = runscript(basepath=path, content=cmd)
+    content = f"""
+    export PYTHONWARNINGS=ignore::FutureWarning
+    write_stat_ascii.py {refs(cfgfile).name} >reformat.log 2>&1
+    """
+    script = runscript(basepath=path, content=content)
     yield taskname
     yield asset(path, path.is_file)
     yield [cfgfile, script, stats(c)]
@@ -251,10 +254,10 @@ def stat(c: Config, varname: str, tc: TimeCoords, var: Var, vxvars: VXVarsT, pre
     taskname = "MET grid_stat result %s at %s %sZ %s" % (var, yyyymmdd, hh, leadtime)
     rundir = c.workdir / "run" / "stat" / yyyymmdd / hh / leadtime
     yyyymmdd_valid, hh_valid, _ = tcinfo(TimeCoords(tc.validtime))
-    fn = "grid_stat_%s_000000L_%s_%s0000V.stat" % (prefix, yyyymmdd_valid, hh_valid)
+    fn = "grid_stat_%s_%02d0000L_%s_%s0000V.stat" % (prefix, int(leadtime), yyyymmdd_valid, hh_valid)
     path = rundir / fn
-    forecast = grid_nc(c, varname, tc, var) # PM KEEP THIS
-    # forecast = grid_grib(c, tc, var, vxvars)
+    # forecast = grid_nc(c, varname, tc, var) # PM KEEP THIS
+    forecast = grid_grib(c, tc, var, vxvars)
     baseline = grid_grib(c, TimeCoords(cycle=tc.validtime, leadtime=0), var, vxvars)
     cfgfile = grid_stat_config(c, path, varname, rundir, var, prefix)
     log = f"{path.stem}.log"
