@@ -17,13 +17,7 @@ from wxvx.net import fetch, status
 from wxvx.times import TimeCoords, tcinfo, validtimes
 from wxvx.types import Config, VXVarsT
 from wxvx.util import WXVXError, mpexec, resource_path
-from wxvx.variables import (
-    HRRRVar,
-    Var,
-    cf_compliant_dataset,
-    # forecast_var_name_hrrr,  # TOGGLE
-    forecast_var_units,
-)
+from wxvx.variables import HRRRVar, Var, cf_compliant_dataset, forecast_var_units
 
 
 @external

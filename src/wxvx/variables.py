@@ -165,20 +165,6 @@ def cf_compliant_dataset(da: xr.DataArray, taskname: str) -> xr.Dataset:
     return ds
 
 
-def forecast_var_name_hrrr(name: str) -> str:
-    # PM Consider factoring out to config.
-    return {
-        "HGT": "HGT",
-        "REFC": "REFC",
-        "SPFH": "SPFH",
-        "T2M": "TMP",
-        "TMP": "TMP",
-        "UGRD": "UGRD",
-        "VGRD": "VGRD",
-        "VVEL": "VVEL",
-    }[name]
-
-
 def forecast_var_units(name: str) -> str:
     # PM Consider factoring out to config.
     return {
