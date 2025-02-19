@@ -17,7 +17,13 @@ from wxvx.net import fetch, status
 from wxvx.times import TimeCoords, tcinfo, validtimes
 from wxvx.types import Config, VXVarsT
 from wxvx.util import WXVXError, mpexec, resource_path
-from wxvx.variables import HRRRVar, Var, cf_compliant_dataset, forecast_var_units
+from wxvx.variables import (
+    HRRRVar,
+    Var,
+    cf_compliant_dataset,
+    # forecast_var_name_hrrr,  # TOGGLE
+    forecast_var_units,
+)
 
 
 @external
@@ -132,10 +138,10 @@ def grid_stat_config(c: Config, basepath: Path, varname: str, rundir: Path, var:
     values = {
         "baseline_level": HRRRVar.metlevel(levtype=var.levtype, level=var.level),
         "baseline_name": HRRRVar.varname(name=var.name, levtype=var.levtype),
-        # "forecast_level": "(*,*)",  # PM KEEP THIS
-        # "forecast_name": varname,  # PM KEEP THIS
-        "forecast_level": HRRRVar.metlevel(levtype=var.levtype, level=var.level),
-        "forecast_name": HRRRVar.varname(name=var.name, levtype=var.levtype),
+        "forecast_level": "(*,*)",
+        "forecast_name": varname,
+        # "forecast_level": HRRRVar.metlevel(levtype=var.levtype, level=var.level),  # TOGGLE
+        # "forecast_name": HRRRVar.varname(name=var.name, levtype=var.levtype),  # TOGGLE
         "model": c.forecast.name,
         "obtype": c.baseline.name,
         "prefix": f"{prefix}",
@@ -175,6 +181,7 @@ def plot_config(c: Config, rundir: Path, varname: str, plotfn: str, statfn: str)
         "colors": ["#32cd32"],
         "con_series": [1],
         "fcst_var_val_1": {varname: [stat]},
+        # "fcst_var_val_1": {forecast_var_name_hrrr(varname): [stat]},  # TOGGLE
         "grid_col": "#cccccc",
         "indy_label": x_axis_labels,
         "indy_vals": [vt.validtime.strftime("%Y-%m-%d %H:%M:%S") for vt in vts],
@@ -253,11 +260,16 @@ def stat(c: Config, varname: str, tc: TimeCoords, var: Var, vxvars: VXVarsT, pre
     yyyymmdd, hh, leadtime = tcinfo(tc)
     taskname = "MET grid_stat result %s at %s %sZ %s" % (var, yyyymmdd, hh, leadtime)
     rundir = c.workdir / "run" / "stat" / yyyymmdd / hh / leadtime
-    yyyymmdd_valid, hh_valid, leadtime_valid = tcinfo(TimeCoords(tc.validtime), leadtime_digits=2)
-    fn = "grid_stat_%s_%s0000L_%s_%s0000V.stat" % (prefix, leadtime_valid, yyyymmdd_valid, hh_valid)
+    yyyymmdd_valid, hh_valid, _ = tcinfo(TimeCoords(tc.validtime))
+    fn = "grid_stat_%s_%02d0000L_%s_%s0000V.stat" % (
+        prefix,
+        int(leadtime),
+        yyyymmdd_valid,
+        hh_valid,
+    )
     path = rundir / fn
-    # forecast = grid_nc(c, varname, tc, var)  # PM KEEP THIS
-    forecast = grid_grib(c, tc, var, vxvars)
+    forecast = grid_nc(c, varname, tc, var)
+    # forecast = grid_grib(c, tc, var, vxvars)  # TOGGLE
     baseline = grid_grib(c, TimeCoords(cycle=tc.validtime, leadtime=0), var, vxvars)
     cfgfile = grid_stat_config(c, path, varname, rundir, var, prefix)
     log = f"{path.stem}.log"

@@ -113,7 +113,7 @@ class HRRRVar(Var):
             ("HGT", "isobaricInhPa"): "gh",
             ("REFC", "atmosphere"): "refc",
             ("SPFH", "isobaricInhPa"): "q",
-            ("TMP", "heightAboveGround"): "2t",  # too specific?
+            ("TMP", "heightAboveGround"): "2t",
             ("TMP", "isobaricInhPa"): "t",
             ("TMP", "surface"): "t",
             ("UGRD", "isobaricInhPa"): "u",
@@ -163,7 +163,22 @@ def cf_compliant_dataset(da: xr.DataArray, taskname: str) -> xr.Dataset:
     return ds
 
 
+def forecast_var_name_hrrr(name: str) -> str:
+    # PM Consider factoring out to config.
+    return {
+        "HGT": "HGT",
+        "REFC": "REFC",
+        "SPFH": "SPFH",
+        "T2M": "TMP",
+        "TMP": "TMP",
+        "UGRD": "UGRD",
+        "VGRD": "VGRD",
+        "VVEL": "VVEL",
+    }[name]
+
+
 def forecast_var_units(name: str) -> str:
+    # PM Consider factoring out to config.
     return {
         "HGT": "m",
         "REFC": "dBZ",
