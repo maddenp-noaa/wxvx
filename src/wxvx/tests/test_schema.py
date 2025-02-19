@@ -159,7 +159,7 @@ def test_schema_variables(logged, config_data, fs):
     assert not ok([])
     assert logged("is not of type 'object'")
     # Array entries must have the correct keys:
-    for key in ("levels", "level_type", "stdname"):
+    for key in ("level_type", "levels", "stdname"):
         assert not ok(with_del(entry, "X", key))
         assert logged(f"'{key}' is a required property")
     # Additional keys in entries are not allowed:

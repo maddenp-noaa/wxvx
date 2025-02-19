@@ -85,18 +85,18 @@ def config_data():
         "threads": 4,
         "variables": {
             "REFC": {
-                "stdname": "refc",
                 "level_type": "atmosphere",
+                "stdname": "refc",
             },
             "SPFH": {
-                "stdname": "q",
                 "level_type": "isobaricInhPa",
                 "levels": [1000],
+                "stdname": "q",
             },
             "T2M": {
-                "stdname": "2t",
                 "level_type": "heightAboveGround",
                 "levels": [2],
+                "stdname": "2t",
             },
         },
         "workdir": "/path/to/workdir",

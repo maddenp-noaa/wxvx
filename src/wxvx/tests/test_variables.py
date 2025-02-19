@@ -27,7 +27,7 @@ def test_variables_Var_no_level(level_type):
 
 
 @mark.parametrize(("level_type", "level"), [("heightAboveGround", 2), ("isobaricInhPa", 1000)])
-def test_variables_Var_with_level(level_type, level):
+def test_variables_Var_with_level(level, level_type):
     var = variables.Var(name="foo", level_type=level_type, level=level)
     assert var.name == "foo"
     assert var.level_type == level_type

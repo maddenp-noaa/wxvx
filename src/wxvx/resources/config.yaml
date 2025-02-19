@@ -19,34 +19,34 @@ plot:
 threads: 0
 variables:
   HGT:
-    levels: *levels
     level_type: isobaricInhPa
+    levels: *levels
     stdname: gh
   REFC:
     level_type: atmosphere
     stdname: refc
   SPFH:
-    levels: *levels
     level_type: isobaricInhPa
+    levels: *levels
     stdname: q
   T2M:
-    levels: [2]
     level_type: heightAboveGround
+    levels: [2]
     stdname: 2t
   TMP:
-    levels: *levels
     level_type: isobaricInhPa
+    levels: *levels
     stdname: t
   UGRD:
-    levels: *levels
     level_type: isobaricInhPa
+    levels: *levels
     stdname: u
   VGRD:
-    levels: *levels
     level_type: isobaricInhPa
+    levels: *levels
     stdname: v
   VVEL:
-    levels: *levels
     level_type: isobaricInhPa
+    levels: *levels
     stdname: w
 workdir: /path/to/workdir/

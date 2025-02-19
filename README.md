@@ -76,9 +76,9 @@ The content of the YAML configuration file supplied via `-c` / `--config` is des
 │ threads:        │ Number of concurrent threads to use          │
 │ variables:      │ Mapping describing variables to verify       │
 │   VAR:          │   Forecast-dataset variable name             │
-│     levels:     │     Sequence of level values                 │
 │     level_type: │     Generic level type                       │
-│     name:       │     Generic variable name                    │
+│     levels:     │     Sequence of level values                 │
+│     stdname:    │     Generic variable name                    │
 │ workdir:        │ Base directory for temporary files           │
 └─────────────────┴──────────────────────────────────────────────┘
 ```
