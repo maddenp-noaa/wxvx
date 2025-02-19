@@ -132,10 +132,10 @@ def grid_stat_config(c: Config, basepath: Path, varname: str, rundir: Path, var:
     values = {
         "baseline_level": HRRRVar.metlevel(levtype=var.levtype, level=var.level),
         "baseline_name": HRRRVar.varname(name=var.name, levtype=var.levtype),
-        # "forecast_level": "(*,*)", # PM KEEP THIS
-        # "forecast_name": varname, # PM KEEP THIS
-        "forecast_level": HRRRVar.metlevel(levtype=var.levtype, level=var.level),
-        "forecast_name": HRRRVar.varname(name=var.name, levtype=var.levtype),
+        "forecast_level": "(*,*)", # PM KEEP THIS
+        # "forecast_level": HRRRVar.metlevel(levtype=var.levtype, level=var.level),
+        "forecast_name": varname, # PM KEEP THIS
+        # "forecast_name": HRRRVar.varname(name=var.name, levtype=var.levtype),
         "model": c.forecast.name,
         "obtype": c.baseline.name,
         "prefix": f"{prefix}",
@@ -253,11 +253,11 @@ def stat(c: Config, varname: str, tc: TimeCoords, var: Var, vxvars: VXVarsT, pre
     yyyymmdd, hh, leadtime = tcinfo(tc)
     taskname = "MET grid_stat result %s at %s %sZ %s" % (var, yyyymmdd, hh, leadtime)
     rundir = c.workdir / "run" / "stat" / yyyymmdd / hh / leadtime
-    yyyymmdd_valid, hh_valid, _ = tcinfo(TimeCoords(tc.validtime))
-    fn = "grid_stat_%s_%02d0000L_%s_%s0000V.stat" % (prefix, int(leadtime), yyyymmdd_valid, hh_valid)
+    yyyymmdd_valid, hh_valid, leadtime_valid = tcinfo(TimeCoords(tc.validtime), leadtime_digits=2)
+    fn = "grid_stat_%s_%s0000L_%s_%s0000V.stat" % (prefix, leadtime_valid, yyyymmdd_valid, hh_valid)
     path = rundir / fn
-    # forecast = grid_nc(c, varname, tc, var) # PM KEEP THIS
-    forecast = grid_grib(c, tc, var, vxvars)
+    forecast = grid_nc(c, varname, tc, var) # PM KEEP THIS
+    # forecast = grid_grib(c, tc, var, vxvars)
     baseline = grid_grib(c, TimeCoords(cycle=tc.validtime, leadtime=0), var, vxvars)
     cfgfile = grid_stat_config(c, path, varname, rundir, var, prefix)
     log = f"{path.stem}.log"
