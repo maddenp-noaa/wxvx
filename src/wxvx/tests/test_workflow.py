@@ -27,10 +27,10 @@ def test_workflow_existing(fakefs):
 
 def test_workflow_forecast_dataset(da, fakefs):
     path = fakefs / "forecast"
-    assert not ready(workflow.forecast_dataset(fcstpath=path))
+    assert not ready(workflow.forecast_dataset(path=path))
     path.touch()
     with patch.object(workflow.xr, "open_dataset", return_value=da.to_dataset()):
-        val = workflow.forecast_dataset(fcstpath=path)
+        val = workflow.forecast_dataset(path=path)
     assert ready(val)
     assert (da == refs(val).HGT).all()
 
@@ -105,9 +105,9 @@ def test_workflow_grid_grib(c, idxdata, testvars, tc):
 @mark.parametrize(("fail", "stdname", "varname"), [(False, "gh", "HGT"), (True, "foo", "FOO")])
 def test_workflow_grid_nc(caplog, c_real, check_cf_metadata, da, fail, stdname, tc, varname):
     var = variables.Var(name=stdname, levtype="isobaricInhPa", level=1000)
-    fcstpath = Path(c_real.workdir, "raw.forecast.nc")
-    c_real.forecast.path = fcstpath
-    da.to_netcdf(path=fcstpath)
+    path = Path(c_real.workdir, "raw.forecast.nc")
+    c_real.forecast.path = path
+    da.to_netcdf(path)
     val = workflow.grid_nc(c=c_real, varname=varname, tc=tc, var=var)
     if fail:
         assert not ready(val)
