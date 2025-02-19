@@ -2,6 +2,7 @@
 Tests for wxvx.workflow.
 """
 
+import logging
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from textwrap import dedent
@@ -14,6 +15,8 @@ from iotaa import asset, external, ready, refs
 from pytest import fixture, mark
 
 from wxvx import times, util, variables, workflow
+
+logging.getLogger().setLevel(logging.DEBUG)
 
 # Tests
 
