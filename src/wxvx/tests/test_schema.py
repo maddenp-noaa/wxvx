@@ -159,21 +159,21 @@ def test_schema_variables(logged, config_data, fs):
     assert not ok([])
     assert logged("is not of type 'object'")
     # Array entries must have the correct keys:
-    for key in ("levels", "levtype", "stdname"):
+    for key in ("levels", "level_type", "stdname"):
         assert not ok(with_del(entry, "X", key))
         assert logged(f"'{key}' is a required property")
     # Additional keys in entries are not allowed:
     assert not ok({"X": {**entry, "foo": "bar"}})
     assert logged("Additional properties are not allowed")
     # The "levels" key is required for some level types, forbidden for others:
-    for levtype in (
+    for level_type in (
         "heightAboveGround",
         "isobaricInhPa",
     ):
-        assert not ok({"X": {"stdname": "foo", "levtype": levtype}})
+        assert not ok({"X": {"stdname": "foo", "level_type": level_type}})
         assert logged("'levels' is a required property")
-    for levtype in ("atmosphere", "surface"):
-        assert not ok({"X": {"stdname": "foo", "levtype": levtype, "levels": [1000]}})
+    for level_type in ("atmosphere", "surface"):
+        assert not ok({"X": {"stdname": "foo", "level_type": level_type, "levels": [1000]}})
         assert logged("should not be valid")
 
 

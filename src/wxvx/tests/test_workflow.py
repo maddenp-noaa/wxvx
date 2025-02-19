@@ -82,7 +82,7 @@ def test_workflow_grib_index_remote(c, code):
 
 
 def test_workflow_grid_grib(c, idxdata, testvars, tc):
-    var = variables.Var(name="t", levtype="isobaricInhPa", level=900)
+    var = variables.Var(name="t", level_type="isobaricInhPa", level=900)
     ready = Event()
 
     @external
@@ -104,7 +104,7 @@ def test_workflow_grid_grib(c, idxdata, testvars, tc):
 
 @mark.parametrize(("fail", "stdname", "varname"), [(False, "gh", "HGT"), (True, "foo", "FOO")])
 def test_workflow_grid_nc(caplog, c_real, check_cf_metadata, da, fail, stdname, tc, varname):
-    var = variables.Var(name=stdname, levtype="isobaricInhPa", level=1000)
+    var = variables.Var(name=stdname, level_type="isobaricInhPa", level=1000)
     path = Path(c_real.workdir, "raw.forecast.nc")
     c_real.forecast.path = path
     da.to_netcdf(path)
@@ -120,7 +120,7 @@ def test_workflow_grid_nc(caplog, c_real, check_cf_metadata, da, fail, stdname, 
 
 def test_workflow_grid_stat_config(c, fakefs, fs):
     fs.add_real_file(util.resource_path("config.grid_stat"))
-    var = variables.Var(name="2t", levtype="heightAboveGround", level=2)
+    var = variables.Var(name="2t", level_type="heightAboveGround", level=2)
     basepath = fakefs / "T2M.stat"
     kwargs = dict(c=c, basepath=basepath, varname="T2M", rundir=fakefs, var=var, prefix="foo")
     assert not ready(val := workflow.grid_stat_config(**kwargs, dry_run=True))
@@ -213,7 +213,7 @@ def test_workflow_stat(c, fakefs, tc, testvars):
 
     rundir = fakefs / "run" / "stat" / "19700101" / "00" / "000"
     taskname = "MET grid_stat result 2t-heightAboveGround-0002 at 19700101 00Z 000"
-    var = variables.Var(name="2t", levtype="heightAboveGround", level=2)
+    var = variables.Var(name="2t", level_type="heightAboveGround", level=2)
     kwargs = dict(c=c, varname="T2M", tc=tc, var=var, vxvars=testvars, prefix="foo")
     with (
         patch.object(workflow, "grid_grib", mock),
@@ -283,6 +283,6 @@ def tc(da):
 @fixture
 def testvars():
     return {
-        name: variables.Var(name=stdname, levtype="isobaricInhPa", level=900)
+        name: variables.Var(name=stdname, level_type="isobaricInhPa", level=900)
         for name, stdname in [("HGT", "gh"), ("TMP", "t")]
     }

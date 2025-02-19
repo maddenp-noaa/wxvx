@@ -136,12 +136,12 @@ def grid_stat_config(c: Config, basepath: Path, varname: str, rundir: Path, var:
     yield asset(path, path.is_file)
     yield None
     values = {
-        "baseline_level": HRRRVar.metlevel(levtype=var.levtype, level=var.level),
-        "baseline_name": HRRRVar.varname(name=var.name, levtype=var.levtype),
+        "baseline_level": HRRRVar.metlevel(level_type=var.level_type, level=var.level),
+        "baseline_name": HRRRVar.varname(name=var.name, level_type=var.level_type),
         "forecast_level": "(*,*)",
         "forecast_name": varname,
-        # "forecast_level": HRRRVar.metlevel(levtype=var.levtype, level=var.level),  # TOGGLE
-        # "forecast_name": HRRRVar.varname(name=var.name, levtype=var.levtype),  # TOGGLE
+        # "forecast_level": HRRRVar.metlevel(level_type=var.level_type, level=var.level),  # TOGGLE
+        # "forecast_name": HRRRVar.varname(name=var.name, level_type=var.level_type),  # TOGGLE
         "model": c.forecast.name,
         "obtype": c.baseline.name,
         "prefix": f"{prefix}",
@@ -290,7 +290,9 @@ def stats(c: Config):
     vxvars = {}
     for varname, attrs in c.variables.items():
         for level in attrs.get("levels", [None]):
-            vxvars[varname] = Var(name=attrs["stdname"], levtype=attrs["levtype"], level=level)
+            vxvars[varname] = Var(
+                name=attrs["stdname"], level_type=attrs["level_type"], level=level
+            )
     reqs = [
         stat(c, varname, tc, var, vxvars, "forecast_%s" % str(var).replace("-", "_"))
         for tc in validtimes(c.cycles, c.leadtimes)

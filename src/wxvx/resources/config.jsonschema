@@ -120,7 +120,7 @@
               },
               "if": {
                 "properties": {
-                  "levtype": {
+                  "level_type": {
                     "enum": [
                       "heightAboveGround",
                       "isobaricInhPa"
@@ -136,13 +136,7 @@
             }
           ],
           "properties": {
-            "levels": {
-              "items": {
-                "type": "integer"
-              },
-              "type": "array"
-            },
-            "levtype": {
+            "level_type": {
               "enum": [
                 "atmosphere",
                 "heightAboveGround",
@@ -150,12 +144,18 @@
                 "surface"
               ]
             },
+            "levels": {
+              "items": {
+                "type": "integer"
+              },
+              "type": "array"
+            },
             "stdname": {
               "type": "string"
             }
           },
           "required": [
-            "levtype",
+            "level_type",
             "stdname"
           ],
           "type": "object"

@@ -86,16 +86,16 @@ def config_data():
         "variables": {
             "REFC": {
                 "stdname": "refc",
-                "levtype": "atmosphere",
+                "level_type": "atmosphere",
             },
             "SPFH": {
                 "stdname": "q",
-                "levtype": "isobaricInhPa",
+                "level_type": "isobaricInhPa",
                 "levels": [1000],
             },
             "T2M": {
                 "stdname": "2t",
-                "levtype": "heightAboveGround",
+                "level_type": "heightAboveGround",
                 "levels": [2],
             },
         },

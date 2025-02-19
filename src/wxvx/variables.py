@@ -19,17 +19,19 @@ class Var:
     A generic variable.
     """
 
-    def __init__(self, name: str, levtype: str, level: float | None = None):
+    def __init__(self, name: str, level_type: str, level: float | None = None):
         self.name = name
-        self.levtype = levtype
+        self.level_type = level_type
         self.level = level
-        self._keys = {"name", "levtype", "level"} if self.level is not None else {"name", "levtype"}
+        self._keys = (
+            {"name", "level_type", "level"} if self.level is not None else {"name", "level_type"}
+        )
 
     def __eq__(self, other):
         return hash(self) == hash(other)
 
     def __hash__(self):
-        return hash((self.name, self.levtype, self.level))
+        return hash((self.name, self.level_type, self.level))
 
     def __lt__(self, other):
         return str(self) < str(other)
@@ -41,7 +43,7 @@ class Var:
 
     def __str__(self):
         level = f"{self.level:04}" if self.level is not None else None
-        vals = filter(None, [self.name, self.levtype, level])
+        vals = filter(None, [self.name, self.level_type, level])
         return "-".join(vals)
 
 
@@ -51,31 +53,31 @@ class HRRRVar(Var):
     """
 
     def __init__(self, name: str, levstr: str, firstbyte: int, lastbyte: int):
-        levtype, level = self._levinfo(levstr=levstr)
-        name = self._stdname(name=name, levtype=levtype)
-        super().__init__(name=name, levtype=levtype, level=level)
+        level_type, level = self._levinfo(levstr=levstr)
+        name = self._stdname(name=name, level_type=level_type)
+        super().__init__(name=name, level_type=level_type, level=level)
         self.firstbyte: int = firstbyte
         self.lastbyte: int | None = lastbyte if lastbyte > -1 else None
         self._keys = (
-            {"name", "levtype", "level", "firstbyte", "lastbyte"}
+            {"name", "level_type", "level", "firstbyte", "lastbyte"}
             if self.level is not None
-            else {"name", "levtype", "firstbyte", "lastbyte"}
+            else {"name", "level_type", "firstbyte", "lastbyte"}
         )
 
     @staticmethod
-    def metlevel(levtype: str, level: float | None) -> str:
+    def metlevel(level_type: str, level: float | None) -> str:
         try:
             prefix = {
                 "atmosphere": "L",
                 "heightAboveGround": "Z",
                 "isobaricInhPa": "P",
-            }[levtype]
+            }[level_type]
         except KeyError as e:
-            raise WXVXError("No MET level defined for level type %s" % levtype) from e
+            raise WXVXError("No MET level defined for level type %s" % level_type) from e
         return f"{prefix}%03d" % int(level or 0)
 
     @staticmethod
-    def varname(name: str, levtype: str) -> str:
+    def varname(name: str, level_type: str) -> str:
         return {
             ("2t", "heightAboveGround"): "TMP",
             ("gh", "isobaricInhPa"): "HGT",
@@ -85,7 +87,7 @@ class HRRRVar(Var):
             ("u", "isobaricInhPa"): "UGRD",
             ("v", "isobaricInhPa"): "VGRD",
             ("w", "isobaricInhPa"): "VVEL",
-        }.get((name, levtype), UNKNOWN)
+        }.get((name, level_type), UNKNOWN)
 
     @staticmethod
     def _level_pressure(levstr: str) -> float | int | None:
@@ -108,7 +110,7 @@ class HRRRVar(Var):
         return (UNKNOWN, None)
 
     @staticmethod
-    def _stdname(name: str, levtype: str) -> str:
+    def _stdname(name: str, level_type: str) -> str:
         return {
             ("HGT", "isobaricInhPa"): "gh",
             ("REFC", "atmosphere"): "refc",
@@ -119,7 +121,7 @@ class HRRRVar(Var):
             ("UGRD", "isobaricInhPa"): "u",
             ("VGRD", "isobaricInhPa"): "v",
             ("VVEL", "isobaricInhPa"): "w",
-        }.get((name, levtype), UNKNOWN)
+        }.get((name, level_type), UNKNOWN)
 
 
 def cf_compliant_dataset(da: xr.DataArray, taskname: str) -> xr.Dataset:

@@ -20,33 +20,33 @@ threads: 0
 variables:
   HGT:
     levels: *levels
-    levtype: isobaricInhPa
+    level_type: isobaricInhPa
     stdname: gh
   REFC:
-    levtype: atmosphere
+    level_type: atmosphere
     stdname: refc
   SPFH:
     levels: *levels
-    levtype: isobaricInhPa
+    level_type: isobaricInhPa
     stdname: q
   T2M:
     levels: [2]
-    levtype: heightAboveGround
+    level_type: heightAboveGround
     stdname: 2t
   TMP:
     levels: *levels
-    levtype: isobaricInhPa
+    level_type: isobaricInhPa
     stdname: t
   UGRD:
     levels: *levels
-    levtype: isobaricInhPa
+    level_type: isobaricInhPa
     stdname: u
   VGRD:
     levels: *levels
-    levtype: isobaricInhPa
+    level_type: isobaricInhPa
     stdname: v
   VVEL:
     levels: *levels
-    levtype: isobaricInhPa
+    level_type: isobaricInhPa
     stdname: w
 workdir: /path/to/workdir/
