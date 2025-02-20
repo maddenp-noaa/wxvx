@@ -115,14 +115,14 @@ def grid_nc(c: Config, varname: str, tc: TimeCoords, var: Var):
     if var.level is not None and hasattr(da, "level"):
         da = da.sel(level=var.level)
     da = xr.DataArray(
-        data=da.expand_dims(dim=["init_time", "valid_time"]),
+        data=da.expand_dims(dim=["forecast_reference_time", "time"]),
         coords=dict(
-            init_time=[da.time.values + np.timedelta64(0, "s")],
-            valid_time=[da.time.values + da.lead_time.values],
+            forecast_reference_time=[da.time.values + np.timedelta64(0, "s")],
+            time=[da.time.values + da.lead_time.values],
             latitude=da.latitude,
             longitude=da.longitude,
         ),
-        dims=("init_time", "valid_time", "latitude", "longitude"),
+        dims=("forecast_reference_time", "time", "latitude", "longitude"),
         name=varname,
     )
     ds = cf_compliant_dataset(da, taskname)
@@ -266,7 +266,7 @@ def stat(c: Config, varname: str, tc: TimeCoords, var: Var, vxvars: VXVarsT, pre
     yyyymmdd_valid, hh_valid, _ = tcinfo(TimeCoords(tc.validtime))
     fn = "grid_stat_%s_%02d0000L_%s_%s0000V.stat" % (
         prefix,
-        0,  # int(leadtime),
+        int(leadtime),
         yyyymmdd_valid,
         hh_valid,
     )

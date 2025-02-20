@@ -129,12 +129,12 @@ def test_variables_cf_compliant_dataset(check_cf_metadata):
     da = xr.DataArray(
         data=one.reshape((1, 1, 1, 1)),
         coords=dict(
-            init_time=np.array([0], dtype="datetime64[ns]"),
-            valid_time=np.array([1], dtype="timedelta64[ns]"),
+            forecast_reference_time=np.array([0], dtype="datetime64[ns]"),
             latitude=(["latitude", "longitude"], one.reshape((1, 1))),
             longitude=(["latitude", "longitude"], one.reshape((1, 1))),
+            time=np.array([1], dtype="timedelta64[ns]"),
         ),
-        dims=("init_time", "valid_time", "latitude", "longitude"),
+        dims=("forecast_reference_time", "time", "latitude", "longitude"),
         name="HGT",
     )
     variables.cf_compliant_dataset(da=da, taskname="test")

@@ -126,13 +126,8 @@ class HRRRVar(Var):
 
 def cf_compliant_dataset(da: xr.DataArray, taskname: str) -> xr.Dataset:
     logging.info("%s: Setting CF metadata on %s", taskname, da.name)
-    for name, standard_name in [
-        ("init_time", "forecast_reference_time"),
-        ("valid_time", "time"),
-    ]:
-        updates = {"standard_name": standard_name}
-        logging.debug("%s: Setting %s on %s", taskname, updates, name)
-        da[name].attrs.update(updates)
+    da["forecast_reference_time"].attrs["standard_name"] = "forecast_reference_time"
+    da["time"].attrs["standard_name"] = "time"
     for name, standard_name, units in (
         ["level", "air_pressure", "hPa"],
         ["latitude", "latitude", "degrees_north"],
@@ -140,7 +135,6 @@ def cf_compliant_dataset(da: xr.DataArray, taskname: str) -> xr.Dataset:
     ):
         if hasattr(da, name):
             updates = {"standard_name": standard_name, "units": units}
-            logging.debug("%s: Setting %s on %s", taskname, updates, name)
             da[name].attrs.update(updates)
     for name, standard_name in (
         ["HGT", "geopotential_height"],
@@ -158,7 +152,6 @@ def cf_compliant_dataset(da: xr.DataArray, taskname: str) -> xr.Dataset:
             "units": forecast_var_units(name),
         }
         if da.name == name:
-            logging.debug("%s: Setting %s on %s", taskname, updates, name)
             da.attrs.update(updates)
     ds = da.to_dataset()
     ds.attrs["Conventions"] = "CF-1.8"
