@@ -269,7 +269,7 @@ def stat(c: Config, varname: str, tc: TimeCoords, var: Var, vxvars: VXVarsT, pre
     log = f"{path.stem}.log"
     content = f"""
     export OMP_NUM_THREADS=1
-    grid_stat -v 3 {refs(forecast)} {refs(baseline)} {refs(cfgfile).name} >{log} 2>&1
+    grid_stat -v 4 {refs(forecast)} {refs(baseline)} {refs(cfgfile).name} >{log} 2>&1
     """
     script = runscript(basepath=path, content=dedent(content).strip())
     yield taskname
