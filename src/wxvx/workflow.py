@@ -232,6 +232,7 @@ def runscript(basepath: Path, content: str):
     yield "Runscript %s" % path
     yield asset(path, path.is_file)
     yield None
+    path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w") as f:
         print(f"#!/usr/bin/env bash\n\n{content}", file=f)
     path.chmod(path.stat().st_mode | S_IEXEC)
