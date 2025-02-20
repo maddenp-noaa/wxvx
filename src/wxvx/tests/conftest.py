@@ -11,15 +11,21 @@ from wxvx.types import Config
 
 @fixture
 def check_cf_metadata() -> Callable:
-    def check(ds: xr.DataArray, name: str) -> None:
-        assert ds.attrs["Conventions"] == "CF-1.8"
+    def check(ds: xr.DataArray, name: str) -> bool:
+        ok = [True]  # hopefully
+
+        def check(x):
+            ok[0] = ok[0] and x
+
+        check(ds.attrs.get("Conventions") == "CF-1.8")
         da = ds[name]
         for k, v in [("standard_name", "geopotential_height"), ("units", "m")]:
-            assert da.attrs[k] == v
+            check(da.attrs.get(k) == v)
         for k, v in [("standard_name", "latitude"), ("units", "degrees_north")]:
-            assert da.latitude.attrs[k] == v
-        assert da.forecast_reference_time.attrs["standard_name"] == "forecast_reference_time"
-        assert da.time.attrs["standard_name"] == "time"
+            check(da.latitude.attrs.get(k) == v)
+        check(da.forecast_reference_time.attrs.get("standard_name") == "forecast_reference_time")
+        check(da.time.attrs.get("standard_name") == "time")
+        return ok[0]
 
     return check
 

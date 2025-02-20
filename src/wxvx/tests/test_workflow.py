@@ -112,7 +112,7 @@ def test_workflow_grid_nc(c_real, check_cf_metadata, da, tc):
     c_real.forecast.path = path
     val = workflow.grid_nc(c=c_real, varname="HGT", tc=tc, var=var)
     assert ready(val)
-    check_cf_metadata(ds=xr.open_dataset(refs(val), decode_timedelta=True), name="HGT")
+    assert check_cf_metadata(ds=xr.open_dataset(refs(val), decode_timedelta=True), name="HGT")
 
 
 def test_workflow_grid_stat_config(c, fakefs, fs):

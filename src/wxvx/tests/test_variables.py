@@ -124,18 +124,17 @@ def test_variables_HRRRVar__stdname(name, level_type, expected):
     assert variables.HRRRVar._stdname(name=name, level_type=level_type) == expected
 
 
-# @mark.parametrize(("fail", "stdname", "varname"), [(False, "gh", "HGT"), (True, "foo", "FOO")])
-
-
 @mark.skip()
 def test_variables_da_construct(): ...
 
 
-@mark.skip()
-def test_variables_da_select(): ...
+@mark.parametrize(("fail", "stdname", "varname"), [(False, "gh", "HGT"), (True, "foo", "FOO")])
+def test_variables_da_select(fail, stdname, varname):
+    pass
 
 
 def test_variables_ds_from_da(check_cf_metadata):
+    name = "HGT"
     one = np.array([1], dtype="float32")
     da = xr.DataArray(
         data=one.reshape((1, 1, 1, 1)),
@@ -146,12 +145,11 @@ def test_variables_ds_from_da(check_cf_metadata):
             time=np.array([1], dtype="timedelta64[ns]"),
         ),
         dims=("forecast_reference_time", "time", "latitude", "longitude"),
-        name="HGT",
+        name=name,
     )
-    variables.ds_from_da(da=da, taskname="test")
-    ds = da.to_dataset()
-    ds.attrs["Conventions"] = "CF-1.8"
-    check_cf_metadata(ds=ds, name="HGT")
+    assert not check_cf_metadata(ds=da.to_dataset(), name=name)
+    ds = variables.ds_from_da(da=da, taskname="test")
+    assert check_cf_metadata(ds=ds, name=name)
 
 
 def test_variables_forecast_var_units():
