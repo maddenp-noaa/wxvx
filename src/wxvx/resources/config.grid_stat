@@ -22,7 +22,7 @@ obs = {
 }
 obtype = "{{ obtype }}";
 output_flag = {
-  cnt = STAT;
+  cnt = BOTH;
 }
 output_prefix = "{{ prefix }}";
 regrid = {

@@ -163,7 +163,7 @@ def plot_config(c: Config, rundir: Path, varname: str, plotfn: str, statfn: str)
         "colors": ["#32cd32"],
         "con_series": [1],
         "fcst_var_val_1": {varname: [stat]},
-        # "fcst_var_val_1": {forecast_var_name_hrrr(varname): [stat]},  # TOGGLE
+        # "fcst_var_val_1": {"TMP": [stat]},  # TOGGLE
         "grid_col": "#cccccc",
         "indy_label": x_axis_labels,
         "indy_vals": [vt.validtime.strftime("%Y-%m-%d %H:%M:%S") for vt in vts],
