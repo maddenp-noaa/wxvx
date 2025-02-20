@@ -124,8 +124,15 @@ def test_variables_HRRRVar__stdname(name, level_type, expected):
     assert variables.HRRRVar._stdname(name=name, level_type=level_type) == expected
 
 
-# def test_variables_da_construct(da):
-#     constructed = variables.da_construct(src=da)
+def test_variables_da_construct(c, da, tc):
+    var = variables.Var(name="gh", level_type="isobaricInhPa", level=1000)
+    selected = variables.da_select(ds=da.to_dataset(), c=c, varname="HGT", tc=tc, var=var)
+    new = variables.da_construct(src=selected)
+    assert new.name == da.name
+    assert all(new.latitude == da.latitude)
+    assert all(new.longitude == da.longitude)
+    assert new.time == [np.datetime64(str(tc.validtime.isoformat()))]
+    assert new.forecast_reference_time == [np.datetime64(str(tc.cycle.isoformat()))]
 
 
 @mark.parametrize(("fail", "stdname", "varname"), [(False, "gh", "HGT"), (True, "foo", "FOO")])
@@ -138,14 +145,14 @@ def test_variables_da_select(c, da, fail, stdname, tc, varname):
         msg = f"Variable FOO valid at {tc.validtime.isoformat()} not found in {c.forecast.path}"
         assert str(e.value) == msg
     else:
-        selected = variables.da_select(**kwargs)
+        new = variables.da_select(**kwargs)
         # latitude and longitude are unchanged
-        assert all(selected.latitude == da.latitude)
-        assert all(selected.longitude == da.longitude)
+        assert all(new.latitude == da.latitude)
+        assert all(new.longitude == da.longitude)
         # scalar level, time, and lead_time values are selected from arrays
-        assert selected.level.values == da.level.values[0]
-        assert selected.time.values == da.time.values[0]
-        assert selected.lead_time.values == da.lead_time.values[0]
+        assert new.level.values == da.level.values[0]
+        assert new.time.values == da.time.values[0]
+        assert new.lead_time.values == da.lead_time.values[0]
 
 
 def test_variables_ds_from_da(check_cf_metadata):
