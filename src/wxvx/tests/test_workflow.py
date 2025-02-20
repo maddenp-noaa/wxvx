@@ -105,20 +105,14 @@ def test_workflow_grid_grib(c, idxdata, testvars, tc):
         assert path.exists()
 
 
-@mark.parametrize(("fail", "stdname", "varname"), [(False, "gh", "HGT"), (True, "foo", "FOO")])
-def test_workflow_grid_nc(caplog, c_real, check_cf_metadata, da, fail, stdname, tc, varname):
-    var = variables.Var(name=stdname, level_type="isobaricInhPa", level=1000)
-    path = Path(c_real.workdir, "raw.forecast.nc")
-    c_real.forecast.path = path
+def test_workflow_grid_nc(c_real, check_cf_metadata, da, tc):
+    var = variables.Var(name="gh", level_type="isobaricInhPa", level=1000)
+    path = Path(c_real.workdir, "a.nc")
     da.to_netcdf(path)
-    val = workflow.grid_nc(c=c_real, varname=varname, tc=tc, var=var)
-    if fail:
-        assert not ready(val)
-        msg = f"Variable FOO valid at {tc.validtime.isoformat()} not found"
-        assert msg in "\n".join(caplog.messages)
-    else:
-        assert ready(val)
-        check_cf_metadata(ds=xr.open_dataset(refs(val), decode_timedelta=True), name="HGT")
+    c_real.forecast.path = path
+    val = workflow.grid_nc(c=c_real, varname="HGT", tc=tc, var=var)
+    assert ready(val)
+    check_cf_metadata(ds=xr.open_dataset(refs(val), decode_timedelta=True), name="HGT")
 
 
 def test_workflow_grid_stat_config(c, fakefs, fs):

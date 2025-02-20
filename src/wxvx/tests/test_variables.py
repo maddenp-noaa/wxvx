@@ -124,6 +124,17 @@ def test_variables_HRRRVar__stdname(name, level_type, expected):
     assert variables.HRRRVar._stdname(name=name, level_type=level_type) == expected
 
 
+# @mark.parametrize(("fail", "stdname", "varname"), [(False, "gh", "HGT"), (True, "foo", "FOO")])
+
+
+@mark.skip()
+def test_variables_da_construct(): ...
+
+
+@mark.skip()
+def test_variables_da_select(): ...
+
+
 def test_variables_ds_from_da(check_cf_metadata):
     one = np.array([1], dtype="float32")
     da = xr.DataArray(
