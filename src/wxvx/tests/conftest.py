@@ -14,35 +14,15 @@ def check_cf_metadata() -> Callable:
     def check(ds: xr.DataArray, name: str) -> None:
         assert ds.attrs["Conventions"] == "CF-1.8"
         da = ds[name]
-        for k, v in [
-            # ("grid_mapping", "latitude_longitude"),
-            ("long_name", "Geopotential Height"),
-            ("standard_name", "geopotential_height"),
-            ("units", "m"),
-        ]:
+        for k, v in [("standard_name", "geopotential_height"), ("units", "m")]:
             assert da.attrs[k] == v
-        for k, v in [
-            ("long_name", "latitude"),
-            ("standard_name", "latitude"),
-            ("units", "degrees_north"),
-        ]:
+        for k, v in [("standard_name", "latitude"), ("units", "degrees_north")]:
             assert da.latitude.attrs[k] == v
-        for k, v in [
-            ("long_name", "pressure level"),
-            ("standard_name", "air_pressure"),
-            ("units", "hPa"),
-        ]:
+        for k, v in [("standard_name", "air_pressure"), ("units", "hPa")]:
             assert da.level.attrs[k] == v
-        for k, v in [
-            ("long_name", "longitude"),
-            ("standard_name", "longitude"),
-            ("units", "degrees_east"),
-        ]:
+        for k, v in [("standard_name", "longitude"), ("units", "degrees_east")]:
             assert da.longitude.attrs[k] == v
-        for k, v in [
-            ("long_name", "Forecast Reference Time"),
-            ("standard_name", "forecast_reference_time"),
-        ]:
+        for k, v in [("standard_name", "forecast_reference_time")]:
             assert da.time.attrs[k] == v
 
     return check

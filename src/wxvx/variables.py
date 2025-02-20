@@ -126,34 +126,33 @@ class HRRRVar(Var):
 
 def cf_compliant_dataset(da: xr.DataArray, taskname: str) -> xr.Dataset:
     logging.info("%s: Setting CF metadata on %s", taskname, da.name)
-    for name, long_name, standard_name in [
-        ("time", "Forecast Reference Time", "forecast_reference_time"),
+    for name, standard_name in [
+        ("time", "forecast_reference_time"),
     ]:
-        updates = {"long_name": long_name, "standard_name": standard_name}
+        updates = {"standard_name": standard_name}
         logging.debug("%s: Setting %s on %s", taskname, updates, name)
         da[name].attrs.update(updates)
-    for name, long_name, standard_name, units in (
-        ["level", "pressure level", "air_pressure", "hPa"],
-        ["latitude", "latitude", "latitude", "degrees_north"],
-        ["longitude", "longitude", "longitude", "degrees_east"],
+    for name, standard_name, units in (
+        ["level", "air_pressure", "hPa"],
+        ["latitude", "latitude", "degrees_north"],
+        ["longitude", "longitude", "degrees_east"],
     ):
         if hasattr(da, name):
-            updates = {"long_name": long_name, "standard_name": standard_name, "units": units}
+            updates = {"standard_name": standard_name, "units": units}
             logging.debug("%s: Setting %s on %s", taskname, updates, name)
             da[name].attrs.update(updates)
-    for name, long_name, standard_name in (
-        ["HGT", "Geopotential Height", "geopotential_height"],
-        ["REFC", "Composite Reflectivity", "unknown"],
-        ["SPFH", "Specific Humidity", "specific_humidity"],
-        ["T2M", "Temperature", "air_temperature"],
-        ["TMP", "Temperature", "air_temperature"],
-        ["UGRD", "U-Component of Wind", "eastward_wind"],
-        ["VGRD", "V-Component of Wind", "northward_wind"],
-        ["VVEL", "Vertical Velocity (Pressure),", "lagrangian_tendency_of_air_pressure"],
+    for name, standard_name in (
+        ["HGT", "geopotential_height"],
+        ["REFC", "unknown"],
+        ["SPFH", "specific_humidity"],
+        ["T2M", "air_temperature"],
+        ["TMP", "air_temperature"],
+        ["UGRD", "eastward_wind"],
+        ["VGRD", "northward_wind"],
+        ["VVEL", "lagrangian_tendency_of_air_pressure"],
     ):
         updates = {
             "grid_mapping_name": "latitude_longitude",
-            "long_name": long_name,
             "standard_name": standard_name,
             "units": forecast_var_units(name),
         }

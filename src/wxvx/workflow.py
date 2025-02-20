@@ -257,7 +257,7 @@ def stat(c: Config, varname: str, tc: TimeCoords, var: Var, vxvars: VXVarsT, pre
     yyyymmdd_valid, hh_valid, _ = tcinfo(TimeCoords(tc.validtime))
     fn = "grid_stat_%s_%02d0000L_%s_%s0000V.stat" % (
         prefix,
-        0, # int(leadtime),
+        0,  # int(leadtime),
         yyyymmdd_valid,
         hh_valid,
     )
