@@ -127,7 +127,8 @@ class HRRRVar(Var):
 def cf_compliant_dataset(da: xr.DataArray, taskname: str) -> xr.Dataset:
     logging.info("%s: Setting CF metadata on %s", taskname, da.name)
     for name, standard_name in [
-        ("time", "forecast_reference_time"),
+        ("init_time", "forecast_reference_time"),
+        ("valid_time", "time"),
     ]:
         updates = {"standard_name": standard_name}
         logging.debug("%s: Setting %s on %s", taskname, updates, name)

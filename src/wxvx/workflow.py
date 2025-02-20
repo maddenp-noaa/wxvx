@@ -114,8 +114,17 @@ def grid_nc(c: Config, varname: str, tc: TimeCoords, var: Var):
         raise WXVXError(msg) from e
     if var.level is not None and hasattr(da, "level"):
         da = da.sel(level=var.level)
-    da["time"] = da.time + da.lead_time
-    da = da.drop_vars("lead_time")
+    da = xr.DataArray(
+        data=da.expand_dims(dim=["init_time", "valid_time"]),
+        coords=dict(
+            init_time=[da.time.values + np.timedelta64(0, "s")],
+            valid_time=[da.time.values + da.lead_time.values],
+            latitude=da.latitude,
+            longitude=da.longitude,
+        ),
+        dims=("init_time", "valid_time", "latitude", "longitude"),
+        name=varname,
+    )
     ds = cf_compliant_dataset(da, taskname)
     path.parent.mkdir(parents=True, exist_ok=True)
     ds.to_netcdf(path)
@@ -132,7 +141,7 @@ def grid_stat_config(c: Config, basepath: Path, varname: str, rundir: Path, var:
     values = {
         "baseline_level": HRRRVar.metlevel(level_type=var.level_type, level=var.level),
         "baseline_name": HRRRVar.varname(name=var.name, level_type=var.level_type),
-        "forecast_level": "(*,*)",
+        "forecast_level": "(0,0,*,*)",
         "forecast_name": varname,
         # "forecast_level": HRRRVar.metlevel(level_type=var.level_type, level=var.level),  # TOGGLE
         # "forecast_name": HRRRVar.varname(name=var.name, level_type=var.level_type),  # TOGGLE

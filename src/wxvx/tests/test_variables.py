@@ -2,6 +2,8 @@
 Tests for wxvx.net.
 """
 
+import numpy as np
+import xarray as xr
 from pytest import mark, raises
 
 from wxvx import variables
@@ -122,7 +124,19 @@ def test_variables_HRRRVar__stdname(name, level_type, expected):
     assert variables.HRRRVar._stdname(name=name, level_type=level_type) == expected
 
 
-def test_variables_cf_compliant_dataset(da, check_cf_metadata):
+def test_variables_cf_compliant_dataset(check_cf_metadata):
+    one = np.array([1], dtype="float32")
+    da = xr.DataArray(
+        data=one.reshape((1, 1, 1, 1)),
+        coords=dict(
+            init_time=np.array([0], dtype="datetime64[ns]"),
+            valid_time=np.array([1], dtype="timedelta64[ns]"),
+            latitude=(["latitude", "longitude"], one.reshape((1, 1))),
+            longitude=(["latitude", "longitude"], one.reshape((1, 1))),
+        ),
+        dims=("init_time", "valid_time", "latitude", "longitude"),
+        name="HGT",
+    )
     variables.cf_compliant_dataset(da=da, taskname="test")
     ds = da.to_dataset()
     ds.attrs["Conventions"] = "CF-1.8"
