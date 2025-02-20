@@ -124,8 +124,8 @@ def test_variables_HRRRVar__stdname(name, level_type, expected):
     assert variables.HRRRVar._stdname(name=name, level_type=level_type) == expected
 
 
-@mark.skip()
-def test_variables_da_construct(): ...
+# def test_variables_da_construct(da):
+#     constructed = variables.da_construct(src=da)
 
 
 @mark.parametrize(("fail", "stdname", "varname"), [(False, "gh", "HGT"), (True, "foo", "FOO")])

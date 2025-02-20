@@ -127,7 +127,7 @@ class HRRRVar(Var):
         }.get((name, level_type), UNKNOWN)
 
 
-def da_construct(src: xr.DataArray, varname: str) -> xr.DataArray:
+def da_construct(src: xr.DataArray) -> xr.DataArray:
     return xr.DataArray(
         data=src.expand_dims(dim=["forecast_reference_time", "time"]),
         coords=dict(
@@ -137,7 +137,7 @@ def da_construct(src: xr.DataArray, varname: str) -> xr.DataArray:
             longitude=src.longitude,
         ),
         dims=("forecast_reference_time", "time", "latitude", "longitude"),
-        name=varname,
+        name=src.name,
     )
 
 

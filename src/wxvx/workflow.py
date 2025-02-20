@@ -103,7 +103,7 @@ def grid_nc(c: Config, varname: str, tc: TimeCoords, var: Var):
     yield asset(path, path.is_file)
     yield fd
     src = da_select(refs(fd), c, varname, tc, var)
-    da = da_construct(src, varname)
+    da = da_construct(src)
     ds = ds_from_da(da, taskname)
     path.parent.mkdir(parents=True, exist_ok=True)
     ds.to_netcdf(path)
