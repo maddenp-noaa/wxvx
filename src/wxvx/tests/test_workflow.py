@@ -3,7 +3,6 @@ Tests for wxvx.workflow.
 """
 
 import logging
-from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from textwrap import dedent
 from threading import Event
@@ -14,7 +13,7 @@ import yaml
 from iotaa import asset, external, ready, refs
 from pytest import fixture, mark
 
-from wxvx import times, util, variables, workflow
+from wxvx import util, variables, workflow
 
 logging.getLogger().setLevel(logging.DEBUG)
 
@@ -268,13 +267,6 @@ def idxdata():
             name="TMP", levstr="900 mb", firstbyte=2, lastbyte=2
         ),
     }
-
-
-@fixture
-def tc(da):
-    cycle = datetime.fromtimestamp(int(da.time.values[0]), tz=timezone.utc)
-    leadtime = timedelta(hours=int(da.lead_time.values[0]))
-    return times.TimeCoords(cycle=cycle, leadtime=leadtime)
 
 
 @fixture

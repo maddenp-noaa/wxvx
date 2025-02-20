@@ -129,8 +129,23 @@ def test_variables_da_construct(): ...
 
 
 @mark.parametrize(("fail", "stdname", "varname"), [(False, "gh", "HGT"), (True, "foo", "FOO")])
-def test_variables_da_select(fail, stdname, varname):
-    pass
+def test_variables_da_select(c, da, fail, stdname, tc, varname):
+    var = variables.Var(name=stdname, level_type="isobaricInhPa", level=1000)
+    kwargs = dict(ds=da.to_dataset(), c=c, varname=varname, tc=tc, var=var)
+    if fail:
+        with raises(WXVXError) as e:
+            variables.da_select(**kwargs)
+        msg = f"Variable FOO valid at {tc.validtime.isoformat()} not found in {c.forecast.path}"
+        assert str(e.value) == msg
+    else:
+        selected = variables.da_select(**kwargs)
+        # latitude and longitude are unchanged
+        assert all(selected.latitude == da.latitude)
+        assert all(selected.longitude == da.longitude)
+        # scalar level, time, and lead_time values are selected from arrays
+        assert selected.level.values == da.level.values[0]
+        assert selected.time.values == da.time.values[0]
+        assert selected.lead_time.values == da.lead_time.values[0]
 
 
 def test_variables_ds_from_da(check_cf_metadata):

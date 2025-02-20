@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Callable
 
@@ -6,6 +6,7 @@ import numpy as np
 import xarray as xr
 from pytest import fixture
 
+from wxvx import times
 from wxvx.types import Config
 
 
@@ -105,6 +106,13 @@ def da() -> xr.DataArray:
 @fixture
 def fakefs(fs):
     return Path(fs.create_dir("/test").path)
+
+
+@fixture
+def tc(da):
+    cycle = datetime.fromtimestamp(int(da.time.values[0]), tz=timezone.utc)
+    leadtime = timedelta(hours=int(da.lead_time.values[0]))
+    return times.TimeCoords(cycle=cycle, leadtime=leadtime)
 
 
 @fixture
