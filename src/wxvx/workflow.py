@@ -7,7 +7,6 @@ from textwrap import dedent
 from urllib.parse import urlparse
 from warnings import catch_warnings, simplefilter
 
-import numpy as np
 import xarray as xr
 import yaml
 from iotaa import asset, external, refs, task, tasks
@@ -16,8 +15,8 @@ from uwtools.api.template import render
 from wxvx.net import fetch, status
 from wxvx.times import TimeCoords, tcinfo, validtimes
 from wxvx.types import Config, VXVarsT
-from wxvx.util import WXVXError, mpexec, resource_path
-from wxvx.variables import HRRRVar, Var, cf_compliant_dataset, forecast_var_units
+from wxvx.util import mpexec, resource_path
+from wxvx.variables import HRRRVar, Var, da_construct, da_select, ds_from_da, forecast_var_units
 
 
 @external
@@ -103,29 +102,9 @@ def grid_nc(c: Config, varname: str, tc: TimeCoords, var: Var):
     yield taskname
     yield asset(path, path.is_file)
     yield fd
-    try:
-        da = (
-            refs(fd)[varname]
-            .sel(time=np.datetime64(str(tc.cycle.isoformat())))
-            .sel(lead_time=np.timedelta64(int(tc.leadtime.total_seconds()), "s"))
-        )
-    except KeyError as e:
-        msg = "Variable %s valid at %s not found in %s" % (varname, tc, c.forecast.path)
-        raise WXVXError(msg) from e
-    if var.level is not None and hasattr(da, "level"):
-        da = da.sel(level=var.level)
-    da = xr.DataArray(
-        data=da.expand_dims(dim=["forecast_reference_time", "time"]),
-        coords=dict(
-            forecast_reference_time=[da.time.values + np.timedelta64(0, "s")],
-            time=[da.time.values + da.lead_time.values],
-            latitude=da.latitude,
-            longitude=da.longitude,
-        ),
-        dims=("forecast_reference_time", "time", "latitude", "longitude"),
-        name=varname,
-    )
-    ds = cf_compliant_dataset(da, taskname)
+    src = da_select(refs(fd), c, varname, tc, var)
+    da = da_construct(src, varname)
+    ds = ds_from_da(da, taskname)
     path.parent.mkdir(parents=True, exist_ok=True)
     ds.to_netcdf(path)
     logging.info("%s: Wrote %s", taskname, path)

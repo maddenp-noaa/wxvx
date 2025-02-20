@@ -124,7 +124,7 @@ def test_variables_HRRRVar__stdname(name, level_type, expected):
     assert variables.HRRRVar._stdname(name=name, level_type=level_type) == expected
 
 
-def test_variables_cf_compliant_dataset(check_cf_metadata):
+def test_variables_ds_from_da(check_cf_metadata):
     one = np.array([1], dtype="float32")
     da = xr.DataArray(
         data=one.reshape((1, 1, 1, 1)),
@@ -137,13 +137,13 @@ def test_variables_cf_compliant_dataset(check_cf_metadata):
         dims=("forecast_reference_time", "time", "latitude", "longitude"),
         name="HGT",
     )
-    variables.cf_compliant_dataset(da=da, taskname="test")
+    variables.ds_from_da(da=da, taskname="test")
     ds = da.to_dataset()
     ds.attrs["Conventions"] = "CF-1.8"
     check_cf_metadata(ds=ds, name="HGT")
 
 
-def test_forecast_var_units():
+def test_variables_forecast_var_units():
     assert variables.forecast_var_units(name="REFC") == "dBZ"
 
 

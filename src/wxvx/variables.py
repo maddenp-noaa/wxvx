@@ -5,11 +5,14 @@ import re
 from typing import TYPE_CHECKING
 
 import netCDF4  # noqa: F401 # import before xarray cf. https://github.com/pydata/xarray/issues/7259
+import numpy as np
+import xarray as xr
 
 from wxvx.util import WXVXError
 
 if TYPE_CHECKING:
-    import xarray as xr  # pragma: no cover
+    from wxvx.times import TimeCoords  # pragma: no cover
+    from wxvx.types import Config  # pragma: no cover
 
 UNKNOWN = "unknown"
 
@@ -124,7 +127,36 @@ class HRRRVar(Var):
         }.get((name, level_type), UNKNOWN)
 
 
-def cf_compliant_dataset(da: xr.DataArray, taskname: str) -> xr.Dataset:
+def da_construct(src: xr.DataArray, varname: str) -> xr.DataArray:
+    return xr.DataArray(
+        data=src.expand_dims(dim=["forecast_reference_time", "time"]),
+        coords=dict(
+            forecast_reference_time=[src.time.values + np.timedelta64(0, "s")],
+            time=[src.time.values + src.lead_time.values],
+            latitude=src.latitude,
+            longitude=src.longitude,
+        ),
+        dims=("forecast_reference_time", "time", "latitude", "longitude"),
+        name=varname,
+    )
+
+
+def da_select(ds: xr.Dataset, c: Config, varname: str, tc: TimeCoords, var: Var) -> xr.DataArray:
+    try:
+        da = (
+            ds[varname]
+            .sel(time=np.datetime64(str(tc.cycle.isoformat())))
+            .sel(lead_time=np.timedelta64(int(tc.leadtime.total_seconds()), "s"))
+        )
+        if var.level is not None and hasattr(da, "level"):
+            da = da.sel(level=var.level)
+    except KeyError as e:
+        msg = "Variable %s valid at %s not found in %s" % (varname, tc, c.forecast.path)
+        raise WXVXError(msg) from e
+    return da
+
+
+def ds_from_da(da: xr.DataArray, taskname: str) -> xr.Dataset:
     logging.info("%s: Setting CF metadata on %s", taskname, da.name)
     da["forecast_reference_time"].attrs["standard_name"] = "forecast_reference_time"
     da["time"].attrs["standard_name"] = "time"
