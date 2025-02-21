@@ -68,18 +68,6 @@ class HRRRVar(Var):
         )
 
     @staticmethod
-    def metlevel(level_type: str, level: float | None) -> str:
-        try:
-            prefix = {
-                "atmosphere": "L",
-                "heightAboveGround": "Z",
-                "isobaricInhPa": "P",
-            }[level_type]
-        except KeyError as e:
-            raise WXVXError("No MET level defined for level type %s" % level_type) from e
-        return f"{prefix}%03d" % int(level or 0)
-
-    @staticmethod
     def varname(name: str, level_type: str) -> str:
         return {
             ("2t", "heightAboveGround"): "TMP",
@@ -171,6 +159,18 @@ def ds_from_da(da: xr.DataArray, taskname: str) -> xr.Dataset:
     ds = da.to_dataset()
     ds.attrs["Conventions"] = "CF-1.8"
     return ds
+
+
+def metlevel(level_type: str, level: float | None) -> str:
+    try:
+        prefix = {
+            "atmosphere": "L",
+            "heightAboveGround": "Z",
+            "isobaricInhPa": "P",
+        }[level_type]
+    except KeyError as e:
+        raise WXVXError("No MET level defined for level type %s" % level_type) from e
+    return f"{prefix}%03d" % int(level or 0)
 
 
 def _levelstr2num(levelstr: str) -> float | int:

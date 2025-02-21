@@ -16,7 +16,7 @@ from wxvx.net import fetch, status
 from wxvx.times import TimeCoords, tcinfo, validtimes
 from wxvx.types import Config, VXVarsT
 from wxvx.util import mpexec, resource_path
-from wxvx.variables import VARMETA, HRRRVar, Var, da_construct, da_select, ds_from_da
+from wxvx.variables import VARMETA, HRRRVar, Var, da_construct, da_select, ds_from_da, metlevel
 
 
 @external
@@ -118,11 +118,11 @@ def grid_stat_config(c: Config, basepath: Path, varname: str, rundir: Path, var:
     yield asset(path, path.is_file)
     yield None
     values = {
-        "baseline_level": HRRRVar.metlevel(level_type=var.level_type, level=var.level),
+        "baseline_level": metlevel(level_type=var.level_type, level=var.level),
         "baseline_name": HRRRVar.varname(name=var.name, level_type=var.level_type),
         "forecast_level": "(0,0,*,*)",
         "forecast_name": varname,
-        # "forecast_level": HRRRVar.metlevel(level_type=var.level_type, level=var.level),  # TOGGLE
+        # "forecast_level": metlevel(level_type=var.level_type, level=var.level),  # TOGGLE
         # "forecast_name": HRRRVar.varname(name=var.name, level_type=var.level_type),  # TOGGLE
         "model": c.forecast.name,
         "obtype": c.baseline.name,

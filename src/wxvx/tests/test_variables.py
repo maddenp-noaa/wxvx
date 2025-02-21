@@ -56,24 +56,6 @@ def test_variables_HRRRVar():
 
 
 @mark.parametrize(
-    ("level_type", "level", "expected"),
-    [
-        ("atmosphere", None, "L000"),
-        ("heightAboveGround", "2", "Z002"),
-        ("isobaricInhPa", "900", "P900"),
-    ],
-)
-def test_variables_HRRRVar_metlevel(level_type, level, expected):
-    assert variables.HRRRVar.metlevel(level_type=level_type, level=level) == expected
-
-
-def test_variables_HRRRVar_metlevel_error():
-    with raises(WXVXError) as e:
-        variables.HRRRVar.metlevel(level_type="foo", level=-1)
-    assert str(e.value) == "No MET level defined for level type foo"
-
-
-@mark.parametrize(
     ("name", "level_type", "expected"),
     [
         ("t", "isobaricInhPa", "TMP"),
@@ -159,6 +141,24 @@ def test_variables_ds_from_da(check_cf_metadata):
     assert not check_cf_metadata(ds=da.to_dataset(), name=name)
     ds = variables.ds_from_da(da=da, taskname="test")
     assert check_cf_metadata(ds=ds, name=name)
+
+
+@mark.parametrize(
+    ("level_type", "level", "expected"),
+    [
+        ("atmosphere", None, "L000"),
+        ("heightAboveGround", "2", "Z002"),
+        ("isobaricInhPa", "900", "P900"),
+    ],
+)
+def test_variables_metlevel(level_type, level, expected):
+    assert variables.metlevel(level_type=level_type, level=level) == expected
+
+
+def test_variables_metlevel_error():
+    with raises(WXVXError) as e:
+        variables.metlevel(level_type="foo", level=-1)
+    assert str(e.value) == "No MET level defined for level type foo"
 
 
 @mark.parametrize(("s", "expected"), [("900", 900), ("1013.1", 1013.1)])
