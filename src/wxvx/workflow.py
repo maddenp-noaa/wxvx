@@ -232,6 +232,7 @@ def runscript(basepath: Path, content: str):
     yield "Runscript %s" % path
     yield asset(path, path.is_file)
     yield None
+    content = dedent(content).strip()
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w") as f:
         print(f"#!/usr/bin/env bash\n\n{content}", file=f)
@@ -260,7 +261,7 @@ def stat(c: Config, varname: str, tc: TimeCoords, var: Var, vxvars: VXVarsT, pre
     export OMP_NUM_THREADS=1
     grid_stat -v 4 {refs(forecast)} {refs(baseline)} {refs(cfgfile).name} >{log} 2>&1
     """
-    script = runscript(basepath=path, content=dedent(content).strip())
+    script = runscript(basepath=path, content=content)
     yield taskname
     yield asset(path, path.is_file)
     yield [forecast, baseline, cfgfile, script]
