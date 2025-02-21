@@ -272,6 +272,6 @@ def idxdata():
 @fixture
 def testvars():
     return {
-        name: variables.Var(name=stdname, level_type="isobaricInhPa", level=900)
-        for name, stdname in [("HGT", "gh"), ("TMP", "t")]
+        name: variables.Var(name=standard_name, level_type="isobaricInhPa", level=900)
+        for name, standard_name in [("HGT", "gh"), ("TMP", "t")]
     }

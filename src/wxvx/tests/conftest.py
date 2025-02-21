@@ -69,17 +69,17 @@ def config_data():
         "variables": {
             "REFC": {
                 "level_type": "atmosphere",
-                "stdname": "refc",
+                "standard_name": "refc",
             },
             "SPFH": {
                 "level_type": "isobaricInhPa",
                 "levels": [1000],
-                "stdname": "q",
+                "standard_name": "q",
             },
             "T2M": {
                 "level_type": "heightAboveGround",
                 "levels": [2],
-                "stdname": "2t",
+                "standard_name": "2t",
             },
         },
         "workdir": "/path/to/workdir",

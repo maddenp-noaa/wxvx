@@ -21,32 +21,32 @@ variables:
   HGT:
     level_type: isobaricInhPa
     levels: *levels
-    stdname: gh
+    standard_name: gh
   REFC:
     level_type: atmosphere
-    stdname: refc
+    standard_name: refc
   SPFH:
     level_type: isobaricInhPa
     levels: *levels
-    stdname: q
+    standard_name: q
   T2M:
     level_type: heightAboveGround
     levels: [2]
-    stdname: 2t
+    standard_name: 2t
   TMP:
     level_type: isobaricInhPa
     levels: *levels
-    stdname: t
+    standard_name: t
   UGRD:
     level_type: isobaricInhPa
     levels: *levels
-    stdname: u
+    standard_name: u
   VGRD:
     level_type: isobaricInhPa
     levels: *levels
-    stdname: v
+    standard_name: v
   VVEL:
     level_type: isobaricInhPa
     levels: *levels
-    stdname: w
+    standard_name: w
 workdir: /path/to/workdir/

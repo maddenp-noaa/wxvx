@@ -104,7 +104,7 @@ def grid_nc(c: Config, varname: str, tc: TimeCoords, var: Var):
     yield fd
     src = da_select(refs(fd), c, varname, tc, var)
     da = da_construct(src)
-    ds = ds_from_da(da, taskname)
+    ds = ds_from_da(c, da, taskname)
     path.parent.mkdir(parents=True, exist_ok=True)
     ds.to_netcdf(path)
     logging.info("%s: Wrote %s", taskname, path)
@@ -159,6 +159,7 @@ def plot_config(c: Config, rundir: Path, varname: str, plotfn: str, statfn: str)
     x_axis_labels = [
         vt.validtime.strftime("%Y%m%d %HZ") if i % 10 == 0 else "" for i, vt in enumerate(vts)
     ]
+    units = VARMETA[tuple(c.variables[varname][x] for x in ["standard_name", "level_type"])].units
     config = {
         "colors": ["#32cd32"],
         "con_series": [1],
@@ -186,7 +187,7 @@ def plot_config(c: Config, rundir: Path, varname: str, plotfn: str, statfn: str)
         "series_val_1": {"model": [c.forecast.name]},
         "show_legend": [True],
         "stat_input": statfn,
-        "title": "%s (%s) 1-hour forecast %s" % (varname, VARMETA[varname][1], stat),
+        "title": "%s (%s) 1-hour forecast %s" % (varname, units, stat),
         "user_legend": ["%s vs %s" % (c.forecast.name, c.baseline.name)],
         "xaxis": "Cycle",
         "xlab_offset": 20,
@@ -275,7 +276,7 @@ def stats(c: Config):
     for varname, attrs in c.variables.items():
         for level in attrs.get("levels", [None]):
             vxvars[varname] = Var(
-                name=attrs["stdname"], level_type=attrs["level_type"], level=level
+                name=attrs["standard_name"], level_type=attrs["level_type"], level=level
             )
     reqs = [
         stat(c, varname, tc, var, vxvars, "forecast_%s" % str(var).replace("-", "_"))

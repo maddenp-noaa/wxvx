@@ -89,8 +89,8 @@ def test_variables_HRRRVar__levinfo(expected, levstr):
         ("FOO", "suface", variables.UNKNOWN),
     ],
 )
-def test_variables_HRRRVar__stdname(name, level_type, expected):
-    assert variables.HRRRVar._stdname(name=name, level_type=level_type) == expected
+def test_variables_HRRRVar__standard_name(name, level_type, expected):
+    assert variables.HRRRVar._standard_name(name=name, level_type=level_type) == expected
 
 
 def test_variables_da_construct(c, da, tc):
@@ -104,9 +104,9 @@ def test_variables_da_construct(c, da, tc):
     assert new.forecast_reference_time == [np.datetime64(str(tc.cycle.isoformat()))]
 
 
-@mark.parametrize(("fail", "stdname", "varname"), [(False, "gh", "HGT"), (True, "foo", "FOO")])
-def test_variables_da_select(c, da, fail, stdname, tc, varname):
-    var = variables.Var(name=stdname, level_type="isobaricInhPa", level=1000)
+@mark.parametrize(("fail", "standard_name", "varname"), [(False, "gh", "HGT"), (True, "foo", "FOO")])
+def test_variables_da_select(c, da, fail, standard_name, tc, varname):
+    var = variables.Var(name=standard_name, level_type="isobaricInhPa", level=1000)
     kwargs = dict(ds=da.to_dataset(), c=c, varname=varname, tc=tc, var=var)
     if fail:
         with raises(WXVXError) as e:

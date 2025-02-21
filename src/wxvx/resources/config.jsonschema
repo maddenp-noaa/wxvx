@@ -150,13 +150,13 @@
               },
               "type": "array"
             },
-            "stdname": {
+            "standard_name": {
               "type": "string"
             }
           },
           "required": [
             "level_type",
-            "stdname"
+            "standard_name"
           ],
           "type": "object"
         }

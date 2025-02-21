@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import re
 from typing import TYPE_CHECKING
-
+from types import SimpleNamespace as ns
 import netCDF4  # noqa: F401 # import before xarray cf. https://github.com/pydata/xarray/issues/7259
 import numpy as np
 import xarray as xr
@@ -57,7 +57,7 @@ class HRRRVar(Var):
 
     def __init__(self, name: str, levstr: str, firstbyte: int, lastbyte: int):
         level_type, level = self._levinfo(levstr=levstr)
-        name = self._stdname(name=name, level_type=level_type)
+        name = self._standard_name(name=name, level_type=level_type)
         super().__init__(name=name, level_type=level_type, level=level)
         self.firstbyte: int = firstbyte
         self.lastbyte: int | None = lastbyte if lastbyte > -1 else None
@@ -93,7 +93,7 @@ class HRRRVar(Var):
         return (UNKNOWN, None)
 
     @staticmethod
-    def _stdname(name: str, level_type: str) -> str:
+    def _standard_name(name: str, level_type: str) -> str:
         return {
             ("HGT", "isobaricInhPa"): "gh",
             ("REFC", "atmosphere"): "refc",
@@ -135,27 +135,21 @@ def da_select(ds: xr.Dataset, c: Config, varname: str, tc: TimeCoords, var: Var)
     return da
 
 
-def ds_from_da(da: xr.DataArray, taskname: str) -> xr.Dataset:
+def ds_from_da(c: Config, da: xr.DataArray, taskname: str) -> xr.Dataset:
     logging.info("%s: Setting CF metadata on %s", taskname, da.name)
     da["forecast_reference_time"].attrs["standard_name"] = "forecast_reference_time"
     da["time"].attrs["standard_name"] = "time"
     for name, standard_name, units in (
-        ["level", "air_pressure", "hPa"],
         ["latitude", "latitude", "degrees_north"],
         ["longitude", "longitude", "degrees_east"],
+        ["level", "air_pressure", "hPa"],
     ):
         if hasattr(da, name):
             updates = {"standard_name": standard_name, "units": units}
             da[name].attrs.update(updates)
-    for name, meta in VARMETA.items():
-        standard_name, units = meta
-        updates = {
-            "grid_mapping_name": "latitude_longitude",
-            "standard_name": standard_name,
-            "units": units,
-        }
-        if da.name == name:
-            da.attrs.update(updates)
+    meta = VARMETA[tuple(c.variables[da.name][x] for x in ["standard_name", "level_type"])]
+    updates = {"grid_mapping_name": "latitude_longitude", "standard_name": meta.standard_name, "units": meta.units}
+    da.attrs.update(updates)
     ds = da.to_dataset()
     ds.attrs["Conventions"] = "CF-1.8"
     return ds
@@ -181,15 +175,15 @@ def _levelstr2num(levelstr: str) -> float | int:
 
 
 VARMETA = {
-    name: (standard_name, units)
-    for name, standard_name, units in [
-        ("HGT", "geopotential_height", "m"),
-        ("REFC", "unknown", "dBZ"),
-        ("SPFH", "specific_humidity", "1"),
-        ("T2M", "air_temperature", "K"),
-        ("TMP", "air_temperature", "K"),
-        ("UGRD", "eastward_wind", "m s-1"),
-        ("VGRD", "northward_wind", "m s-1"),
-        ("VVEL", "lagrangian_tendency_of_air_pressure", "Pa s-1"),
+    (n, l): ns(name=n, ltevel_type=l, standard_name=s, units=u)
+    for n, l, s, u in [
+        ("2t", "heightAboveGround", "air_temperature", "K"),
+        ("gh", "isobaricInhPa", "geopotential_height", "m"),
+        ("q", "isobaricInhPa", "specific_humidity", "1"),
+        ("refc", "atmosphere", "unknown", "dBZ"),
+        ("t", "isobaricInhPa", "air_temperature", "K"),
+        ("u", "isobaricInhPa", "eastward_wind", "m s-1"),
+        ("v", "isobaricInhPa", "northward_wind", "m s-1"),
+        ("w", "isobaricInhPa", "lagrangian_tendency_of_air_pressure", "Pa s-1"),
     ]
 }
