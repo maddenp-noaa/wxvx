@@ -112,7 +112,6 @@ class HRRRVar(Var):
             ("SPFH", "isobaricInhPa"): "q",
             ("TMP", "heightAboveGround"): "2t",
             ("TMP", "isobaricInhPa"): "t",
-            ("TMP", "surface"): "t",
             ("UGRD", "isobaricInhPa"): "u",
             ("VGRD", "isobaricInhPa"): "v",
             ("VVEL", "isobaricInhPa"): "w",
