@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 from itertools import pairwise
 from pathlib import Path
-from shutil import copyfile
 from stat import S_IEXEC
 from textwrap import dedent
 from typing import TYPE_CHECKING
@@ -139,21 +138,15 @@ def grid_stat_config(c: Config, basepath: Path, varname: str, rundir: Path, var:
     render(values_src=values, input_file=resource_path("config.grid_stat"), output_file=path)
 
 
-def meta(c: Config, varname: str) -> ns:
-    return VARMETA[tuple(c.variables[varname][x] for x in ["standard_name", "level_type"])]
-
-
 @task
 def plot(c: Config, varname: str, level: float | None):
     rundir = c.workdir / "run" / "plot"
-    m = meta(c, varname)
-    var = Var(m.name, m.level_type, level)
+    var = mkvar(c, varname, level)
     path = rundir / f"plot-{var}.png"
     taskname = "Plot of stat data %s" % path
-    reformatted = reformat(c, rundir)
-    cfgfile = plot_config(
-        c, rundir, varname, var, plot_fn=path.name, stat_fn=refs(reformatted).name
-    )
+    reformatted = reformat(c, varname, level, rundir)
+    stat_fn = refs(reformatted).name
+    cfgfile = plot_config(c, rundir, varname, var, plot_fn=path.name, stat_fn=stat_fn)
     content = "line.py %s >%s 2>&1" % (refs(cfgfile).name, f"plot-{var}.log")
     script = runscript(basepath=path, content=content)
     yield taskname
@@ -174,51 +167,52 @@ def plot_config(c: Config, rundir: Path, varname: str, var: Var, plot_fn: str, s
     x_axis_labels = [
         vt.validtime.strftime("%Y%m%d %HZ") if i % 10 == 0 else "" for i, vt in enumerate(vts)
     ]
-    config = {
-        "colors": ["#32cd32"],
-        "con_series": [1],
-        "fcst_var_val_1": {varname: [stat]},
-        # "fcst_var_val_1": {"TMP": [stat]},  # TOGGLE
-        "grid_col": "#cccccc",
-        "indy_label": x_axis_labels,
-        "indy_vals": [vt.validtime.strftime("%Y-%m-%d %H:%M:%S") for vt in vts],
-        "indy_var": "fcst_init_beg",
-        "legend_box": "n",
-        "line_type": "cnt",
-        "list_stat_1": [stat],
-        "log_level": "DEBUG",
-        "plot_caption": "",
-        "plot_ci": ["none"],
-        "plot_disp": [True],
-        "plot_filename": plot_fn,
-        "plot_height": 10,
-        "plot_width": 13,
-        "series_line_style": ["-"],
-        "series_line_width": [1],
-        "series_order": [1],
-        "series_symbols": ["."],
-        "series_type": ["b"],
-        "series_val_1": {"model": [c.forecast.name]},
-        "show_legend": [True],
-        "stat_input": stat_fn,
-        "title": "%s (%s) 1-hour forecast %s" % (varname, meta(c, varname).units, stat),
-        "user_legend": ["%s vs %s" % (c.forecast.name, c.baseline.name)],
-        "xaxis": "Cycle",
-        "xlab_offset": 20,
-        "xtlab_orient": 270,
-        "yaxis_1": stat,
-        "ylab_offset": 20,
-    }
+    config = dict(
+        colors=["#32cd32"],
+        con_series=[1],
+        # fcst_var_val_1={"TMP": [stat]},  # TOGGLE
+        fcst_var_val_1={varname: [stat]},
+        grid_col="#cccccc",
+        indy_label=x_axis_labels,
+        indy_vals=[vt.validtime.strftime("%Y-%m-%d %H:%M:%S") for vt in vts],
+        indy_var="fcst_init_beg",
+        legend_box="n",
+        line_type="cnt",
+        list_stat_1=[stat],
+        log_level="DEBUG",
+        plot_caption="",
+        plot_ci=["none"],
+        plot_disp=[True],
+        plot_filename=plot_fn,
+        plot_height=10,
+        plot_width=13,
+        series_line_style=["-"],
+        series_line_width=[1],
+        series_order=[1],
+        series_symbols=["."],
+        series_type=["b"],
+        series_val_1={"model": [c.forecast.name]},
+        show_legend=[True],
+        stat_input=stat_fn,
+        title="%s (%s) 1-hour forecast %s" % (varname, meta(c, varname).units, stat),
+        user_legend=["%s vs %s" % (c.forecast.name, c.baseline.name)],
+        xaxis="Cycle",
+        xlab_offset=20,
+        xtlab_orient=270,
+        yaxis_1=stat,
+        ylab_offset=20,
+    )
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w") as f:
         yaml.dump(config, f)
 
 
 @task
-def reformat(c: Config, rundir: Path):
-    path = rundir / "reformat.data"
+def reformat(c: Config, varname: str, level: int, rundir: Path):
+    var = mkvar(c, varname, level)
+    path = rundir / f"reformat-{var}.data"
     taskname = "Reformatted grid_stat results %s" % path
-    cfgfile = reformat_config(rundir)
+    cfgfile = reformat_config(rundir, var)
     content = f"""
     export PYTHONWARNINGS=ignore::FutureWarning
     write_stat_ascii.py {refs(cfgfile).name} >reformat.log 2>&1
@@ -231,14 +225,25 @@ def reformat(c: Config, rundir: Path):
 
 
 @task
-def reformat_config(rundir: Path):
-    path = rundir / "reformat.yaml"
+def reformat_config(rundir: Path, var: Var):
+    path = rundir / f"reformat-{var}.yaml"
     taskname = "Reformat config %s" % path
     yield taskname
     yield asset(path, path.is_file)
     yield None
+    config = dict(
+        input_data_dir=".",
+        input_stats_aggregated=True,
+        line_type="CNT",
+        log_directory=".",
+        log_filename="/dev/stdout",
+        log_level="debug",
+        output_dir=".",
+        output_filename=f"reformat-{var}.data",
+    )
     path.parent.mkdir(parents=True, exist_ok=True)
-    copyfile(resource_path("reformat.yaml"), path)
+    with path.open("w") as f:
+        yaml.dump(config, f)
 
 
 @task
@@ -319,3 +324,15 @@ def verification(c: Config):
     ]
     yield taskname
     yield reqs
+
+
+# Support
+
+
+def meta(c: Config, varname: str) -> ns:
+    return VARMETA[tuple(c.variables[varname][x] for x in ["standard_name", "level_type"])]
+
+
+def mkvar(c: Config, varname: str, level: float | None) -> Var:
+    m = meta(c, varname)
+    return Var(m.name, m.level_type, level)

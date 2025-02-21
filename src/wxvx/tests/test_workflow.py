@@ -163,14 +163,16 @@ def test_workflow_plot_config(c, fakefs):
     assert config_data["stat_input"] == stat_fn
 
 
-def test_workflow_reformat(c, fakefs):
+def test_workflow_reformat(c, fakefs, testvars):
     @external
     def mock(*_args, **_kwargs):
         yield "mock"
         yield asset(Path("/some/file"), lambda: True)
 
     rundir = fakefs / "run" / "plot"
-    path = rundir / "reformat.data"
+    varname = "HGT"
+    var = testvars[varname]
+    path = rundir / f"reformat-{var}.data"
     taskname = f"Reformatted grid_stat results {path}"
     with (
         patch.object(workflow, "reformat_config", mock),
@@ -178,19 +180,19 @@ def test_workflow_reformat(c, fakefs):
         patch.object(workflow, "mpexec", side_effect=lambda *_: path.touch()) as mpexec,
     ):
         rundir.mkdir(parents=True)
-        val = workflow.reformat(c=c, rundir=rundir)
+        val = workflow.reformat(c=c, varname=varname, level=900, rundir=rundir)
     runscript = str((rundir / refs(val).stem).with_suffix(".sh"))
     mpexec.assert_called_once_with(runscript, rundir, taskname)
     assert ready(val)
     assert path.is_file()
 
 
-def test_workflow_reformat_config(fakefs, fs):
-    fs.add_real_file(util.resource_path("reformat.yaml"))
-    val = workflow.reformat_config(rundir=fakefs, dry_run=True)
+def test_workflow_reformat_config(fakefs, testvars):
+    var = testvars["HGT"]
+    val = workflow.reformat_config(rundir=fakefs, var=var, dry_run=True)
     assert not ready(val)
     assert not refs(val).is_file()
-    val = workflow.reformat_config(rundir=fakefs)
+    val = workflow.reformat_config(rundir=fakefs, var=var)
     assert ready(val)
     assert refs(val).is_file()
 
