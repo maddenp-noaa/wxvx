@@ -168,9 +168,8 @@ def plot_config(c: Config, rundir: Path, varname: str, var: Var, plot_fn: str, s
         vt.validtime.strftime("%Y%m%d %HZ") if i % 10 == 0 else "" for i, vt in enumerate(vts)
     ]
     config = dict(
-        colors=["#32cd32"],
+        colors=["#00ff00"],
         con_series=[1],
-        # fcst_var_val_1={"TMP": [stat]},  # TOGGLE
         fcst_var_val_1={varname: [stat]},
         grid_col="#cccccc",
         indy_label=x_axis_labels,
@@ -202,6 +201,26 @@ def plot_config(c: Config, rundir: Path, varname: str, var: Var, plot_fn: str, s
         yaxis_1=stat,
         ylab_offset=20,
     )
+    if c.plot.baseline:
+        update = dict(
+            fcst_var_val_2={HRRRVar.varname(var.name, var.level_type): [stat]},
+            list_stat_2=[stat],
+            series_val_2={"model": [c.baseline.name]},
+        )
+        config.update(update)
+        for k, v in [
+            ("colors", "#0000ff"),
+            ("con_series", 1),
+            ("plot_ci", "none"),
+            ("plot_disp", True),
+            ("series_line_style", "-"),
+            ("series_line_width", 1),
+            ("series_order", 2),
+            ("series_symbols", "."),
+            ("series_type", "b"),
+            ("show_legend", True),
+        ]:
+            config[k].append(v)  # type: ignore[attr-defined]
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w") as f:
         yaml.dump(config, f)
