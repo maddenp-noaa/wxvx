@@ -92,15 +92,6 @@ class HRRRVar(Var):
             ("w", "isobaricInhPa"): "VVEL",
         }.get((name, level_type), UNKNOWN)
 
-    # PM IS THIS NEEDED?
-    @staticmethod
-    def _level_pressure(levstr: str) -> float | int | None:
-        if m := re.match(r"^([0-9\.]+) m above ground$", levstr):
-            return _levelstr2num(m[1])
-        if m := re.match(r"^([0-9\.]+) mb$", levstr):
-            return _levelstr2num(m[1])
-        return None
-
     @staticmethod
     def _levinfo(levstr: str) -> tuple[str, float | int | None]:
         if m := re.match(r"^entire atmosphere$", levstr):

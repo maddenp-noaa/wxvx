@@ -88,19 +88,6 @@ def test_variables_HRRRVar_varname(name, level_type, expected):
 @mark.parametrize(
     ("expected", "levstr"),
     [
-        (2, "2 m above ground"),
-        (900, "900 mb"),
-        (1013.1, "1013.1 mb"),
-        (None, "surface"),
-    ],
-)
-def test_variables_HRRRVar__level_pressure(expected, levstr):
-    assert variables.HRRRVar._level_pressure(levstr) == expected
-
-
-@mark.parametrize(
-    ("expected", "levstr"),
-    [
         (("atmosphere", None), "entire atmosphere"),
         (("heightAboveGround", 2), "2 m above ground"),
         (("isobaricInhPa", 900), "900 mb"),
