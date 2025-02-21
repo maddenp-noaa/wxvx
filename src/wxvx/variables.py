@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import TYPE_CHECKING
 from types import SimpleNamespace as ns
+from typing import TYPE_CHECKING
+
 import netCDF4  # noqa: F401 # import before xarray cf. https://github.com/pydata/xarray/issues/7259
 import numpy as np
 import xarray as xr
@@ -148,7 +149,11 @@ def ds_from_da(c: Config, da: xr.DataArray, taskname: str) -> xr.Dataset:
             updates = {"standard_name": standard_name, "units": units}
             da[name].attrs.update(updates)
     meta = VARMETA[tuple(c.variables[da.name][x] for x in ["standard_name", "level_type"])]
-    updates = {"grid_mapping_name": "latitude_longitude", "standard_name": meta.standard_name, "units": meta.units}
+    updates = {
+        "grid_mapping_name": "latitude_longitude",
+        "standard_name": meta.standard_name,
+        "units": meta.units,
+    }
     da.attrs.update(updates)
     ds = da.to_dataset()
     ds.attrs["Conventions"] = "CF-1.8"
@@ -175,8 +180,8 @@ def _levelstr2num(levelstr: str) -> float | int:
 
 
 VARMETA = {
-    (n, l): ns(name=n, ltevel_type=l, standard_name=s, units=u)
-    for n, l, s, u in [
+    (name, levtype): ns(name=name, level_type=levtype, standard_name=stdname, units=units)
+    for name, levtype, stdname, units in [
         ("2t", "heightAboveGround", "air_temperature", "K"),
         ("gh", "isobaricInhPa", "geopotential_height", "m"),
         ("q", "isobaricInhPa", "specific_humidity", "1"),

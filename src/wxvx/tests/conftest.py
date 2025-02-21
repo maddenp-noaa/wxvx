@@ -67,6 +67,11 @@ def config_data():
         },
         "threads": 4,
         "variables": {
+            "HGT": {
+                "level_type": "isobaricInhPa",
+                "levels": [1000],
+                "standard_name": "gh",
+            },
             "REFC": {
                 "level_type": "atmosphere",
                 "standard_name": "refc",
