@@ -142,12 +142,12 @@ def grid_stat_config(c: Config, basepath: Path, varname: str, rundir: Path, var:
 def plot(c: Config, varname: str, level: float | None):
     rundir = c.workdir / "run" / "plot"
     var = mkvar(c, varname, level)
-    path = rundir / f"plot-{var}.png"
+    path = rundir / f"{var}-plot.png"
     taskname = "Plot of stat data %s" % path
     reformatted = reformat(c, varname, level, rundir)
     stat_fn = refs(reformatted).name
     cfgfile = plot_config(c, rundir, varname, var, plot_fn=path.name, stat_fn=stat_fn)
-    content = "line.py %s >%s 2>&1" % (refs(cfgfile).name, f"plot-{var}.log")
+    content = "line.py %s >%s 2>&1" % (refs(cfgfile).name, f"{var}-plot.log")
     script = runscript(basepath=path, content=content)
     yield taskname
     yield asset(path, path.is_file)
@@ -157,7 +157,7 @@ def plot(c: Config, varname: str, level: float | None):
 
 @task
 def plot_config(c: Config, rundir: Path, varname: str, var: Var, plot_fn: str, stat_fn: str):
-    path = rundir / f"plot-{var}.yaml"
+    path = rundir / f"{var}-plot.yaml"
     taskname = "Plot config %s" % path
     yield taskname
     yield asset(path, path.is_file)
@@ -210,12 +210,12 @@ def plot_config(c: Config, rundir: Path, varname: str, var: Var, plot_fn: str, s
 @task
 def reformat(c: Config, varname: str, level: int, rundir: Path):
     var = mkvar(c, varname, level)
-    path = rundir / f"reformat-{var}.data"
+    path = rundir / f"{var}-reformat.data"
     taskname = "Reformatted grid_stat results %s" % path
     cfgfile = reformat_config(rundir, var)
     content = f"""
     export PYTHONWARNINGS=ignore::FutureWarning
-    write_stat_ascii.py {refs(cfgfile).name} >reformat.log 2>&1
+    write_stat_ascii.py {refs(cfgfile).name} >{var}-reformat.log 2>&1
     """
     script = runscript(basepath=path, content=content)
     yield taskname
@@ -226,7 +226,7 @@ def reformat(c: Config, varname: str, level: int, rundir: Path):
 
 @task
 def reformat_config(rundir: Path, var: Var):
-    path = rundir / f"reformat-{var}.yaml"
+    path = rundir / f"{var}-reformat.yaml"
     taskname = "Reformat config %s" % path
     yield taskname
     yield asset(path, path.is_file)
@@ -239,7 +239,7 @@ def reformat_config(rundir: Path, var: Var):
         log_filename="/dev/stdout",
         log_level="debug",
         output_dir=".",
-        output_filename=f"reformat-{var}.data",
+        output_filename=f"{var}-reformat.data",
     )
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w") as f:

@@ -134,7 +134,7 @@ def test_workflow_plot(c, fakefs):
     rundir = fakefs / "run" / "plot"
     varname, level = "T2M", 2
     var = variables.Var(name="2t", level_type="heightAboveGround", level=level)
-    path = rundir / f"plot-{var}.png"
+    path = rundir / f"{var}-plot.png"
     taskname = f"Plot of stat data {path}"
     with (
         patch.object(workflow, "reformat", mock),
@@ -172,7 +172,7 @@ def test_workflow_reformat(c, fakefs, testvars):
     rundir = fakefs / "run" / "plot"
     varname = "HGT"
     var = testvars[varname]
-    path = rundir / f"reformat-{var}.data"
+    path = rundir / f"{var}-reformat.data"
     taskname = f"Reformatted grid_stat results {path}"
     with (
         patch.object(workflow, "reformat_config", mock),
