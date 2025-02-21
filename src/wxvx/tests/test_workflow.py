@@ -132,7 +132,9 @@ def test_workflow_plot(c, fakefs):
         yield asset(Path("/some/file"), lambda: True)
 
     rundir = fakefs / "run" / "plot"
-    path = rundir / "plot-T2M.png"
+    varname, level = "T2M", 2
+    var = variables.Var(name="2t", level_type="heightAboveGround", level=level)
+    path = rundir / f"plot-{var}.png"
     taskname = f"Plot of stat data {path}"
     with (
         patch.object(workflow, "reformat", mock),
@@ -140,7 +142,7 @@ def test_workflow_plot(c, fakefs):
         patch.object(workflow, "mpexec", side_effect=lambda *_: path.touch()) as mpexec,
     ):
         rundir.mkdir(parents=True)
-        val = workflow.plot(c=c, varname="T2M")
+        val = workflow.plot(c=c, varname=varname, level=level)
     runscript = str((rundir / refs(val).stem).with_suffix(".sh"))
     mpexec.assert_called_once_with(runscript, rundir, taskname)
     assert ready(val)
@@ -148,16 +150,17 @@ def test_workflow_plot(c, fakefs):
 
 
 def test_workflow_plot_config(c, fakefs):
-    varname, plotfn, statfn = "T2M", "plot-T2M.png", "T2M.stat"
-    kwargs = dict(c=c, rundir=fakefs, varname=varname, plotfn=plotfn, statfn=statfn)
+    var = variables.Var(name="2t", level_type="heightAboveGround", level=2)
+    varname, plot_fn, stat_fn = "T2M", f"plot-{var}.png", f"{var}.stat"
+    kwargs = dict(c=c, rundir=fakefs, varname=varname, var=var, plot_fn=plot_fn, stat_fn=stat_fn)
     assert not ready(val := workflow.plot_config(**kwargs, dry_run=True))
     assert not refs(val).is_file()
     val = workflow.plot_config(**kwargs)
     assert ready(val)
     config_data = yaml.safe_load(refs(val).read_text())
     assert config_data["fcst_var_val_1"] == {varname: ["RMSE"]}
-    assert config_data["plot_filename"] == plotfn
-    assert config_data["stat_input"] == statfn
+    assert config_data["plot_filename"] == plot_fn
+    assert config_data["stat_input"] == stat_fn
 
 
 def test_workflow_reformat(c, fakefs):

@@ -1,9 +1,12 @@
+from __future__ import annotations
+
 import logging
 from itertools import pairwise
 from pathlib import Path
 from shutil import copyfile
 from stat import S_IEXEC
 from textwrap import dedent
+from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 from warnings import catch_warnings, simplefilter
 
@@ -14,9 +17,13 @@ from uwtools.api.template import render
 
 from wxvx.net import fetch, status
 from wxvx.times import TimeCoords, tcinfo, validtimes
-from wxvx.types import Config, VXVarsT
 from wxvx.util import mpexec, resource_path
 from wxvx.variables import VARMETA, HRRRVar, Var, da_construct, da_select, ds_from_da, metlevel
+
+if TYPE_CHECKING:
+    from types import SimpleNamespace as ns  # pragma: no cover
+
+    from wxvx.types import Config, VXVarsT  # pragma: no cover
 
 
 @external
@@ -132,14 +139,22 @@ def grid_stat_config(c: Config, basepath: Path, varname: str, rundir: Path, var:
     render(values_src=values, input_file=resource_path("config.grid_stat"), output_file=path)
 
 
+def meta(c: Config, varname: str) -> ns:
+    return VARMETA[tuple(c.variables[varname][x] for x in ["standard_name", "level_type"])]
+
+
 @task
-def plot(c: Config, varname: str):
+def plot(c: Config, varname: str, level: float | None):
     rundir = c.workdir / "run" / "plot"
-    path = rundir / f"plot-{varname}.png"
+    m = meta(c, varname)
+    var = Var(m.name, m.level_type, level)
+    path = rundir / f"plot-{var}.png"
     taskname = "Plot of stat data %s" % path
     reformatted = reformat(c, rundir)
-    cfgfile = plot_config(c, rundir, varname, plotfn=path.name, statfn=refs(reformatted).name)
-    content = "line.py %s >%s 2>&1" % (refs(cfgfile).name, f"plot-{varname}.log")
+    cfgfile = plot_config(
+        c, rundir, varname, var, plot_fn=path.name, stat_fn=refs(reformatted).name
+    )
+    content = "line.py %s >%s 2>&1" % (refs(cfgfile).name, f"plot-{var}.log")
     script = runscript(basepath=path, content=content)
     yield taskname
     yield asset(path, path.is_file)
@@ -148,8 +163,8 @@ def plot(c: Config, varname: str):
 
 
 @task
-def plot_config(c: Config, rundir: Path, varname: str, plotfn: str, statfn: str):
-    path = rundir / f"plot-{varname}.yaml"
+def plot_config(c: Config, rundir: Path, varname: str, var: Var, plot_fn: str, stat_fn: str):
+    path = rundir / f"plot-{var}.yaml"
     taskname = "Plot config %s" % path
     yield taskname
     yield asset(path, path.is_file)
@@ -159,7 +174,6 @@ def plot_config(c: Config, rundir: Path, varname: str, plotfn: str, statfn: str)
     x_axis_labels = [
         vt.validtime.strftime("%Y%m%d %HZ") if i % 10 == 0 else "" for i, vt in enumerate(vts)
     ]
-    units = VARMETA[tuple(c.variables[varname][x] for x in ["standard_name", "level_type"])].units
     config = {
         "colors": ["#32cd32"],
         "con_series": [1],
@@ -176,7 +190,7 @@ def plot_config(c: Config, rundir: Path, varname: str, plotfn: str, statfn: str)
         "plot_caption": "",
         "plot_ci": ["none"],
         "plot_disp": [True],
-        "plot_filename": plotfn,
+        "plot_filename": plot_fn,
         "plot_height": 10,
         "plot_width": 13,
         "series_line_style": ["-"],
@@ -186,8 +200,8 @@ def plot_config(c: Config, rundir: Path, varname: str, plotfn: str, statfn: str)
         "series_type": ["b"],
         "series_val_1": {"model": [c.forecast.name]},
         "show_legend": [True],
-        "stat_input": statfn,
-        "title": "%s (%s) 1-hour forecast %s" % (varname, units, stat),
+        "stat_input": stat_fn,
+        "title": "%s (%s) 1-hour forecast %s" % (varname, meta(c, varname).units, stat),
         "user_legend": ["%s vs %s" % (c.forecast.name, c.baseline.name)],
         "xaxis": "Cycle",
         "xlab_offset": 20,
@@ -298,6 +312,10 @@ def stats(c: Config):
 @tasks
 def verification(c: Config):
     taskname = "Verification of %s" % c.forecast.path
-    reqs = [plot(c, varname) for varname in c.variables]
+    reqs = [
+        plot(c, varname, level)
+        for varname, attrs in c.variables.items()
+        for level in attrs.get("levels", [None])
+    ]
     yield taskname
     yield reqs
