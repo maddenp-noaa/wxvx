@@ -161,10 +161,6 @@ def test_variables_ds_from_da(check_cf_metadata):
     assert check_cf_metadata(ds=ds, name=name)
 
 
-def test_variables_forecast_var_units():
-    assert variables.forecast_var_units(name="REFC") == "dBZ"
-
-
 @mark.parametrize(("s", "expected"), [("900", 900), ("1013.1", 1013.1)])
 def test__levelstr2num(s, expected):
     assert variables._levelstr2num(levelstr=s) == expected

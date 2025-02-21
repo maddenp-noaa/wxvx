@@ -16,7 +16,7 @@ from wxvx.net import fetch, status
 from wxvx.times import TimeCoords, tcinfo, validtimes
 from wxvx.types import Config, VXVarsT
 from wxvx.util import mpexec, resource_path
-from wxvx.variables import HRRRVar, Var, da_construct, da_select, ds_from_da, forecast_var_units
+from wxvx.variables import VARMETA, HRRRVar, Var, da_construct, da_select, ds_from_da
 
 
 @external
@@ -186,7 +186,7 @@ def plot_config(c: Config, rundir: Path, varname: str, plotfn: str, statfn: str)
         "series_val_1": {"model": [c.forecast.name]},
         "show_legend": [True],
         "stat_input": statfn,
-        "title": "%s (%s) 1-hour forecast %s" % (varname, forecast_var_units(varname), stat),
+        "title": "%s (%s) 1-hour forecast %s" % (varname, VARMETA[varname][1], stat),
         "user_legend": ["%s vs %s" % (c.forecast.name, c.baseline.name)],
         "xaxis": "Cycle",
         "xlab_offset": 20,

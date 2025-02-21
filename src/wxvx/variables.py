@@ -160,20 +160,12 @@ def ds_from_da(da: xr.DataArray, taskname: str) -> xr.Dataset:
         if hasattr(da, name):
             updates = {"standard_name": standard_name, "units": units}
             da[name].attrs.update(updates)
-    for name, standard_name in (
-        ["HGT", "geopotential_height"],
-        ["REFC", "unknown"],
-        ["SPFH", "specific_humidity"],
-        ["T2M", "air_temperature"],
-        ["TMP", "air_temperature"],
-        ["UGRD", "eastward_wind"],
-        ["VGRD", "northward_wind"],
-        ["VVEL", "lagrangian_tendency_of_air_pressure"],
-    ):
+    for name, meta in VARMETA.items():
+        standard_name, units = meta
         updates = {
             "grid_mapping_name": "latitude_longitude",
             "standard_name": standard_name,
-            "units": forecast_var_units(name),
+            "units": units,
         }
         if da.name == name:
             da.attrs.update(updates)
@@ -182,22 +174,23 @@ def ds_from_da(da: xr.DataArray, taskname: str) -> xr.Dataset:
     return ds
 
 
-def forecast_var_units(name: str) -> str:
-    # PM Consider factoring out to config.
-    return {
-        "HGT": "m",
-        "REFC": "dBZ",
-        "SPFH": "1",
-        "T2M": "K",
-        "TMP": "K",
-        "UGRD": "m s-1",
-        "VGRD": "m s-1",
-        "VVEL": "Pa s-1",
-    }[name]
-
-
 def _levelstr2num(levelstr: str) -> float | int:
     try:
         return int(levelstr)
     except ValueError:
         return float(levelstr)
+
+
+VARMETA = {
+    name: (standard_name, units)
+    for name, standard_name, units in [
+        ("HGT", "geopotential_height", "m"),
+        ("REFC", "unknown", "dBZ"),
+        ("SPFH", "specific_humidity", "1"),
+        ("T2M", "air_temperature", "K"),
+        ("TMP", "air_temperature", "K"),
+        ("UGRD", "eastward_wind", "m s-1"),
+        ("VGRD", "northward_wind", "m s-1"),
+        ("VVEL", "lagrangian_tendency_of_air_pressure", "Pa s-1"),
+    ]
+}
