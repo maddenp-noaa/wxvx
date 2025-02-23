@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from itertools import pairwise
+from itertools import pairwise, product
 from pathlib import Path
 from stat import S_IEXEC
 from textwrap import dedent
@@ -141,7 +141,7 @@ def grid_stat_config(c: Config, basepath: Path, varname: str, rundir: Path, var:
 @task
 def plot(c: Config, varname: str, level: float | None):
     rundir = c.workdir / "run" / "plot"
-    var = mkvar(c, varname, level)
+    var = _var(c, varname, level)
     path = rundir / f"{var}-plot.png"
     taskname = "Plot of stat data %s" % path
     reformatted = reformat(c, varname, level, rundir)
@@ -193,7 +193,7 @@ def plot_config(c: Config, rundir: Path, varname: str, var: Var, plot_fn: str, s
         series_val_1={"model": [c.forecast.name]},
         show_legend=[True],
         stat_input=stat_fn,
-        title="%s (%s) 1-hour forecast %s" % (varname, meta(c, varname).units, stat),
+        title="%s (%s) 1-hour forecast %s" % (varname, _meta(c, varname).units, stat),
         user_legend=["%s vs %s" % (c.forecast.name, c.baseline.name)],
         xaxis="Cycle",
         xlab_offset=20,
@@ -228,7 +228,7 @@ def plot_config(c: Config, rundir: Path, varname: str, var: Var, plot_fn: str, s
 
 @task
 def reformat(c: Config, varname: str, level: int, rundir: Path):
-    var = mkvar(c, varname, level)
+    var = _var(c, varname, level)
     path = rundir / f"{var}-reformat.data"
     taskname = "Reformatted grid_stat results %s" % path
     cfgfile = reformat_config(rundir, var)
@@ -310,16 +310,10 @@ def stat(c: Config, varname: str, tc: TimeCoords, var: Var, vxvars: VXVarsT, pre
 @task
 def stats(c: Config):
     taskname = "MET grid_stat results for %s" % c.forecast.path
-    vxvars = {}
-    for varname, attrs in c.variables.items():
-        for level in attrs.get("levels", [None]):
-            vxvars[varname] = Var(
-                name=attrs["standard_name"], level_type=attrs["level_type"], level=level
-            )
+    vxvars = _vxvars(c)
     reqs = [
         stat(c, varname, tc, var, vxvars, "forecast_%s" % str(var).replace("-", "_"))
-        for tc in validtimes(c.cycles, c.leadtimes)
-        for varname, var in vxvars.items()
+        for (varname, var), tc in product(vxvars.items(), validtimes(c.cycles, c.leadtimes))
     ]
     files = [refs(x) for x in reqs]
     links = [c.workdir / "run" / "plot" / x.name for x in files]
@@ -348,10 +342,20 @@ def verification(c: Config):
 # Support
 
 
-def meta(c: Config, varname: str) -> ns:
+def _meta(c: Config, varname: str) -> ns:
     return VARMETA[tuple(c.variables[varname][x] for x in ["standard_name", "level_type"])]
 
 
-def mkvar(c: Config, varname: str, level: float | None) -> Var:
-    m = meta(c, varname)
+def _var(c: Config, varname: str, level: float | None) -> Var:
+    m = _meta(c, varname)
     return Var(m.name, m.level_type, level)
+
+
+def _vxvars(c: Config) -> dict[str, Var]:
+    vxvars = {}
+    for varname, attrs in c.variables.items():
+        for level in attrs.get("levels", [None]):
+            vxvars[varname] = Var(
+                name=attrs["standard_name"], level_type=attrs["level_type"], level=level
+            )
+    return vxvars
