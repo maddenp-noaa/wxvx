@@ -69,7 +69,7 @@ def config_data():
         "variables": {
             "HGT": {
                 "level_type": "isobaricInhPa",
-                "levels": [1000],
+                "levels": [900],
                 "standard_name": "gh",
             },
             "REFC": {
@@ -78,7 +78,7 @@ def config_data():
             },
             "SPFH": {
                 "level_type": "isobaricInhPa",
-                "levels": [1000],
+                "levels": [900],
                 "standard_name": "q",
             },
             "T2M": {
@@ -101,7 +101,7 @@ def da() -> xr.DataArray:
         coords=dict(
             latitude=(["latitude", "longitude"], one.reshape((1, 1))),
             longitude=(["latitude", "longitude"], one.reshape((1, 1))),
-            level=(["level"], np.array([1000], dtype="float32")),
+            level=(["level"], np.array([900], dtype="float32")),
             time=np.array([0], dtype="datetime64[ns]"),
             lead_time=np.array([0], dtype="timedelta64[ns]"),
         ),

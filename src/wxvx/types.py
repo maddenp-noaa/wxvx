@@ -3,8 +3,6 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-from wxvx.variables import Var
-
 
 @dataclass
 class Baseline:
@@ -55,6 +53,3 @@ class Leadtimes:
 @dataclass
 class Plot:
     baseline: bool
-
-
-VXVarsT = dict[str, Var]

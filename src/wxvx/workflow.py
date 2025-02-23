@@ -22,7 +22,7 @@ from wxvx.variables import VARMETA, HRRRVar, Var, da_construct, da_select, ds_fr
 if TYPE_CHECKING:
     from types import SimpleNamespace as ns  # pragma: no cover
 
-    from wxvx.types import Config, VXVarsT  # pragma: no cover
+    from wxvx.types import Config  # pragma: no cover
 
 
 @external
@@ -45,7 +45,7 @@ def forecast_dataset(path: Path):
 
 
 @task
-def grib_index_data(outdir: Path, vxvars: VXVarsT, tc: TimeCoords, url: str):
+def grib_index_data(c: Config, outdir: Path, tc: TimeCoords, url: str):
     yyyymmdd, hh, leadtime = tcinfo(tc)
     taskname = "GRIB index data %s %sZ %s" % (yyyymmdd, hh, leadtime)
     idxdata: dict[str, HRRRVar] = {}
@@ -62,7 +62,7 @@ def grib_index_data(outdir: Path, vxvars: VXVarsT, tc: TimeCoords, url: str):
             firstbyte=int(this_record[1]),
             lastbyte=int(next_record[1]) - 1,
         )
-        if hrrrvar in vxvars.values():
+        if hrrrvar in _vxvars(c).values():
             idxdata[str(hrrrvar)] = hrrrvar
 
 
@@ -83,13 +83,13 @@ def grib_index_remote(url: str):
 
 
 @task
-def grid_grib(c: Config, tc: TimeCoords, var: Var, vxvars: VXVarsT):
+def grid_grib(c: Config, tc: TimeCoords, var: Var):
     yyyymmdd, hh, leadtime = tcinfo(tc)
     outdir = c.workdir / "grids" / yyyymmdd / hh / leadtime
     path = outdir / f"{var}.grib2"
     taskname = "Baseline grid %s" % path
     url = c.baseline.template.format(yyyymmdd=yyyymmdd, hh=hh, ff="%02d" % int(leadtime))
-    idxdata = grib_index_data(outdir, vxvars, tc, url=f"{url}.idx")
+    idxdata = grib_index_data(c, outdir, tc, url=f"{url}.idx")
     yield taskname
     yield asset(path, path.is_file)
     yield idxdata
@@ -279,7 +279,7 @@ def runscript(basepath: Path, content: str):
 
 
 @task
-def stat(c: Config, varname: str, tc: TimeCoords, var: Var, vxvars: VXVarsT, prefix: str):
+def stat(c: Config, varname: str, tc: TimeCoords, var: Var, prefix: str):
     yyyymmdd, hh, leadtime = tcinfo(tc)
     taskname = "MET grid_stat result %s at %s %sZ %s" % (var, yyyymmdd, hh, leadtime)
     rundir = c.workdir / "run" / "stat" / yyyymmdd / hh / leadtime
@@ -292,8 +292,8 @@ def stat(c: Config, varname: str, tc: TimeCoords, var: Var, vxvars: VXVarsT, pre
     )
     path = rundir / fn
     forecast = grid_nc(c, varname, tc, var)
-    # forecast = grid_grib(c, tc, var, vxvars)  # TOGGLE
-    baseline = grid_grib(c, TimeCoords(cycle=tc.validtime, leadtime=0), var, vxvars)
+    # forecast = grid_grib(c, tc, var)  # TOGGLE
+    baseline = grid_grib(c, TimeCoords(cycle=tc.validtime, leadtime=0), var)
     cfgfile = grid_stat_config(c, path, varname, rundir, var, prefix)
     log = f"{path.stem}.log"
     content = f"""
@@ -310,10 +310,10 @@ def stat(c: Config, varname: str, tc: TimeCoords, var: Var, vxvars: VXVarsT, pre
 @task
 def stats(c: Config):
     taskname = "MET grid_stat results for %s" % c.forecast.path
-    vxvars = _vxvars(c)
+    varattrs = product(_vxvars(c).items(), validtimes(c.cycles, c.leadtimes))
     reqs = [
-        stat(c, varname, tc, var, vxvars, "forecast_%s" % str(var).replace("-", "_"))
-        for (varname, var), tc in product(vxvars.items(), validtimes(c.cycles, c.leadtimes))
+        stat(c, varname, tc, var, "%s_%s" % (c.forecast.name.lower(), str(var).replace("-", "_")))
+        for (varname, var), tc in varattrs
     ]
     files = [refs(x) for x in reqs]
     links = [c.workdir / "run" / "plot" / x.name for x in files]

@@ -37,7 +37,7 @@ def test_workflow_forecast_dataset(da, fakefs):
     assert (da == refs(val).HGT).all()
 
 
-def test_workflow_grib_index_data(c, idxdata, testvars, tc):
+def test_workflow_grib_index_data(c, tc):
     gribidx = """
     1:0:d=2024040103:HGT:900 mb:anl:
     2:1:d=2024040103:FOO:900 mb:anl:
@@ -52,10 +52,12 @@ def test_workflow_grib_index_data(c, idxdata, testvars, tc):
         yield asset(idxfile, idxfile.exists)
 
     with patch.object(workflow, "grib_index_file", mock):
-        val = workflow.grib_index_data(
-            outdir=c.workdir, vxvars=testvars, tc=tc, url=c.baseline.template
+        val = workflow.grib_index_data(c=c, outdir=c.workdir, tc=tc, url=c.baseline.template)
+    assert refs(val) == {
+        "gh-isobaricInhPa-0900": variables.HRRRVar(
+            name="HGT", levstr="900 mb", firstbyte=0, lastbyte=0
         )
-    assert refs(val) == idxdata
+    }
 
 
 def test_workflow_grib_index_file(c):
@@ -83,8 +85,15 @@ def test_workflow_grib_index_remote(c, code):
     status.assert_called_with(url)
 
 
-def test_workflow_grid_grib(c, idxdata, testvars, tc):
-    var = variables.Var(name="t", level_type="isobaricInhPa", level=900)
+def test_workflow_grid_grib(c, tc):
+    idxdata = {
+        "gh-isobaricInhPa-0900": variables.HRRRVar(
+            name="HGT", levstr="900 mb", firstbyte=0, lastbyte=0
+        ),
+        "t-isobaricInhPa-0900": variables.HRRRVar(
+            name="TMP", levstr="900 mb", firstbyte=2, lastbyte=2
+        ),
+    }
     ready = Event()
 
     @external
@@ -92,20 +101,21 @@ def test_workflow_grid_grib(c, idxdata, testvars, tc):
         yield "mock"
         yield asset(idxdata, ready.is_set)
 
+    var = variables.Var(name="t", level_type="isobaricInhPa", level=900)
     with patch.object(workflow, "grib_index_data", mock):
-        val = workflow.grid_grib(c=c, tc=tc, var=var, vxvars=testvars)
+        val = workflow.grid_grib(c=c, tc=tc, var=var)
         path = refs(val)
         assert not path.exists()
         ready.set()
         with patch.object(workflow, "fetch") as fetch:
             fetch.side_effect = lambda taskname, url, path, headers: path.touch()  # noqa: ARG005
             path.parent.mkdir(parents=True, exist_ok=True)
-            workflow.grid_grib(c=c, tc=tc, var=var, vxvars=testvars)
+            workflow.grid_grib(c=c, tc=tc, var=var)
         assert path.exists()
 
 
 def test_workflow_grid_nc(c_real, check_cf_metadata, da, tc):
-    var = variables.Var(name="gh", level_type="isobaricInhPa", level=1000)
+    var = variables.Var(name="gh", level_type="isobaricInhPa", level=900)
     path = Path(c_real.workdir, "a.nc")
     da.to_netcdf(path)
     c_real.forecast.path = path
@@ -206,7 +216,7 @@ def test_workflow_runscript(fakefs):
     assert expected.is_file()
 
 
-def test_workflow_stat(c, fakefs, tc, testvars):
+def test_workflow_stat(c, fakefs, tc):
     @external
     def mock(*_args, **_kwargs):
         yield "mock"
@@ -215,7 +225,7 @@ def test_workflow_stat(c, fakefs, tc, testvars):
     rundir = fakefs / "run" / "stat" / "19700101" / "00" / "000"
     taskname = "MET grid_stat result 2t-heightAboveGround-0002 at 19700101 00Z 000"
     var = variables.Var(name="2t", level_type="heightAboveGround", level=2)
-    kwargs = dict(c=c, varname="T2M", tc=tc, var=var, vxvars=testvars, prefix="foo")
+    kwargs = dict(c=c, varname="T2M", tc=tc, var=var, prefix="foo")
     with (
         patch.object(workflow, "grid_grib", mock),
         patch.object(workflow, "grid_nc", mock),
@@ -260,18 +270,6 @@ def test_workflow_verification(c):
 
 
 # Fixtures
-
-
-@fixture
-def idxdata():
-    return {
-        "gh-isobaricInhPa-0900": variables.HRRRVar(
-            name="HGT", levstr="900 mb", firstbyte=0, lastbyte=0
-        ),
-        "t-isobaricInhPa-0900": variables.HRRRVar(
-            name="TMP", levstr="900 mb", firstbyte=2, lastbyte=2
-        ),
-    }
 
 
 @fixture

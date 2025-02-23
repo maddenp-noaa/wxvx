@@ -94,7 +94,7 @@ def test_variables_HRRRVar__standard_name(name, level_type, expected):
 
 
 def test_variables_da_construct(c, da, tc):
-    var = variables.Var(name="gh", level_type="isobaricInhPa", level=1000)
+    var = variables.Var(name="gh", level_type="isobaricInhPa", level=900)
     selected = variables.da_select(ds=da.to_dataset(), c=c, varname="HGT", tc=tc, var=var)
     new = variables.da_construct(src=selected)
     assert new.name == da.name
@@ -108,7 +108,7 @@ def test_variables_da_construct(c, da, tc):
     ("fail", "standard_name", "varname"), [(False, "gh", "HGT"), (True, "foo", "FOO")]
 )
 def test_variables_da_select(c, da, fail, standard_name, tc, varname):
-    var = variables.Var(name=standard_name, level_type="isobaricInhPa", level=1000)
+    var = variables.Var(name=standard_name, level_type="isobaricInhPa", level=900)
     kwargs = dict(ds=da.to_dataset(), c=c, varname=varname, tc=tc, var=var)
     if fail:
         with raises(WXVXError) as e:
