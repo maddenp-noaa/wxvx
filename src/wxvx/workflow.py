@@ -317,7 +317,10 @@ def stat(c: Config, varname: str, tc: TimeCoords, var: Var, prefix: str, source:
 @task
 def stats(c: Config):
     taskname = "MET grid_stat results for %s" % c.forecast.path
-    reqs = [stat(*args) for args in _statargs(c, Source.FORECAST)]
+    genreqs = lambda source: [stat(*args) for args in _statargs(c, source)]
+    reqs = genreqs(Source.FORECAST)
+    if c.plot.baseline:
+        reqs += genreqs(Source.BASELINE)
     files = [refs(x) for x in reqs]
     links = [c.workdir / "run" / "plot" / x.name for x in files]
     yield taskname
