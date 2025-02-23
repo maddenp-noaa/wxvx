@@ -222,7 +222,6 @@ def plot_config(c: Config, rundir: Path, varname: str, var: Var, plot_fn: str, s
             series_val_2={"model": [c.baseline.name]},
         )
         config.update(update)
-        # config["series_val_1"]["model"].append(c.baseline.name)
         for k, v in [
             ("colors", "#44AA99"),
             ("con_series", 1),
