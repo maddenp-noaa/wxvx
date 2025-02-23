@@ -225,7 +225,7 @@ def test_workflow_stat(c, fakefs, tc):
     rundir = fakefs / "run" / "stat" / "19700101" / "00" / "000"
     taskname = "MET grid_stat result 2t-heightAboveGround-0002 at 19700101 00Z 000"
     var = variables.Var(name="2t", level_type="heightAboveGround", level=2)
-    kwargs = dict(c=c, varname="T2M", tc=tc, var=var, prefix="foo")
+    kwargs = dict(c=c, varname="T2M", tc=tc, var=var, prefix="foo", dataset="forecast")
     with (
         patch.object(workflow, "grid_grib", mock),
         patch.object(workflow, "grid_nc", mock),

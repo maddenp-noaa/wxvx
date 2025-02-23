@@ -280,20 +280,15 @@ def runscript(basepath: Path, content: str):
 
 
 @task
-def stat(c: Config, varname: str, tc: TimeCoords, var: Var, prefix: str):
+def stat(c: Config, varname: str, tc: TimeCoords, var: Var, prefix: str, dataset: str):
     yyyymmdd, hh, leadtime = tcinfo(tc)
     taskname = "MET grid_stat result %s at %s %sZ %s" % (var, yyyymmdd, hh, leadtime)
     rundir = c.workdir / "run" / "stat" / yyyymmdd / hh / leadtime
     yyyymmdd_valid, hh_valid, _ = tcinfo(TimeCoords(tc.validtime))
-    fn = "grid_stat_%s_%02d0000L_%s_%s0000V.stat" % (
-        prefix,
-        int(leadtime),
-        yyyymmdd_valid,
-        hh_valid,
-    )
+    template = "grid_stat_%s_%02d0000L_%s_%s0000V.stat"
+    fn = template % (prefix, int(leadtime), yyyymmdd_valid, hh_valid)
     path = rundir / fn
-    forecast = grid_nc(c, varname, tc, var)
-    # forecast = grid_grib(c, tc, var)  # TOGGLE
+    forecast = grid_grib(c, tc, var) if dataset == "baseline" else grid_nc(c, varname, tc, var)
     baseline = grid_grib(c, TimeCoords(cycle=tc.validtime, leadtime=0), var)
     cfgfile = grid_stat_config(c, path, varname, rundir, var, prefix)
     log = f"{path.stem}.log"
@@ -311,7 +306,7 @@ def stat(c: Config, varname: str, tc: TimeCoords, var: Var, prefix: str):
 @task
 def stats(c: Config):
     taskname = "MET grid_stat results for %s" % c.forecast.path
-    reqs = [stat(*args) for args in _statargs(c)]
+    reqs = [stat(*args) for args in _statargs(c, "forecast")]
     files = [refs(x) for x in reqs]
     links = [c.workdir / "run" / "plot" / x.name for x in files]
     yield taskname
@@ -343,11 +338,12 @@ def _meta(c: Config, varname: str) -> ns:
     return VARMETA[tuple(c.variables[varname][x] for x in ["standard_name", "level_type"])]
 
 
-def _statargs(c: Config) -> Iterator:
+def _statargs(c: Config, dataset: str) -> Iterator:
+    name = (c.baseline if dataset == "baseline" else c.forecast).name.lower()
+    prefix = lambda var: "%s_%s" % (name, str(var).replace("-", "_"))
     args = [
-        (c, varname, tc, var, prefix)
+        (c, varname, tc, var, prefix(var), dataset)
         for (varname, var), tc in product(_vxvars(c).items(), validtimes(c.cycles, c.leadtimes))
-        for prefix in ["%s_%s" % (c.forecast.name.lower(), str(var).replace("-", "_"))]
     ]
     return iter(args)
 
