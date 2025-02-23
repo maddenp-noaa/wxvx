@@ -182,13 +182,14 @@ def plot_config(c: Config, rundir: Path, varname: str, var: Var, plot_fn: str, s
         vt.validtime.strftime("%Y%m%d %HZ") if i % 10 == 0 else "" for i, vt in enumerate(vts)
     ]
     config = dict(
-        colors=["#00ff00"],
+        colors=["#CC6677"],
         con_series=[1],
         fcst_var_val_1={varname: [stat]},
         grid_col="#cccccc",
         indy_label=x_axis_labels,
         indy_vals=[vt.validtime.strftime("%Y-%m-%d %H:%M:%S") for vt in vts],
         indy_var="fcst_init_beg",
+        legend_inset={"x": 0, "y": -0.25},
         legend_box="n",
         line_type="cnt",
         list_stat_1=[stat],
@@ -212,7 +213,7 @@ def plot_config(c: Config, rundir: Path, varname: str, var: Var, plot_fn: str, s
         xlab_offset=20,
         xtlab_orient=270,
         yaxis_1=stat,
-        ylab_offset=20,
+
     )
     if c.plot.baseline:
         update = dict(
@@ -221,8 +222,9 @@ def plot_config(c: Config, rundir: Path, varname: str, var: Var, plot_fn: str, s
             series_val_2={"model": [c.baseline.name]},
         )
         config.update(update)
+        # config["series_val_1"]["model"].append(c.baseline.name)
         for k, v in [
-            ("colors", "#0000ff"),
+            ("colors", "#44AA99"),
             ("con_series", 1),
             ("plot_ci", "none"),
             ("plot_disp", True),
