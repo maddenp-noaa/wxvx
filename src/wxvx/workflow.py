@@ -127,19 +127,21 @@ def grid_stat_config(
     yield taskname
     yield asset(path, path.is_file)
     yield None
+    forecast_level, forecast_name = {
+        Source.BASELINE: (
+            metlevel(level_type=var.level_type, level=var.level),
+            HRRRVar.varname(name=var.name, level_type=var.level_type),
+        ),
+        Source.FORECAST: (
+            "(0,0,*,*)",
+            varname,
+        ),
+    }[source]
     values = {
         "baseline_level": metlevel(level_type=var.level_type, level=var.level),
         "baseline_name": HRRRVar.varname(name=var.name, level_type=var.level_type),
-        "forecast_level": (
-            metlevel(level_type=var.level_type, level=var.level)
-            if source == Source.BASELINE
-            else "(0,0,*,*)"
-        ),
-        "forecast_name": (
-            HRRRVar.varname(name=var.name, level_type=var.level_type)
-            if source == Source.BASELINE
-            else varname
-        ),
+        "forecast_level": forecast_level,
+        "forecast_name": forecast_name,
         "model": c.forecast.name,
         "obtype": c.baseline.name,
         "prefix": f"{prefix}",
