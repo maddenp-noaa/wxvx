@@ -1,6 +1,7 @@
 # noqa: A005
 
 from dataclasses import dataclass
+from enum import Enum, auto
 from pathlib import Path
 
 
@@ -53,3 +54,6 @@ class Leadtimes:
 @dataclass
 class Plot:
     baseline: bool
+
+
+Source = Enum("Source", [("BASELINE", auto()), ("FORECAST", auto())])

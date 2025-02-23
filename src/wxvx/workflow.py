@@ -16,6 +16,7 @@ from uwtools.api.template import render
 
 from wxvx.net import fetch, status
 from wxvx.times import TimeCoords, tcinfo, validtimes
+from wxvx.types import Source
 from wxvx.util import mpexec, resource_path
 from wxvx.variables import VARMETA, HRRRVar, Var, da_construct, da_select, ds_from_da, metlevel
 
@@ -119,7 +120,7 @@ def grid_nc(c: Config, varname: str, tc: TimeCoords, var: Var):
 
 @task
 def grid_stat_config(
-    c: Config, basepath: Path, varname: str, rundir: Path, var: Var, prefix: str, dataset: str
+    c: Config, basepath: Path, varname: str, rundir: Path, var: Var, prefix: str, source: Source
 ):
     path = (basepath.parent / basepath.stem).with_suffix(".config")
     taskname = "Verification config %s" % path
@@ -131,12 +132,12 @@ def grid_stat_config(
         "baseline_name": HRRRVar.varname(name=var.name, level_type=var.level_type),
         "forecast_level": (
             metlevel(level_type=var.level_type, level=var.level)
-            if dataset == "baseline"
+            if source == Source.BASELINE
             else "(0,0,*,*)"
         ),
         "forecast_name": (
             HRRRVar.varname(name=var.name, level_type=var.level_type)
-            if dataset == "baseline"
+            if source == Source.BASELINE
             else varname
         ),
         "model": c.forecast.name,
@@ -288,7 +289,7 @@ def runscript(basepath: Path, content: str):
 
 
 @task
-def stat(c: Config, varname: str, tc: TimeCoords, var: Var, prefix: str, dataset: str):
+def stat(c: Config, varname: str, tc: TimeCoords, var: Var, prefix: str, source: Source):
     yyyymmdd, hh, leadtime = tcinfo(tc)
     taskname = "MET grid_stat result %s at %s %sZ %s" % (var, yyyymmdd, hh, leadtime)
     rundir = c.workdir / "run" / "stat" / yyyymmdd / hh / leadtime
@@ -296,9 +297,9 @@ def stat(c: Config, varname: str, tc: TimeCoords, var: Var, prefix: str, dataset
     template = "grid_stat_%s_%02d0000L_%s_%s0000V.stat"
     fn = template % (prefix, int(leadtime), yyyymmdd_valid, hh_valid)
     path = rundir / fn
-    forecast = grid_grib(c, tc, var) if dataset == "baseline" else grid_nc(c, varname, tc, var)
+    forecast = grid_grib(c, tc, var) if source == "baseline" else grid_nc(c, varname, tc, var)
     baseline = grid_grib(c, TimeCoords(cycle=tc.validtime, leadtime=0), var)
-    cfgfile = grid_stat_config(c, path, varname, rundir, var, prefix, dataset)
+    cfgfile = grid_stat_config(c, path, varname, rundir, var, prefix, source)
     log = f"{path.stem}.log"
     content = f"""
     export OMP_NUM_THREADS=1
@@ -314,7 +315,7 @@ def stat(c: Config, varname: str, tc: TimeCoords, var: Var, prefix: str, dataset
 @task
 def stats(c: Config):
     taskname = "MET grid_stat results for %s" % c.forecast.path
-    reqs = [stat(*args) for args in _statargs(c, "forecast")]
+    reqs = [stat(*args) for args in _statargs(c, Source.FORECAST)]
     files = [refs(x) for x in reqs]
     links = [c.workdir / "run" / "plot" / x.name for x in files]
     yield taskname
@@ -346,11 +347,11 @@ def _meta(c: Config, varname: str) -> ns:
     return VARMETA[tuple(c.variables[varname][x] for x in ["standard_name", "level_type"])]
 
 
-def _statargs(c: Config, dataset: str) -> Iterator:
-    name = (c.baseline if dataset == "baseline" else c.forecast).name.lower()
+def _statargs(c: Config, source: Source) -> Iterator:
+    name = (c.baseline if source == Source.BASELINE else c.forecast).name.lower()
     prefix = lambda var: "%s_%s" % (name, str(var).replace("-", "_"))
     args = [
-        (c, varname, tc, var, prefix(var), dataset)
+        (c, varname, tc, var, prefix(var), source)
         for (varname, var), tc in product(_vxvars(c).items(), validtimes(c.cycles, c.leadtimes))
     ]
     return iter(args)

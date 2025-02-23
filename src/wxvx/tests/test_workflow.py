@@ -14,6 +14,7 @@ from iotaa import asset, external, ready, refs
 from pytest import fixture, mark
 
 from wxvx import util, variables, workflow
+from wxvx.types import Source
 
 logging.getLogger().setLevel(logging.DEBUG)
 
@@ -135,7 +136,7 @@ def test_workflow_grid_stat_config(c, fakefs, fs):
         rundir=fakefs,
         var=var,
         prefix="foo",
-        dataset="forecast",
+        source=Source.FORECAST,
     )
     assert not ready(val := workflow.grid_stat_config(**kwargs, dry_run=True))
     assert not refs(val).is_file()
@@ -233,7 +234,7 @@ def test_workflow_stat(c, fakefs, tc):
     rundir = fakefs / "run" / "stat" / "19700101" / "00" / "000"
     taskname = "MET grid_stat result 2t-heightAboveGround-0002 at 19700101 00Z 000"
     var = variables.Var(name="2t", level_type="heightAboveGround", level=2)
-    kwargs = dict(c=c, varname="T2M", tc=tc, var=var, prefix="foo", dataset="forecast")
+    kwargs = dict(c=c, varname="T2M", tc=tc, var=var, prefix="foo", source=Source.FORECAST)
     with (
         patch.object(workflow, "grid_grib", mock),
         patch.object(workflow, "grid_nc", mock),
