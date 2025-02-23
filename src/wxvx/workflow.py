@@ -20,6 +20,7 @@ from wxvx.util import mpexec, resource_path
 from wxvx.variables import VARMETA, HRRRVar, Var, da_construct, da_select, ds_from_da, metlevel
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator  # pragma: no cover
     from types import SimpleNamespace as ns  # pragma: no cover
 
     from wxvx.types import Config  # pragma: no cover
@@ -310,11 +311,7 @@ def stat(c: Config, varname: str, tc: TimeCoords, var: Var, prefix: str):
 @task
 def stats(c: Config):
     taskname = "MET grid_stat results for %s" % c.forecast.path
-    varattrs = product(_vxvars(c).items(), validtimes(c.cycles, c.leadtimes))
-    reqs = [
-        stat(c, varname, tc, var, "%s_%s" % (c.forecast.name.lower(), str(var).replace("-", "_")))
-        for (varname, var), tc in varattrs
-    ]
+    reqs = [stat(*args) for args in _statargs(c)]
     files = [refs(x) for x in reqs]
     links = [c.workdir / "run" / "plot" / x.name for x in files]
     yield taskname
@@ -344,6 +341,15 @@ def verification(c: Config):
 
 def _meta(c: Config, varname: str) -> ns:
     return VARMETA[tuple(c.variables[varname][x] for x in ["standard_name", "level_type"])]
+
+
+def _statargs(c: Config) -> Iterator:
+    args = [
+        (c, varname, tc, var, prefix)
+        for (varname, var), tc in product(_vxvars(c).items(), validtimes(c.cycles, c.leadtimes))
+        for prefix in ["%s_%s" % (c.forecast.name.lower(), str(var).replace("-", "_"))]
+    ]
+    return iter(args)
 
 
 def _var(c: Config, varname: str, level: float | None) -> Var:
