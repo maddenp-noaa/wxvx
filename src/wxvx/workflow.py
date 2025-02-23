@@ -127,14 +127,16 @@ def grid_stat_config(
     yield taskname
     yield asset(path, path.is_file)
     yield None
-    forecast_level, forecast_name = {
+    forecast_level, forecast_name, model = {
         Source.BASELINE: (
             metlevel(level_type=var.level_type, level=var.level),
             HRRRVar.varname(name=var.name, level_type=var.level_type),
+            c.baseline.name,
         ),
         Source.FORECAST: (
             "(0,0,*,*)",
             varname,
+            c.forecast.name,
         ),
     }[source]
     values = {
@@ -142,7 +144,7 @@ def grid_stat_config(
         "baseline_name": HRRRVar.varname(name=var.name, level_type=var.level_type),
         "forecast_level": forecast_level,
         "forecast_name": forecast_name,
-        "model": c.forecast.name,
+        "model": model,
         "obtype": c.baseline.name,
         "prefix": f"{prefix}",
         "tmpdir": rundir,
@@ -205,8 +207,7 @@ def plot_config(c: Config, rundir: Path, varname: str, var: Var, plot_fn: str, s
         series_val_1={"model": [c.forecast.name]},
         show_legend=[True],
         stat_input=stat_fn,
-        title="%s (%s) 1-hour forecast %s" % (varname, _meta(c, varname).units, stat),
-        user_legend=["%s vs %s" % (c.forecast.name, c.baseline.name)],
+        title="%s vs %s" % (stat, c.baseline.name),
         xaxis="Cycle",
         xlab_offset=20,
         xtlab_orient=270,
