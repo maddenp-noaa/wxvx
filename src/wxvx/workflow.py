@@ -118,7 +118,9 @@ def grid_nc(c: Config, varname: str, tc: TimeCoords, var: Var):
 
 
 @task
-def grid_stat_config(c: Config, basepath: Path, varname: str, rundir: Path, var: Var, prefix: str):
+def grid_stat_config(
+    c: Config, basepath: Path, varname: str, rundir: Path, var: Var, prefix: str, dataset: str
+):
     path = (basepath.parent / basepath.stem).with_suffix(".config")
     taskname = "Verification config %s" % path
     yield taskname
@@ -127,10 +129,16 @@ def grid_stat_config(c: Config, basepath: Path, varname: str, rundir: Path, var:
     values = {
         "baseline_level": metlevel(level_type=var.level_type, level=var.level),
         "baseline_name": HRRRVar.varname(name=var.name, level_type=var.level_type),
-        "forecast_level": "(0,0,*,*)",
-        "forecast_name": varname,
-        # "forecast_level": metlevel(level_type=var.level_type, level=var.level),  # TOGGLE
-        # "forecast_name": HRRRVar.varname(name=var.name, level_type=var.level_type),  # TOGGLE
+        "forecast_level": (
+            metlevel(level_type=var.level_type, level=var.level)
+            if dataset == "baseline"
+            else "(0,0,*,*)"
+        ),
+        "forecast_name": (
+            HRRRVar.varname(name=var.name, level_type=var.level_type)
+            if dataset == "baseline"
+            else varname
+        ),
         "model": c.forecast.name,
         "obtype": c.baseline.name,
         "prefix": f"{prefix}",
@@ -290,7 +298,7 @@ def stat(c: Config, varname: str, tc: TimeCoords, var: Var, prefix: str, dataset
     path = rundir / fn
     forecast = grid_grib(c, tc, var) if dataset == "baseline" else grid_nc(c, varname, tc, var)
     baseline = grid_grib(c, TimeCoords(cycle=tc.validtime, leadtime=0), var)
-    cfgfile = grid_stat_config(c, path, varname, rundir, var, prefix)
+    cfgfile = grid_stat_config(c, path, varname, rundir, var, prefix, dataset)
     log = f"{path.stem}.log"
     content = f"""
     export OMP_NUM_THREADS=1

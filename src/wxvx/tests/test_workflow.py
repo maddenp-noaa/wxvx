@@ -128,7 +128,15 @@ def test_workflow_grid_stat_config(c, fakefs, fs):
     fs.add_real_file(util.resource_path("config.grid_stat"))
     var = variables.Var(name="2t", level_type="heightAboveGround", level=2)
     basepath = fakefs / "T2M.stat"
-    kwargs = dict(c=c, basepath=basepath, varname="T2M", rundir=fakefs, var=var, prefix="foo")
+    kwargs = dict(
+        c=c,
+        basepath=basepath,
+        varname="T2M",
+        rundir=fakefs,
+        var=var,
+        prefix="foo",
+        dataset="forecast",
+    )
     assert not ready(val := workflow.grid_stat_config(**kwargs, dry_run=True))
     assert not refs(val).is_file()
     assert ready(val := workflow.grid_stat_config(**kwargs))
