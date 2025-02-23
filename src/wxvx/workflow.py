@@ -293,13 +293,14 @@ def runscript(basepath: Path, content: str):
 @task
 def stat(c: Config, varname: str, tc: TimeCoords, var: Var, prefix: str, source: Source):
     yyyymmdd, hh, leadtime = tcinfo(tc)
-    taskname = "MET grid_stat result %s at %s %sZ %s" % (var, yyyymmdd, hh, leadtime)
+    srcname = {Source.BASELINE: "baseline", Source.FORECAST: "forecast"}[source]
+    taskname = "MET stats for %s %s at %s %sZ %s" % (srcname, var, yyyymmdd, hh, leadtime)
     rundir = c.workdir / "run" / "stat" / yyyymmdd / hh / leadtime
     yyyymmdd_valid, hh_valid, _ = tcinfo(TimeCoords(tc.validtime))
     template = "grid_stat_%s_%02d0000L_%s_%s0000V.stat"
     fn = template % (prefix, int(leadtime), yyyymmdd_valid, hh_valid)
     path = rundir / fn
-    forecast = grid_grib(c, tc, var) if source == "baseline" else grid_nc(c, varname, tc, var)
+    forecast = grid_grib(c, tc, var) if source == Source.BASELINE else grid_nc(c, varname, tc, var)
     baseline = grid_grib(c, TimeCoords(cycle=tc.validtime, leadtime=0), var)
     cfgfile = grid_stat_config(c, path, varname, rundir, var, prefix, source)
     log = f"{path.stem}.log"
@@ -316,7 +317,7 @@ def stat(c: Config, varname: str, tc: TimeCoords, var: Var, prefix: str, source:
 
 @task
 def stats(c: Config):
-    taskname = "MET grid_stat results for %s" % c.forecast.path
+    taskname = "MET stats for %s" % c.forecast.path
     genreqs = lambda source: [stat(*args) for args in _statargs(c, source)]
     reqs = genreqs(Source.FORECAST)
     if c.plot.baseline:
