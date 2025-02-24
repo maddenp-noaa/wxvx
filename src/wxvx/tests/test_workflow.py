@@ -233,9 +233,9 @@ def test_workflow_stat(c, fakefs, tc):
         yield asset(Path("/some/file"), lambda: True)
 
     rundir = fakefs / "run" / "stat" / "19700101" / "00" / "000"
-    taskname = "MET stats for forecast 2t-heightAboveGround-0002 at 19700101 00Z 000"
+    taskname = "MET stats for baseline 2t-heightAboveGround-0002 at 19700101 00Z 000"
     var = variables.Var(name="2t", level_type="heightAboveGround", level=2)
-    kwargs = dict(c=c, varname="T2M", tc=tc, var=var, prefix="foo", source=Source.FORECAST)
+    kwargs = dict(c=c, varname="T2M", tc=tc, var=var, prefix="foo", source=Source.BASELINE)
     with (
         patch.object(workflow, "grid_grib", mock),
         patch.object(workflow, "grid_nc", mock),
