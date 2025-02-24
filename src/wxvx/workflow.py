@@ -200,7 +200,6 @@ def plot_config(c: Config, rundir: Path, varname: str, var: Var, plot_fn: str, s
         indy_label=x_axis_labels,
         indy_vals=[vt.validtime.strftime("%Y-%m-%d %H:%M:%S") for vt in vts],
         indy_var="fcst_init_beg",
-        legend_inset={"x": 0, "y": -0.25},
         legend_box="n",
         line_type="cnt",
         list_stat_1=[stat],
@@ -224,6 +223,7 @@ def plot_config(c: Config, rundir: Path, varname: str, var: Var, plot_fn: str, s
         xlab_offset=20,
         xtlab_orient=270,
         yaxis_1=stat,
+        ylab_offset=10,
     )
     if c.plot.baseline:
         update = dict(
