@@ -22,7 +22,6 @@ from wxvx.variables import VARMETA, HRRRVar, Var, da_construct, da_select, ds_fr
 
 if TYPE_CHECKING:
     from collections.abc import Iterator  # pragma: no cover
-    from types import SimpleNamespace as ns  # pragma: no cover
 
     from wxvx.types import Config  # pragma: no cover
 
@@ -368,10 +367,6 @@ def verification(c: Config):
 # Support
 
 
-def _meta(c: Config, varname: str) -> ns:
-    return VARMETA[tuple(c.variables[varname][x] for x in ["standard_name", "level_type"])]
-
-
 def _statargs(c: Config, source: Source) -> Iterator:
     name = (c.baseline if source == Source.BASELINE else c.forecast).name.lower()
     prefix = lambda var: "%s_%s" % (name, str(var).replace("-", "_"))
@@ -383,7 +378,7 @@ def _statargs(c: Config, source: Source) -> Iterator:
 
 
 def _var(c: Config, varname: str, level: float | None) -> Var:
-    m = _meta(c, varname)
+    m = VARMETA[tuple(c.variables[varname][x] for x in ["standard_name", "level_type"])]
     return Var(m.name, m.level_type, level)
 
 

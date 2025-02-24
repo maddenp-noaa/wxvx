@@ -180,15 +180,65 @@ def _levelstr2num(levelstr: str) -> float | int:
 
 
 VARMETA = {
-    (name, levtype): ns(name=name, level_type=levtype, standard_name=stdname, units=units)
-    for name, levtype, stdname, units in [
-        ("2t", "heightAboveGround", "air_temperature", "K"),
-        ("gh", "isobaricInhPa", "geopotential_height", "m"),
-        ("q", "isobaricInhPa", "specific_humidity", "1"),
-        ("refc", "atmosphere", "unknown", "dBZ"),
-        ("t", "isobaricInhPa", "air_temperature", "K"),
-        ("u", "isobaricInhPa", "eastward_wind", "m s-1"),
-        ("v", "isobaricInhPa", "northward_wind", "m s-1"),
-        ("w", "isobaricInhPa", "lagrangian_tendency_of_air_pressure", "Pa s-1"),
+    (name, levtype): ns(
+        name=name, level_type=levtype, standard_name=stdname, units=units, description=desc
+    )
+    for name, levtype, stdname, units, desc in [
+        (
+            "2t",
+            "heightAboveGround",
+            "air_temperature",
+            "K",
+            "2-Meter Temperature",
+        ),
+        (
+            "gh",
+            "isobaricInhPa",
+            "geopotential_height",
+            "m",
+            "Geopotential Height at {level} mb",
+        ),
+        (
+            "q",
+            "isobaricInhPa",
+            "specific_humidity",
+            "1",
+            "Specific Humidity at {level} mb",
+        ),
+        (
+            "refc",
+            "atmosphere",
+            "unknown",
+            "dBZ",
+            "Composite Reflectivity",
+        ),
+        (
+            "t",
+            "isobaricInhPa",
+            "air_temperature",
+            "K",
+            "Temperature at {level} mb",
+        ),
+        (
+            "u",
+            "isobaricInhPa",
+            "eastward_wind",
+            "m s-1",
+            "U-Component of Wind at {level} mb",
+        ),
+        (
+            "v",
+            "isobaricInhPa",
+            "northward_wind",
+            "m s-1",
+            "V-Component of Wind at {level} mb",
+        ),
+        (
+            "w",
+            "isobaricInhPa",
+            "lagrangian_tendency_of_air_pressure",
+            "Pa s-1",
+            "Vertical Velocity at {level} mb",
+        ),
     ]
 }
