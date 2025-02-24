@@ -218,7 +218,7 @@ def plot_config(c: Config, rundir: Path, varname: str, var: Var, plot_fn: str, s
         series_val_1={"model": [c.forecast.name]},
         show_legend=[True],
         stat_input=stat_fn,
-        title="%s %s vs %s" % (varname, stat, c.baseline.name),
+        title="%s %s vs %s" % (var, stat, c.baseline.name),
         xaxis="Cycle",
         xlab_offset=20,
         xtlab_orient=270,
