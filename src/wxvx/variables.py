@@ -189,7 +189,7 @@ VARMETA = {
             "heightAboveGround",
             "air_temperature",
             "K",
-            "2-Meter Temperature",
+            "2m Temperature",
         ),
         (
             "gh",

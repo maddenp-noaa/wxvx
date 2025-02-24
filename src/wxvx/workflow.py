@@ -22,6 +22,7 @@ from wxvx.variables import VARMETA, HRRRVar, Var, da_construct, da_select, ds_fr
 
 if TYPE_CHECKING:
     from collections.abc import Iterator  # pragma: no cover
+    from types import SimpleNamespace as ns  # pragma: no cover
 
     from wxvx.types import Config  # pragma: no cover
 
@@ -191,6 +192,11 @@ def plot_config(c: Config, rundir: Path, varname: str, var: Var, plot_fn: str, s
     x_axis_labels = [
         vt.validtime.strftime("%Y%m%d %HZ") if i % 10 == 0 else "" for i, vt in enumerate(vts)
     ]
+    title = "%s %s vs %s" % (
+        _meta(c, varname).description.format(level=var.level),
+        stat,
+        c.baseline.name,
+    )
     config = dict(
         colors=["#CC6677"],
         con_series=[1],
@@ -217,7 +223,7 @@ def plot_config(c: Config, rundir: Path, varname: str, var: Var, plot_fn: str, s
         series_val_1={"model": [c.forecast.name]},
         show_legend=[True],
         stat_input=stat_fn,
-        title="%s %s vs %s" % (var, stat, c.baseline.name),
+        title=title,
         xaxis="Cycle",
         xlab_offset=20,
         xtlab_orient=270,
@@ -367,6 +373,10 @@ def verification(c: Config):
 # Support
 
 
+def _meta(c: Config, varname: str) -> ns:
+    return VARMETA[tuple(c.variables[varname][x] for x in ["standard_name", "level_type"])]
+
+
 def _statargs(c: Config, source: Source) -> Iterator:
     name = (c.baseline if source == Source.BASELINE else c.forecast).name.lower()
     prefix = lambda var: "%s_%s" % (name, str(var).replace("-", "_"))
@@ -378,7 +388,7 @@ def _statargs(c: Config, source: Source) -> Iterator:
 
 
 def _var(c: Config, varname: str, level: float | None) -> Var:
-    m = VARMETA[tuple(c.variables[varname][x] for x in ["standard_name", "level_type"])]
+    m = _meta(c, varname)
     return Var(m.name, m.level_type, level)
 
 
