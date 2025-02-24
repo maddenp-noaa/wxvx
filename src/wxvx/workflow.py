@@ -120,14 +120,14 @@ def grid_nc(c: Config, varname: str, tc: TimeCoords, var: Var):
 
 @task
 def grid_stat_config(
-    c: Config, basepath: Path, varname: str, rundir: Path, var: Var, prefix: str, source: Source
+    c: Config, poly_path: Path, basepath: Path, varname: str, rundir: Path, var: Var, prefix: str, source: Source
 ):
     path = (basepath.parent / basepath.stem).with_suffix(".config")
     taskname = "Verification config %s" % path
     yield taskname
     yield asset(path, path.is_file)
     yield None
-    forecast_level, forecast_name, model = {
+    attrs = {
         Source.BASELINE: (
             metlevel(level_type=var.level_type, level=var.level),
             HRRRVar.varname(name=var.name, level_type=var.level_type),
@@ -138,7 +138,10 @@ def grid_stat_config(
             varname,
             c.forecast.name,
         ),
-    }[source]
+    }
+    forecast_level, forecast_name, model = attrs[source]
+    poly_level, poly_name, _ = attrs[Source.FORECAST]
+    poly = r'%s {name = \"%s\"; level = \"%s\";}' % (poly_path, poly_name, poly_level)
     values = {
         "baseline_level": metlevel(level_type=var.level_type, level=var.level),
         "baseline_name": HRRRVar.varname(name=var.name, level_type=var.level_type),
@@ -146,6 +149,7 @@ def grid_stat_config(
         "forecast_name": forecast_name,
         "model": model,
         "obtype": c.baseline.name,
+        "poly": poly,
         "prefix": f"{prefix}",
         "tmpdir": rundir,
     }
@@ -302,18 +306,23 @@ def stat(c: Config, varname: str, tc: TimeCoords, var: Var, prefix: str, source:
     template = "grid_stat_%s_%02d0000L_%s_%s0000V.stat"
     fn = template % (prefix, int(leadtime), yyyymmdd_valid, hh_valid)
     path = rundir / fn
-    forecast = grid_grib(c, tc, var) if source == Source.BASELINE else grid_nc(c, varname, tc, var)
     baseline = grid_grib(c, TimeCoords(cycle=tc.validtime, leadtime=0), var)
-    cfgfile = grid_stat_config(c, path, varname, rundir, var, prefix, source)
+    forecast_forecast = grid_nc(c, varname, tc, var)
+    baseline_forecast = grid_grib(c, tc, var)
+    vx_forecast = baseline_forecast if source == Source.BASELINE else forecast_forecast
+    cfgfile = grid_stat_config(c, refs(forecast_forecast), path, varname, rundir, var, prefix, source)
     log = f"{path.stem}.log"
     content = f"""
     export OMP_NUM_THREADS=1
-    grid_stat -v 4 {refs(forecast)} {refs(baseline)} {refs(cfgfile).name} >{log} 2>&1
+    grid_stat -v 4 {refs(vx_forecast)} {refs(baseline)} {refs(cfgfile).name} >{log} 2>&1
     """
     script = runscript(basepath=path, content=content)
+    reqs = [vx_forecast, baseline, cfgfile, script]
+    if source == Source.BASELINE:
+        reqs.append(forecast_forecast)
     yield taskname
     yield asset(path, path.is_file)
-    yield [forecast, baseline, cfgfile, script]
+    yield reqs
     mpexec(str(refs(script)), rundir, taskname)
 
 
