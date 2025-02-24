@@ -131,6 +131,7 @@ def test_workflow_grid_stat_config(c, fakefs, fs):
     basepath = fakefs / "T2M.stat"
     kwargs = dict(
         c=c,
+        poly_path="/path/to/forecast.nc",
         basepath=basepath,
         varname="T2M",
         rundir=fakefs,
