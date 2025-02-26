@@ -27,19 +27,13 @@ if TYPE_CHECKING:
     from wxvx.types import Config  # pragma: no cover
 
 
-@external
-def existing(path: Path):
-    yield path
-    yield asset(path, path.exists)
-
-
 @task
 def forecast_dataset(path: Path):
     taskname = "Forecast dataset from %s" % path
     ds = xr.Dataset()
     yield taskname
     yield asset(ds, lambda: bool(ds))
-    yield existing(path)
+    yield None
     logging.info("%s: Opening forecast %s", taskname, path)
     with catch_warnings():
         simplefilter("ignore")
@@ -74,14 +68,8 @@ def grib_index_file(outdir: Path, url: str):
     taskname = "GRIB index file %s" % path
     yield taskname
     yield asset(path, path.is_file)
-    yield grib_index_remote(url)
+    yield None
     fetch(taskname, url, path)
-
-
-@external
-def grib_index_remote(url: str):
-    yield url
-    yield asset(url, lambda: status(url) == 200)
 
 
 @task

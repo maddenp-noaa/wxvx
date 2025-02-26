@@ -21,7 +21,21 @@ def main() -> None:
     if not validate(schema_file=resource_path("config.jsonschema"), config_data=config_data):
         sys.exit(1)
     if not args.check:
+        # # PM start
+        # import cProfile, pstats, io
+        # from pstats import SortKey
+        # pr = cProfile.Profile()
+        # pr.enable()
+        # # PM end
         workflow.verification(Config(config_data.data), threads=config_data["threads"])
+        # # PM start
+        # pr.disable()
+        # s = io.StringIO()
+        # sortby = SortKey.CUMULATIVE
+        # ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+        # ps.print_stats()
+        # print(s.getvalue())
+        # # PM end
         # from iotaa import graph
         # val = workflow.verification(
         #     Config(config_data.data),
