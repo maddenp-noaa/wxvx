@@ -21,7 +21,3 @@ def fetch(taskname: str, url: str, path: Path, headers: dict[str, str] | None = 
             logging.info("%s: Wrote %s", taskname, path)
         return True
     return False
-
-
-def status(url: str) -> int:
-    return requests.head(url, timeout=3).status_code

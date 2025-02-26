@@ -11,10 +11,10 @@ from warnings import catch_warnings, simplefilter
 
 import xarray as xr
 import yaml
-from iotaa import asset, external, refs, task, tasks
+from iotaa import asset, refs, task, tasks
 from uwtools.api.template import render
 
-from wxvx.net import fetch, status
+from wxvx.net import fetch
 from wxvx.times import TimeCoords, tcinfo, validtimes
 from wxvx.types import Source
 from wxvx.util import mpexec, resource_path
