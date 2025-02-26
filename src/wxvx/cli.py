@@ -22,14 +22,6 @@ def main() -> None:
         sys.exit(1)
     if not args.check:
         workflow.verification(Config(config_data.data), threads=config_data["threads"])
-        # from iotaa import graph
-        # val = workflow.verification(
-        #     Config(config_data.data),
-        #     threads=config_data["threads"],
-        #     dry_run=True,
-        # )
-        # with Path("g.dot").open("w") as f:
-        #     print(graph(val), file=f)
 
 
 # Private
