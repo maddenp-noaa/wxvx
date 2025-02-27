@@ -1,6 +1,6 @@
 baseline:
   name: HRRR
-  template: https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.{yyyymmdd}/conus/hrrr.t{hh}z.wrfprsf00.grib2
+  template: https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.{yyyymmdd}/conus/hrrr.t{hh}z.wrfprsf{ff}.grib2
 cycles:
   start: "2024-04-01T01:00:00"
   step: "01:00:00"
@@ -14,37 +14,39 @@ leadtimes:
   stop: "02:00:00"
 meta:
   levels: &levels [200, 300, 475, 800, 825, 850, 875, 900, 925, 950, 975, 1000]
+plot:
+  baseline: true
 threads: 0
 variables:
   HGT:
+    level_type: isobaricInhPa
     levels: *levels
-    levtype: isobaricInhPa
-    stdname: gh
+    standard_name: gh
   REFC:
-    levtype: atmosphere
-    stdname: refc
+    level_type: atmosphere
+    standard_name: refc
   SPFH:
+    level_type: isobaricInhPa
     levels: *levels
-    levtype: isobaricInhPa
-    stdname: q
+    standard_name: q
   T2M:
+    level_type: heightAboveGround
     levels: [2]
-    levtype: heightAboveGround
-    stdname: 2t
+    standard_name: 2t
   TMP:
+    level_type: isobaricInhPa
     levels: *levels
-    levtype: isobaricInhPa
-    stdname: t
+    standard_name: t
   UGRD:
+    level_type: isobaricInhPa
     levels: *levels
-    levtype: isobaricInhPa
-    stdname: u
+    standard_name: u
   VGRD:
+    level_type: isobaricInhPa
     levels: *levels
-    levtype: isobaricInhPa
-    stdname: v
+    standard_name: v
   VVEL:
+    level_type: isobaricInhPa
     levels: *levels
-    levtype: isobaricInhPa
-    stdname: w
+    standard_name: w
 workdir: /path/to/workdir/

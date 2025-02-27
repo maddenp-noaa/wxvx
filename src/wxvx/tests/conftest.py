@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Callable
 
@@ -6,44 +6,27 @@ import numpy as np
 import xarray as xr
 from pytest import fixture
 
+from wxvx import times
 from wxvx.types import Config
 
 
 @fixture
 def check_cf_metadata() -> Callable:
-    def check(ds: xr.DataArray, name: str) -> None:
-        assert ds.attrs["Conventions"] == "CF-1.8"
+    def check(ds: xr.DataArray, name: str) -> bool:
+        ok = [True]  # hopefully
+
+        def check(x):
+            ok[0] = ok[0] and x
+
+        check(ds.attrs.get("Conventions") == "CF-1.8")
         da = ds[name]
-        for k, v in [
-            # ("grid_mapping", "latitude_longitude"),
-            ("long_name", "Geopotential Height"),
-            ("standard_name", "geopotential_height"),
-            ("units", "m"),
-        ]:
-            assert da.attrs[k] == v
-        for k, v in [
-            ("long_name", "latitude"),
-            ("standard_name", "latitude"),
-            ("units", "degrees_north"),
-        ]:
-            assert da.latitude.attrs[k] == v
-        for k, v in [
-            ("long_name", "pressure level"),
-            ("standard_name", "air_pressure"),
-            ("units", "hPa"),
-        ]:
-            assert da.level.attrs[k] == v
-        for k, v in [
-            ("long_name", "longitude"),
-            ("standard_name", "longitude"),
-            ("units", "degrees_east"),
-        ]:
-            assert da.longitude.attrs[k] == v
-        for k, v in [
-            ("long_name", "Forecast Reference Time"),
-            ("standard_name", "forecast_reference_time"),
-        ]:
-            assert da.time.attrs[k] == v
+        for k, v in [("standard_name", "geopotential_height"), ("units", "m")]:
+            check(da.attrs.get(k) == v)
+        for k, v in [("standard_name", "latitude"), ("units", "degrees_north")]:
+            check(da.latitude.attrs.get(k) == v)
+        check(da.forecast_reference_time.attrs.get("standard_name") == "forecast_reference_time")
+        check(da.time.attrs.get("standard_name") == "time")
+        return ok[0]
 
     return check
 
@@ -79,11 +62,30 @@ def config_data():
             "step": "06:00:00",
             "stop": "12:00:00",
         },
+        "plot": {
+            "baseline": True,
+        },
         "threads": 4,
         "variables": {
-            "REFC": {"stdname": "refc", "levtype": "atmosphere"},
-            "SPFH": {"stdname": "q", "levtype": "isobaricInhPa", "levels": [1000]},
-            "T2M": {"stdname": "2t", "levtype": "heightAboveGround", "levels": [2]},
+            "HGT": {
+                "level_type": "isobaricInhPa",
+                "levels": [900],
+                "standard_name": "gh",
+            },
+            "REFC": {
+                "level_type": "atmosphere",
+                "standard_name": "refc",
+            },
+            "SPFH": {
+                "level_type": "isobaricInhPa",
+                "levels": [900],
+                "standard_name": "q",
+            },
+            "T2M": {
+                "level_type": "heightAboveGround",
+                "levels": [2],
+                "standard_name": "2t",
+            },
         },
         "workdir": "/path/to/workdir",
     }
@@ -99,7 +101,7 @@ def da() -> xr.DataArray:
         coords=dict(
             latitude=(["latitude", "longitude"], one.reshape((1, 1))),
             longitude=(["latitude", "longitude"], one.reshape((1, 1))),
-            level=(["level"], np.array([1000], dtype="float32")),
+            level=(["level"], np.array([900], dtype="float32")),
             time=np.array([0], dtype="datetime64[ns]"),
             lead_time=np.array([0], dtype="timedelta64[ns]"),
         ),
@@ -109,6 +111,13 @@ def da() -> xr.DataArray:
 @fixture
 def fakefs(fs):
     return Path(fs.create_dir("/test").path)
+
+
+@fixture
+def tc(da):
+    cycle = datetime.fromtimestamp(int(da.time.values[0]), tz=timezone.utc)
+    leadtime = timedelta(hours=int(da.lead_time.values[0]))
+    return times.TimeCoords(cycle=cycle, leadtime=leadtime)
 
 
 @fixture

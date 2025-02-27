@@ -22,14 +22,23 @@ def test_schema(logged, config_data, fs):
     # Basic correctness:
     assert ok(config)
     # Certain top-level keys are required:
-    for key in ["baseline", "cycles", "forecast", "leadtimes", "threads", "workdir"]:
+    for key in [
+        "baseline",
+        "cycles",
+        "forecast",
+        "leadtimes",
+        "plot",
+        "threads",
+        "variables",
+        "workdir",
+    ]:
         assert not ok(with_del(config, key))
         assert logged(f"'{key}' is a required property")
     # Addional keys are not allowed:
     assert not ok(with_set(config, 42, "n"))
     assert logged("'n' was unexpected")
     # Some keys have dict values:
-    for key in ["cycles", "leadtimes"]:
+    for key in ["cycles", "leadtimes", "plot", "variables"]:
         assert not ok(with_set(config, None, key))
         assert logged("None is not of type 'object'")
     # Some keys have int values:
@@ -123,32 +132,54 @@ def test_schema_meta(config_data, fs, logged):
     assert logged("is not of type 'object'")
 
 
+def test_schema_plot(config_data, fs, logged):
+    ok = validator(fs, "properties", "plot")
+    config = config_data["plot"]
+    # Basic correctness:
+    assert ok(config)
+    # Certain top-level keys are required:
+    for key in ["baseline"]:
+        assert not ok(with_del(config, key))
+        assert logged(f"'{key}' is a required property")
+    # Addional keys are not allowed:
+    assert not ok(with_set(config, 42, "n"))
+    # Some keys have bool values:
+    for key in ["baseline"]:
+        assert not ok(with_set(config, None, key))
+        assert logged("None is not of type 'boolean'")
+
+
 def test_schema_variables(logged, config_data, fs):
     ok = validator(fs, "properties", "variables")
     config = config_data["variables"]
-    entry = {"X": config["T2M"]}
+    one = config["T2M"]
     # Basic correctness:
     assert ok(config)
     # Must be an object:
     assert not ok([])
     assert logged("is not of type 'object'")
     # Array entries must have the correct keys:
-    for key in ("levels", "levtype", "stdname"):
-        assert not ok(with_del(entry, "X", key))
+    for key in ("level_type", "levels", "standard_name"):
+        assert not ok(with_del({"X": one}, "X", key))
         assert logged(f"'{key}' is a required property")
     # Additional keys in entries are not allowed:
-    assert not ok({"X": {**entry, "foo": "bar"}})
+    assert not ok({"X": {**one, "foo": "bar"}})
     assert logged("Additional properties are not allowed")
     # The "levels" key is required for some level types, forbidden for others:
-    for levtype in (
-        "heightAboveGround",
-        "isobaricInhPa",
-    ):
-        assert not ok({"X": {"stdname": "foo", "levtype": levtype}})
+    for level_type in ("heightAboveGround", "isobaricInhPa"):
+        assert not ok({"X": {"standard_name": "foo", "level_type": level_type}})
         assert logged("'levels' is a required property")
-    for levtype in ("atmosphere", "surface"):
-        assert not ok({"X": {"stdname": "foo", "levtype": levtype, "levels": [1000]}})
+    for level_type in ("atmosphere", "surface"):
+        assert not ok({"X": {"standard_name": "foo", "level_type": level_type, "levels": [1000]}})
         assert logged("should not be valid")
+    # Some keys have enum values:
+    for key in ["level_type"]:
+        assert not ok({"X": {**one, key: None}})
+        assert logged("None is not one of")
+    # Some keys have str values:
+    for key in ["standard_name"]:
+        assert not ok({"X": {**one, key: None}})
+        assert logged("None is not of type 'string'")
 
 
 # Fixtures

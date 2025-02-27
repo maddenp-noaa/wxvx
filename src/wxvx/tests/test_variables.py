@@ -2,6 +2,8 @@
 Tests for wxvx.net.
 """
 
+import numpy as np
+import xarray as xr
 from pytest import mark, raises
 
 from wxvx import variables
@@ -10,42 +12,42 @@ from wxvx.util import WXVXError
 # Tests
 
 
-@mark.parametrize("levtype", ["atmosphere", "surface"])
-def test_variables_Var_no_level(levtype):
-    var = variables.Var(name="foo", levtype=levtype)
+@mark.parametrize("level_type", ["atmosphere", "surface"])
+def test_variables_Var_no_level(level_type):
+    var = variables.Var(name="foo", level_type=level_type)
     assert var.name == "foo"
-    assert var.levtype == levtype
+    assert var.level_type == level_type
     assert var.level is None
-    assert var._keys == {"name", "levtype"}
-    assert var == variables.Var("foo", levtype)
-    assert var != variables.Var("bar", levtype)
-    assert hash(var) == hash(("foo", levtype, None))
-    assert var < variables.Var("qux", levtype)
-    assert var > variables.Var("bar", levtype)
-    assert repr(var) == "Var(levtype='%s', name='foo')" % levtype
-    assert str(var) == "foo-%s" % levtype
+    assert var._keys == {"name", "level_type"}
+    assert var == variables.Var("foo", level_type)
+    assert var != variables.Var("bar", level_type)
+    assert hash(var) == hash(("foo", level_type, None))
+    assert var < variables.Var("qux", level_type)
+    assert var > variables.Var("bar", level_type)
+    assert repr(var) == "Var(level_type='%s', name='foo')" % level_type
+    assert str(var) == "foo-%s" % level_type
 
 
-@mark.parametrize(("levtype", "level"), [("heightAboveGround", 2), ("isobaricInhPa", 1000)])
-def test_variables_Var_with_level(levtype, level):
-    var = variables.Var(name="foo", levtype=levtype, level=level)
+@mark.parametrize(("level_type", "level"), [("heightAboveGround", 2), ("isobaricInhPa", 1000)])
+def test_variables_Var_with_level(level, level_type):
+    var = variables.Var(name="foo", level_type=level_type, level=level)
     assert var.name == "foo"
-    assert var.levtype == levtype
+    assert var.level_type == level_type
     assert var.level == level
-    assert var._keys == {"name", "levtype", "level"}
-    assert var == variables.Var("foo", levtype, level)
-    assert var != variables.Var("bar", levtype, level)
-    assert hash(var) == hash(("foo", levtype, level))
-    assert var < variables.Var("qux", levtype, level)
-    assert var > variables.Var("foo", levtype, level - 1)
-    assert repr(var) == "Var(level='%s', levtype='%s', name='foo')" % (level, levtype)
-    assert str(var) == "foo-%s-%04d" % (levtype, level)
+    assert var._keys == {"name", "level_type", "level"}
+    assert var == variables.Var("foo", level_type, level)
+    assert var != variables.Var("bar", level_type, level)
+    assert hash(var) == hash(("foo", level_type, level))
+    assert var < variables.Var("qux", level_type, level)
+    assert var > variables.Var("foo", level_type, level - 1)
+    assert repr(var) == "Var(level='%s', level_type='%s', name='foo')" % (level, level_type)
+    assert str(var) == "foo-%s-%04d" % (level_type, level)
 
 
 def test_variables_HRRRVar():
-    keys = {"name", "levtype", "firstbyte", "lastbyte"}
+    keys = {"name", "level_type", "firstbyte", "lastbyte"}
     var = variables.HRRRVar(name="TMP", levstr="900 mb", firstbyte=1, lastbyte=2)
-    assert var.levtype == "isobaricInhPa"
+    assert var.level_type == "isobaricInhPa"
     assert var.level == 900
     assert var.firstbyte == 1
     assert var.lastbyte == 2
@@ -54,46 +56,15 @@ def test_variables_HRRRVar():
 
 
 @mark.parametrize(
-    ("levtype", "level", "expected"),
-    [
-        ("atmosphere", None, "L000"),
-        ("heightAboveGround", "2", "Z002"),
-        ("isobaricInhPa", "900", "P900"),
-    ],
-)
-def test_variables_HRRRVar_metlevel(levtype, level, expected):
-    assert variables.HRRRVar.metlevel(levtype=levtype, level=level) == expected
-
-
-def test_variables_HRRRVar_metlevel_error():
-    with raises(WXVXError) as e:
-        variables.HRRRVar.metlevel(levtype="foo", level=-1)
-    assert str(e.value) == "No MET level defined for level type foo"
-
-
-@mark.parametrize(
-    ("name", "levtype", "expected"),
+    ("name", "level_type", "expected"),
     [
         ("t", "isobaricInhPa", "TMP"),
         ("2t", "heightAboveGround", "TMP"),
         ("foo", "foolev", variables.UNKNOWN),
     ],
 )
-def test_variables_HRRRVar_varname(name, levtype, expected):
-    assert variables.HRRRVar.varname(name=name, levtype=levtype) == expected
-
-
-@mark.parametrize(
-    ("expected", "levstr"),
-    [
-        (2, "2 m above ground"),
-        (900, "900 mb"),
-        (1013.1, "1013.1 mb"),
-        (None, "surface"),
-    ],
-)
-def test_variables_HRRRVar__level_pressure(expected, levstr):
-    assert variables.HRRRVar._level_pressure(levstr) == expected
+def test_variables_HRRRVar_varname(name, level_type, expected):
+    assert variables.HRRRVar.varname(name=name, level_type=level_type) == expected
 
 
 @mark.parametrize(
@@ -111,26 +82,85 @@ def test_variables_HRRRVar__levinfo(expected, levstr):
 
 
 @mark.parametrize(
-    ("name", "levtype", "expected"),
+    ("name", "level_type", "expected"),
     [
         ("TMP", "isobaricInhPa", "t"),
         ("TMP", "heightAboveGround", "2t"),
         ("FOO", "suface", variables.UNKNOWN),
     ],
 )
-def test_variables_HRRRVar__stdname(name, levtype, expected):
-    assert variables.HRRRVar._stdname(name=name, levtype=levtype) == expected
+def test_variables_HRRRVar__standard_name(name, level_type, expected):
+    assert variables.HRRRVar._standard_name(name=name, level_type=level_type) == expected
 
 
-def test_variables_cf_compliant_dataset(da, check_cf_metadata):
-    variables.cf_compliant_dataset(da=da, taskname="test")
-    ds = da.to_dataset()
-    ds.attrs["Conventions"] = "CF-1.8"
-    check_cf_metadata(ds=ds, name="HGT")
+def test_variables_da_construct(c, da, tc):
+    var = variables.Var(name="gh", level_type="isobaricInhPa", level=900)
+    selected = variables.da_select(ds=da.to_dataset(), c=c, varname="HGT", tc=tc, var=var)
+    new = variables.da_construct(src=selected)
+    assert new.name == da.name
+    assert all(new.latitude == da.latitude)
+    assert all(new.longitude == da.longitude)
+    assert new.time == [np.datetime64(str(tc.validtime.isoformat()))]
+    assert new.forecast_reference_time == [np.datetime64(str(tc.cycle.isoformat()))]
 
 
-def test_forecast_var_units():
-    assert variables.forecast_var_units(name="REFC") == "dBZ"
+@mark.parametrize(
+    ("fail", "standard_name", "varname"), [(False, "gh", "HGT"), (True, "foo", "FOO")]
+)
+def test_variables_da_select(c, da, fail, standard_name, tc, varname):
+    var = variables.Var(name=standard_name, level_type="isobaricInhPa", level=900)
+    kwargs = dict(ds=da.to_dataset(), c=c, varname=varname, tc=tc, var=var)
+    if fail:
+        with raises(WXVXError) as e:
+            variables.da_select(**kwargs)
+        msg = f"Variable FOO valid at {tc.validtime.isoformat()} not found in {c.forecast.path}"
+        assert str(e.value) == msg
+    else:
+        new = variables.da_select(**kwargs)
+        # latitude and longitude are unchanged
+        assert all(new.latitude == da.latitude)
+        assert all(new.longitude == da.longitude)
+        # scalar level, time, and lead_time values are selected from arrays
+        assert new.level.values == da.level.values[0]
+        assert new.time.values == da.time.values[0]
+        assert new.lead_time.values == da.lead_time.values[0]
+
+
+def test_variables_ds_from_da(c, check_cf_metadata):
+    name = "HGT"
+    one = np.array([1], dtype="float32")
+    da = xr.DataArray(
+        data=one.reshape((1, 1, 1, 1)),
+        coords=dict(
+            forecast_reference_time=np.array([0], dtype="datetime64[ns]"),
+            latitude=(["latitude", "longitude"], one.reshape((1, 1))),
+            longitude=(["latitude", "longitude"], one.reshape((1, 1))),
+            time=np.array([1], dtype="timedelta64[ns]"),
+        ),
+        dims=("forecast_reference_time", "time", "latitude", "longitude"),
+        name=name,
+    )
+    assert not check_cf_metadata(ds=da.to_dataset(), name=name)
+    ds = variables.ds_from_da(c=c, da=da, taskname="test")
+    assert check_cf_metadata(ds=ds, name=name)
+
+
+@mark.parametrize(
+    ("level_type", "level", "expected"),
+    [
+        ("atmosphere", None, "L000"),
+        ("heightAboveGround", "2", "Z002"),
+        ("isobaricInhPa", "900", "P900"),
+    ],
+)
+def test_variables_metlevel(level_type, level, expected):
+    assert variables.metlevel(level_type=level_type, level=level) == expected
+
+
+def test_variables_metlevel_error():
+    with raises(WXVXError) as e:
+        variables.metlevel(level_type="foo", level=-1)
+    assert str(e.value) == "No MET level defined for level type foo"
 
 
 @mark.parametrize(("s", "expected"), [("900", 900), ("1013.1", 1013.1)])

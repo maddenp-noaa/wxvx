@@ -27,8 +27,7 @@ The activated virtual environment includes the [`metkit`](https://github.com/mad
 ## Use
 
 ```
-$ wxvx --help
-usage: wxvx -c FILE [-d] [-h] [-s] [-v]
+usage: wxvx -c FILE [-d] [-h] [-k] [-s] [-v]
 
 wxvx
 
@@ -41,6 +40,8 @@ Optional arguments:
       Log all messages
   -h, --help
       Show help and exit
+  -k, --check
+      Check config and exit
   -s, --show
       Show a pro-forma config and exit
   -v, --version
@@ -52,32 +53,34 @@ Optional arguments:
 The content of the YAML configuration file supplied via `-c` / `--config` is described in the table below.
 
 ```
-┌────────────────┬──────────────────────────────────────────────┐
-│ Key            │ Description                                  │
-├────────────────┼──────────────────────────────────────────────┤
-│ baseline:      │ Description of the baseline dataset          │
-│   name:        │   Dataset descriptive name                   │
-│   url:         │   Template for baseline GRIB file URLs       │
-│ cycles:        │ Cycles to verify                             │
-│   start:       │   First cycle as ISO8601 timestamp           │
-│   step:        │   Interval between cycles as hh[:mm[:ss]]    │
-│   stop:        │   Last cycle as ISO8601 timestamp            │
-│ forecast:      │ Description of the forecast dataset          │
-│   name:        │   Dataset descriptive name                   │
-│   path:        │   Filesystem path to Zarr/netCDF dataset     │
-│ leadtimes:     │ Leadtimes to verify                          │
-│   start:       │   First leadtime as hh[:mm[:ss]]             │
-│   step:        │   Interval between leadtimes as hh[:mm[:ss]] │
-│   stop:        │   Last leadtime as hh[:mm[:ss]]              │
-│ meta:          │ Optional free-form data section              │
-│ threads:       │ Number of concurrent threads to use          │
-│ variables:     │ Mapping describing variables to verify       │
-│   VAR:         │   Forecast-dataset variable name             │
-│     levels:    │     Sequence of level values                 │
-│     levtype:   │     Generic level type                       │
-│     name:      │     Generic variable name                    │
-│ workdir:       │ Base directory for temporary files           │
-└────────────────┴──────────────────────────────────────────────┘
+┌────────────────────┬──────────────────────────────────────────────┐
+│ Key                │ Description                                  │
+├────────────────────┼──────────────────────────────────────────────┤
+│ baseline:          │ Description of the baseline dataset          │
+│   name:            │   Dataset descriptive name                   │
+│   url:             │   Template for baseline GRIB file URLs       │
+│ cycles:            │ Cycles to verify                             │
+│   start:           │   First cycle as ISO8601 timestamp           │
+│   step:            │   Interval between cycles as hh[:mm[:ss]]    │
+│   stop:            │   Last cycle as ISO8601 timestamp            │
+│ forecast:          │ Description of the forecast dataset          │
+│   name:            │   Dataset descriptive name                   │
+│   path:            │   Filesystem path to Zarr/netCDF dataset     │
+│ leadtimes:         │ Leadtimes to verify                          │
+│   start:           │   First leadtime as hh[:mm[:ss]]             │
+│   step:            │   Interval between leadtimes as hh[:mm[:ss]] │
+│   stop:            │   Last leadtime as hh[:mm[:ss]]              │
+│ meta:              │ Optional free-form data section              │
+│ plot:              │ Plotting options                             │
+│   baseline         │   Plot baseline-model forecast               │
+│ threads:           │ Number of concurrent threads to use          │
+│ variables:         │ Mapping describing variables to verify       │
+│   VAR:             │   Forecast-dataset variable name             │
+│     level_type:    │     Generic level type                       │
+│     levels:        │     Sequence of level values                 │
+│     standard_name: │     Generic variable name                    │
+│ workdir:           │ Base directory for temporary files           │
+└────────────────────┴──────────────────────────────────────────────┘
 ```
 
 Use the `-s` / `--show` CLI switch to show a pro-forma config with realistic values for reference.

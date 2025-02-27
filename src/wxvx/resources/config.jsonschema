@@ -90,6 +90,18 @@
     "meta": {
       "type": "object"
     },
+    "plot": {
+      "additionalProperties": false,
+      "properties": {
+        "baseline": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "baseline"
+      ],
+      "type": "object"
+    },
     "threads": {
       "type": "integer"
     },
@@ -108,7 +120,7 @@
               },
               "if": {
                 "properties": {
-                  "levtype": {
+                  "level_type": {
                     "enum": [
                       "heightAboveGround",
                       "isobaricInhPa"
@@ -124,13 +136,7 @@
             }
           ],
           "properties": {
-            "levels": {
-              "items": {
-                "type": "integer"
-              },
-              "type": "array"
-            },
-            "levtype": {
+            "level_type": {
               "enum": [
                 "atmosphere",
                 "heightAboveGround",
@@ -138,13 +144,19 @@
                 "surface"
               ]
             },
-            "stdname": {
+            "levels": {
+              "items": {
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            "standard_name": {
               "type": "string"
             }
           },
           "required": [
-            "levtype",
-            "stdname"
+            "level_type",
+            "standard_name"
           ],
           "type": "object"
         }
@@ -160,6 +172,7 @@
     "cycles",
     "forecast",
     "leadtimes",
+    "plot",
     "threads",
     "variables",
     "workdir"
