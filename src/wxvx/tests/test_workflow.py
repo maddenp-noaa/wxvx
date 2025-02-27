@@ -132,11 +132,11 @@ def test_workflow_plot(c, fakefs):
         yield "mock"
         yield asset(Path("/some/file"), lambda: True)
 
-    rundir = fakefs / "run" / "plot"
     varname, level = "T2M", 2
     var = variables.Var(name="2t", level_type="heightAboveGround", level=level)
-    path = rundir / f"{var}-plot.png"
-    taskname = f"Plot of stat data {path}"
+    rundir = fakefs / "run" / "plot" / str(var)
+    path = rundir / "plot.png"
+    taskname = f"Plot {path}"
     with (
         patch.object(workflow, "reformat", mock),
         patch.object(workflow, "plot_config", mock),
@@ -170,30 +170,29 @@ def test_workflow_reformat(c, fakefs, testvars):
         yield "mock"
         yield asset(Path("/some/file"), lambda: True)
 
-    rundir = fakefs / "run" / "plot"
     varname = "HGT"
     var = testvars[varname]
-    path = rundir / f"{var}-reformat.data"
-    taskname = f"Reformatted grid_stat results {path}"
+    rundir = fakefs / "run" / "plot" / str(var)
+    path = rundir / "reformat.data"
+    taskname = f"Reformatted stats {path}"
     with (
         patch.object(workflow, "reformat_config", mock),
         patch.object(workflow, "stats", mock),
         patch.object(workflow, "mpexec", side_effect=lambda *_: path.touch()) as mpexec,
     ):
         rundir.mkdir(parents=True)
-        val = workflow.reformat(c=c, varname=varname, level=900, rundir=rundir)
+        val = workflow.reformat(c=c, varname=varname, rundir=rundir)
     runscript = str((rundir / refs(val).stem).with_suffix(".sh"))
     mpexec.assert_called_once_with(runscript, rundir, taskname)
     assert ready(val)
     assert path.is_file()
 
 
-def test_workflow_reformat_config(fakefs, testvars):
-    var = testvars["HGT"]
-    val = workflow.reformat_config(rundir=fakefs, var=var, dry_run=True)
+def test_workflow_reformat_config(fakefs):
+    val = workflow.reformat_config(rundir=fakefs, dry_run=True)
     assert not ready(val)
     assert not refs(val).is_file()
-    val = workflow.reformat_config(rundir=fakefs, var=var)
+    val = workflow.reformat_config(rundir=fakefs)
     assert ready(val)
     assert refs(val).is_file()
 
@@ -234,8 +233,9 @@ def test_workflow_stat(c, fakefs, tc):
 
 
 def test_workflow_stats(c, fakefs):
-    target = fakefs / "target" / "stats"
-    link = c.workdir / "run" / "plot" / "stats"
+    target = fakefs / "target" / "a.stats"
+    rundir = c.workdir / "run" / "plot"
+    link = rundir / "a.stats"
 
     @external
     def mock(*_args, **_kwargs):
@@ -244,7 +244,7 @@ def test_workflow_stats(c, fakefs):
 
     assert not link.exists()
     with patch.object(workflow, "stat", mock):
-        workflow.stats(c=c)
+        workflow.stats(c=c, varname="T2M", rundir=rundir)
     assert link.is_symlink()
     assert link.resolve() == target
 
@@ -253,7 +253,7 @@ def test_workflow_verification(c):
     @external
     def mock(*_args, **_kwargs):
         yield "mock"
-        yield asset(Path("/some/file"), lambda: True)
+        yield asset(Path("/some/file"), lambda: False)
 
     with patch.object(workflow, "plot", mock):
         val = workflow.verification(c=c)

@@ -153,14 +153,14 @@ def grid_stat_config(
 
 @task
 def plot(c: Config, varname: str, level: float | None):
-    rundir = c.workdir / "run" / "plot"
     var = _var(c, varname, level)
-    path = rundir / f"{var}-plot.png"
-    taskname = "Plot of stat data %s" % path
-    reformatted = reformat(c, varname, level, rundir)
+    rundir = c.workdir / "run" / "plot" / str(var)
+    path = rundir / "plot.png"
+    taskname = "Plot %s" % path
+    reformatted = reformat(c, varname, rundir)
     stat_fn = refs(reformatted).name
     cfgfile = plot_config(c, rundir, varname, var, plot_fn=path.name, stat_fn=stat_fn)
-    content = "line.py %s >%s 2>&1" % (refs(cfgfile).name, f"{var}-plot.log")
+    content = "line.py %s >%s 2>&1" % (refs(cfgfile).name, "plot.log")
     script = runscript(basepath=path, content=content)
     yield taskname
     yield asset(path, path.is_file)
@@ -170,7 +170,7 @@ def plot(c: Config, varname: str, level: float | None):
 
 @task
 def plot_config(c: Config, rundir: Path, varname: str, var: Var, plot_fn: str, stat_fn: str):
-    path = rundir / f"{var}-plot.yaml"
+    path = rundir / "plot.yaml"
     taskname = "Plot config %s" % path
     yield taskname
     yield asset(path, path.is_file)
@@ -244,25 +244,24 @@ def plot_config(c: Config, rundir: Path, varname: str, var: Var, plot_fn: str, s
 
 
 @task
-def reformat(c: Config, varname: str, level: int, rundir: Path):
-    var = _var(c, varname, level)
-    path = rundir / f"{var}-reformat.data"
-    taskname = "Reformatted grid_stat results %s" % path
-    cfgfile = reformat_config(rundir, var)
+def reformat(c: Config, varname: str, rundir: Path):
+    path = rundir / "reformat.data"
+    taskname = "Reformatted stats %s" % path
+    cfgfile = reformat_config(rundir)
     content = f"""
     export PYTHONWARNINGS=ignore::FutureWarning
-    write_stat_ascii.py {refs(cfgfile).name} >{var}-reformat.log 2>&1
+    write_stat_ascii.py {refs(cfgfile).name} >reformat.log 2>&1
     """
     script = runscript(basepath=path, content=content)
     yield taskname
     yield asset(path, path.is_file)
-    yield [cfgfile, script, stats(c)]
+    yield [cfgfile, script, stats(c, varname, rundir)]
     mpexec(str(refs(script)), rundir, taskname)
 
 
 @task
-def reformat_config(rundir: Path, var: Var):
-    path = rundir / f"{var}-reformat.yaml"
+def reformat_config(rundir: Path):
+    path = rundir / "reformat.yaml"
     taskname = "Reformat config %s" % path
     yield taskname
     yield asset(path, path.is_file)
@@ -275,7 +274,7 @@ def reformat_config(rundir: Path, var: Var):
         log_filename="/dev/stdout",
         log_level="debug",
         output_dir=".",
-        output_filename=f"{var}-reformat.data",
+        output_filename="reformat.data",
     )
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w") as f:
@@ -328,16 +327,16 @@ def stat(c: Config, varname: str, tc: TimeCoords, var: Var, prefix: str, source:
 
 
 @task
-def stats(c: Config):
-    taskname = "MET stats for %s" % c.forecast.path
-    genreqs = lambda source: [stat(*args) for args in _statargs(c, source)]
+def stats(c: Config, varname: str, rundir: Path):
+    taskname = "MET stats for %s" % varname
+    genreqs = lambda source: [stat(*args) for args in _statargs(c, varname, source)]
     reqs = genreqs(Source.FORECAST)
     if c.plot.baseline:
         reqs += genreqs(Source.BASELINE)
     files = [refs(x) for x in reqs]
-    links = [c.workdir / "run" / "plot" / x.name for x in files]
+    links = [rundir / x.name for x in files]
     yield taskname
-    yield [asset(path, path.is_symlink) for path in links]
+    yield [asset(link, link.is_symlink) for link in links]
     yield reqs
     for target, link in zip(files, links):
         link.parent.mkdir(parents=True, exist_ok=True)
@@ -365,12 +364,13 @@ def _meta(c: Config, varname: str) -> ns:
     return VARMETA[tuple(c.variables[varname][x] for x in ["standard_name", "level_type"])]
 
 
-def _statargs(c: Config, source: Source) -> Iterator:
+def _statargs(c: Config, varname: str, source: Source) -> Iterator:
     name = (c.baseline if source == Source.BASELINE else c.forecast).name.lower()
     prefix = lambda var: "%s_%s" % (name, str(var).replace("-", "_"))
     args = [
-        (c, varname, tc, var, prefix(var), source)
-        for (varname, var), tc in product(_vxvars(c).items(), validtimes(c.cycles, c.leadtimes))
+        (c, varname_, tc, var, prefix(var), source)
+        for (varname_, var), tc in product(_vxvars(c).items(), validtimes(c.cycles, c.leadtimes))
+        if varname_ == varname
     ]
     return iter(args)
 
