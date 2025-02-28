@@ -197,7 +197,7 @@ def test_workflow_reformat(c, fakefs, testvars):
         patch.object(workflow, "mpexec", side_effect=lambda *_: path.touch()) as mpexec,
     ):
         rundir.mkdir(parents=True)
-        val = workflow.reformat(c=c, varname=varname, rundir=rundir)
+        val = workflow.reformat(c=c, varname=varname, level=900, rundir=rundir)
     runscript = str((rundir / refs(val).stem).with_suffix(".sh"))
     mpexec.assert_called_once_with(runscript, rundir, taskname)
     assert ready(val)
@@ -250,17 +250,17 @@ def test_workflow_stat(c, fakefs, tc):
 
 def test_workflow_stats(c, fakefs):
     target = fakefs / "target" / "a.stats"
-    rundir = c.workdir / "run" / "plot"
-    link = rundir / "a.stats"
 
     @external
     def mock(*_args, **_kwargs):
         yield "mock"
         yield asset(target, lambda: True)
 
+    rundir = c.workdir / "run" / "plot"
+    link = rundir / "a.stats"
     assert not link.exists()
     with patch.object(workflow, "stat", mock):
-        workflow.stats(c=c, varname="T2M", rundir=rundir)
+        workflow.stats(c=c, varname="T2M", level=2, rundir=rundir)
     assert link.is_symlink()
     assert link.resolve() == target
 

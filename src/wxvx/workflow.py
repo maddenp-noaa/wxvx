@@ -58,6 +58,7 @@ def grib_index_data(c: Config, outdir: Path, tc: TimeCoords, url: str):
     yield idxfile
     lines = refs(idxfile).read_text(encoding="utf-8").strip().split("\n")
     lines.append(":-1:::::")  # end marker
+    vxvars = set(_vxvars(c).keys())
     for this_record, next_record in pairwise([line.split(":") for line in lines]):
         hrrrvar = HRRRVar(
             name=this_record[3],
@@ -65,7 +66,7 @@ def grib_index_data(c: Config, outdir: Path, tc: TimeCoords, url: str):
             firstbyte=int(this_record[1]),
             lastbyte=int(next_record[1]) - 1,
         )
-        if hrrrvar in _vxvars(c).values():
+        if hrrrvar in vxvars:
             idxdata[str(hrrrvar)] = hrrrvar
 
 
@@ -171,7 +172,7 @@ def plot(c: Config, varname: str, level: float | None):
     rundir = c.workdir / "run" / "plot" / str(var)
     path = rundir / "plot.png"
     taskname = "Plot %s" % path
-    reformatted = reformat(c, varname, rundir)
+    reformatted = reformat(c, varname, level, rundir)
     stat_fn = refs(reformatted).name
     cfgfile = plot_config(c, rundir, varname, var, plot_fn=path.name, stat_fn=stat_fn)
     content = "line.py %s >%s 2>&1" % (refs(cfgfile).name, "plot.log")
@@ -258,7 +259,7 @@ def plot_config(c: Config, rundir: Path, varname: str, var: Var, plot_fn: str, s
 
 
 @task
-def reformat(c: Config, varname: str, rundir: Path):
+def reformat(c: Config, varname: str, level: float | None, rundir: Path):
     path = rundir / "reformat.data"
     taskname = "Reformatted stats %s" % path
     cfgfile = reformat_config(rundir)
@@ -269,7 +270,7 @@ def reformat(c: Config, varname: str, rundir: Path):
     script = runscript(basepath=path, content=content)
     yield taskname
     yield asset(path, path.is_file)
-    yield [cfgfile, script, stats(c, varname, rundir)]
+    yield [cfgfile, script, stats(c, varname, level, rundir)]
     mpexec(str(refs(script)), rundir, taskname)
 
 
@@ -341,10 +342,11 @@ def stat(c: Config, varname: str, tc: TimeCoords, var: Var, prefix: str, source:
 
 
 @task
-def stats(c: Config, varname: str, rundir: Path):
-    taskname = "MET stats for %s" % varname
-    genreqs = lambda source: [stat(*args) for args in _statargs(c, varname, source)]
+def stats(c: Config, varname: str, level: float | None, rundir: Path):
+    taskname = "MET stats for %s " % _var(c, varname, level)
+    genreqs = lambda source: [stat(*args) for args in _statargs(c, varname, level, source)]
     reqs = genreqs(Source.FORECAST)
+    # PM# THIS IS SURPRISINGLY SLOW ^^^
     if c.plot.baseline:
         reqs += genreqs(Source.BASELINE)
     files = [refs(x) for x in reqs]
@@ -378,15 +380,15 @@ def _meta(c: Config, varname: str) -> ns:
     return VARMETA[tuple(c.variables[varname][x] for x in ["standard_name", "level_type"])]
 
 
-def _statargs(c: Config, varname: str, source: Source) -> Iterator:
+def _statargs(c: Config, varname: str, level: float | None, source: Source) -> Iterator:
     name = (c.baseline if source == Source.BASELINE else c.forecast).name.lower()
     prefix = lambda var: "%s_%s" % (name, str(var).replace("-", "_"))
     args = [
-        (c, varname_, tc, var, prefix(var), source)
-        for (varname_, var), tc in product(_vxvars(c).items(), validtimes(c.cycles, c.leadtimes))
-        if varname_ == varname
+        (c, vn, tc, var, prefix(var), source)
+        for (var, vn), tc in product(_vxvars(c).items(), validtimes(c.cycles, c.leadtimes))
+        if vn == varname and var.level == level
     ]
-    return iter(args)
+    return iter(sorted(args))
 
 
 def _var(c: Config, varname: str, level: float | None) -> Var:
@@ -394,11 +396,9 @@ def _var(c: Config, varname: str, level: float | None) -> Var:
     return Var(m.name, m.level_type, level)
 
 
-def _vxvars(c: Config) -> dict[str, Var]:
-    vxvars = {}
-    for varname, attrs in c.variables.items():
-        for level in attrs.get("levels", [None]):
-            vxvars[varname] = Var(
-                name=attrs["standard_name"], level_type=attrs["level_type"], level=level
-            )
-    return vxvars
+def _vxvars(c: Config) -> dict[Var, str]:
+    return {
+        Var(name=attrs["standard_name"], level_type=attrs["level_type"], level=level): varname
+        for varname, attrs in c.variables.items()
+        for level in attrs.get("levels", [None])
+    }
