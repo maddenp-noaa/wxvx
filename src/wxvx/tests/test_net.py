@@ -28,3 +28,12 @@ def test_net_fetch_fail(code, fs, out, byterange, ret):
         assert net.fetch(taskname="task", url=URL, path=path, headers=headers) is ret
     get.assert_called_once_with(URL, allow_redirects=True, timeout=3, headers=headers)
     assert path.read_text(encoding="utf-8") == out
+
+
+def test_net_status():
+    code = 42
+    response = Mock()
+    response.status_code = code
+    with patch.object(net.requests, "head", return_value=response) as head:
+        assert net.status(url=URL) == code
+    head.assert_called_once_with(URL, timeout=3)

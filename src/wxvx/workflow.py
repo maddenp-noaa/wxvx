@@ -11,10 +11,10 @@ from warnings import catch_warnings, simplefilter
 
 import xarray as xr
 import yaml
-from iotaa import asset, refs, task, tasks
+from iotaa import asset, external, refs, task, tasks
 from uwtools.api.template import render
 
-from wxvx.net import fetch
+from wxvx.net import fetch, status
 from wxvx.times import TimeCoords, tcinfo, validtimes
 from wxvx.types import Source
 from wxvx.util import mpexec, resource_path
@@ -27,13 +27,20 @@ if TYPE_CHECKING:
     from wxvx.types import Config  # pragma: no cover
 
 
+@external
+def existing(path: Path):
+    taskname = "Existing path %s" % path
+    yield taskname
+    yield asset(path, path.exists)
+
+
 @task
 def forecast_dataset(path: Path):
     taskname = "Forecast dataset from %s" % path
     ds = xr.Dataset()
     yield taskname
     yield asset(ds, lambda: bool(ds))
-    yield None
+    yield existing(path)
     logging.info("%s: Opening forecast %s", taskname, path)
     with catch_warnings():
         simplefilter("ignore")
@@ -68,8 +75,15 @@ def grib_index_file(outdir: Path, url: str):
     taskname = "GRIB index file %s" % path
     yield taskname
     yield asset(path, path.is_file)
-    yield None
+    yield grib_index_remote(url)
     fetch(taskname, url, path)
+
+
+@external
+def grib_index_remote(url: str):
+    taskname = "GRIB index remote %s" % url
+    yield taskname
+    yield asset(url, lambda: status(url) == 200)
 
 
 @task

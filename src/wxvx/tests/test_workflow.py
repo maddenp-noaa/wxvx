@@ -11,7 +11,7 @@ from unittest.mock import ANY, patch
 import xarray as xr
 import yaml
 from iotaa import asset, external, ready, refs
-from pytest import fixture
+from pytest import fixture, mark
 
 from wxvx import util, variables, workflow
 from wxvx.types import Source
@@ -19,6 +19,13 @@ from wxvx.types import Source
 logging.getLogger().setLevel(logging.DEBUG)
 
 # Tests
+
+
+def test_workflow_existing(fakefs):
+    path = fakefs / "forecast"
+    assert not ready(workflow.existing(path=path))
+    path.touch()
+    assert ready(workflow.existing(path=path))
 
 
 def test_workflow_forecast_dataset(da, fakefs):
@@ -56,15 +63,24 @@ def test_workflow_grib_index_data(c, tc):
 
 def test_workflow_grib_index_file(c):
     url = f"{c.baseline.template}.idx"
-    val = workflow.grib_index_file(outdir=c.workdir, url=url)
-    path: Path = refs(val)
-    assert not path.exists()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with patch.object(workflow, "fetch") as fetch:
-        fetch.side_effect = lambda taskname, url, path: path.touch()  # noqa: ARG005
-        workflow.grib_index_file(outdir=c.workdir, url=url)
-    fetch.assert_called_once_with(ANY, url, path)
+    with patch.object(workflow, "grib_index_remote"):
+        val = workflow.grib_index_file(outdir=c.workdir, url=url)
+        path: Path = refs(val)
+        assert not path.exists()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with patch.object(workflow, "fetch") as fetch:
+            fetch.side_effect = lambda taskname, url, path: path.touch()  # noqa: ARG005
+            workflow.grib_index_file(outdir=c.workdir, url=url)
+        fetch.assert_called_once_with(ANY, url, path)
     assert path.exists()
+
+
+@mark.parametrize("code", [200, 404])
+def test_workflow_grib_index_remote(c, code):
+    url = c.baseline.template
+    with patch.object(workflow, "status", return_value=code) as status:
+        assert ready(workflow.grib_index_remote(url=url)) is (code == 200)
+    status.assert_called_with(url)
 
 
 def test_workflow_grid_grib(c, tc):
