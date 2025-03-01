@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from functools import cache
 from itertools import pairwise, product
 from pathlib import Path
 from stat import S_IEXEC
@@ -396,6 +397,7 @@ def _var(c: Config, varname: str, level: float | None) -> Var:
     return Var(m.name, m.level_type, level)
 
 
+@cache
 def _vxvars(c: Config) -> dict[Var, str]:
     return {
         Var(name=attrs["standard_name"], level_type=attrs["level_type"], level=level): varname
