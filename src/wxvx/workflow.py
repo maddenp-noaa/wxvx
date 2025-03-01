@@ -31,7 +31,7 @@ if TYPE_CHECKING:
 
 
 @tasks
-def verification(c: Config):
+def plots(c: Config):
     taskname = "Verification of %s" % c.forecast.path
     reqs = [
         _plot(c, varname, level)

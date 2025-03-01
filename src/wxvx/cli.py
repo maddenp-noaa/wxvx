@@ -21,7 +21,7 @@ def main() -> None:
     if not validate(schema_file=resource_path("config.jsonschema"), config_data=config_data):
         sys.exit(1)
     if not args.check:
-        workflow.verification(Config(config_data.data), threads=config_data["threads"])
+        workflow.plots(Config(config_data.data), threads=config_data["threads"])
 
 
 # Private

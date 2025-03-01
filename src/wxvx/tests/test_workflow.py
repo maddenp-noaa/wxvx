@@ -21,14 +21,14 @@ logging.getLogger().setLevel(logging.DEBUG)
 # Tests
 
 
-def test_workflow_verification(c):
+def test_workflow_plots(c):
     @external
     def mock(*_args, **_kwargs):
         yield "mock"
         yield asset(Path("/some/file"), lambda: False)
 
     with patch.object(workflow, "_plot", mock):
-        val = workflow.verification(c=c)
+        val = workflow.plots(c=c)
     assert len(refs(val)) == len(c.variables)
 
 
