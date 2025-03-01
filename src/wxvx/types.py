@@ -1,11 +1,12 @@
 # noqa: A005
 
+import json
 from dataclasses import dataclass
 from enum import Enum, auto
 from pathlib import Path
 
 
-@dataclass
+@dataclass(frozen=True)
 class Baseline:
     name: str
     template: str
@@ -21,14 +22,24 @@ class Config:
         self.variables = config_data["variables"]
         self.workdir = Path(config_data["workdir"])
 
+    KEYS = ("baseline", "cycles", "forecast", "leadtimes", "variables", "workdir")
+
     def __eq__(self, other):
-        return all(
-            getattr(self, k) == getattr(other, k)
-            for k in ["baseline", "cycles", "forecast", "leadtimes", "variables", "workdir"]
-        )
+        return all(getattr(self, k) == getattr(other, k) for k in self.KEYS)
+
+    def __hash__(self):
+        h = None
+        for k in self.KEYS:
+            obj = getattr(self, k)
+            try:
+                h = hash((h, hash(obj)))
+            except TypeError:
+                h = hash((h, json.dumps(obj, sort_keys=True)))
+        assert h is not None
+        return h
 
 
-@dataclass
+@dataclass(frozen=True)
 class Cycles:
     start: str
     step: str
@@ -40,18 +51,23 @@ class Forecast:
         self.name = name
         self.path = Path(path)
 
+    KEYS = ("name", "path")
+
     def __eq__(self, other):
-        return all(getattr(self, k) == getattr(other, k) for k in ["name", "path"])
+        return all(getattr(self, k) == getattr(other, k) for k in self.KEYS)
+
+    def __hash__(self):
+        return hash(tuple(getattr(self, k) for k in self.KEYS))
 
 
-@dataclass
+@dataclass(frozen=True)
 class Leadtimes:
     start: str
     step: str
     stop: str
 
 
-@dataclass
+@dataclass(frozen=True)
 class Plot:
     baseline: bool
 

@@ -39,10 +39,10 @@ def test_Baseline(baseline, config_data):
     obj = baseline
     assert obj.name == "Baseline"
     assert obj.template == "https://some.url/path/to/a.grib2"
-    other = types.Baseline(**config_data["baseline"])
-    assert obj == other
-    other.name = "foo"
-    assert obj != other
+    other1 = types.Baseline(**config_data["baseline"])
+    assert obj == other1
+    other2 = types.Baseline(**{**config_data["baseline"], "name": "foo"})
+    assert obj != other2
 
 
 def test_Cycles(config_data, cycles):
@@ -50,20 +50,21 @@ def test_Cycles(config_data, cycles):
     assert obj.start == "2024-12-19T18:00:00"
     assert obj.step == "12:00:00"
     assert obj.stop == "2024-12-20T06:00:00"
-    other = types.Cycles(**config_data["cycles"])
-    assert obj == other
-    other.step = "24:00:00"
-    assert obj != other
+    other1 = types.Cycles(**config_data["cycles"])
+    assert obj == other1
+    other2 = types.Cycles(**{**config_data["cycles"], "step": "24:00:00"})
+    assert obj != other2
 
 
 def test_Forecast(config_data, forecast):
     obj = forecast
+    assert hash(obj)
     assert obj.name == "Forecast"
     assert obj.path == Path("/path/to/forecast")
-    other = types.Forecast(**config_data["forecast"])
-    assert obj == other
-    other.name = "foo"
-    assert obj != other
+    other1 = types.Forecast(**config_data["forecast"])
+    assert obj == other1
+    other2 = types.Forecast(**{**config_data["forecast"], "name": "foo"})
+    assert obj != other2
 
 
 def test_Leadtimes(config_data, leadtimes):
@@ -71,23 +72,24 @@ def test_Leadtimes(config_data, leadtimes):
     assert obj.start == "00:00:00"
     assert obj.step == "06:00:00"
     assert obj.stop == "12:00:00"
-    other = types.Leadtimes(**config_data["leadtimes"])
-    assert obj == other
-    other.start = "01:00:00"
-    assert obj != other
+    other1 = types.Leadtimes(**config_data["leadtimes"])
+    assert obj == other1
+    other2 = types.Leadtimes(**{**config_data["leadtimes"], "start": "01:00:00"})
+    assert obj != other2
 
 
 def test_Plot(config_data, plot):
     obj = plot
     assert obj.baseline is True
-    other = types.Plot(**config_data["plot"])
-    assert obj == other
-    other.baseline = False
-    assert obj != other
+    other1 = types.Plot(**config_data["plot"])
+    assert obj == other1
+    other2 = types.Plot(**{**config_data["plot"], "baseline": False})
+    assert obj != other2
 
 
 def test_Config(baseline, config_data, cycles, forecast, leadtimes, plot):
     obj = types.Config(config_data=config_data)
+    assert hash(obj)
     assert obj.baseline == baseline
     assert obj.cycles == cycles
     assert obj.forecast == forecast
