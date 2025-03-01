@@ -38,8 +38,8 @@ def existing(path: Path):
 @task
 def forecast_dataset(path: Path):
     taskname = "Forecast dataset from %s" % path
-    ds = xr.Dataset()
     yield taskname
+    ds = xr.Dataset()
     yield asset(ds, lambda: bool(ds))
     yield existing(path)
     logging.info("%s: Opening forecast %s", taskname, path)
@@ -52,10 +52,10 @@ def forecast_dataset(path: Path):
 def grib_index_data(c: Config, outdir: Path, tc: TimeCoords, url: str):
     yyyymmdd, hh, leadtime = tcinfo(tc)
     taskname = "GRIB index data %s %sZ %s" % (yyyymmdd, hh, leadtime)
-    idxdata: dict[str, HRRRVar] = {}
-    idxfile = grib_index_file(outdir, url)
     yield taskname
+    idxdata: dict[str, HRRRVar] = {}
     yield asset(idxdata, lambda: bool(idxdata))
+    idxfile = grib_index_file(outdir, url)
     yield idxfile
     lines = refs(idxfile).read_text(encoding="utf-8").strip().split("\n")
     lines.append(":-1:::::")  # end marker
@@ -94,10 +94,10 @@ def grid_grib(c: Config, tc: TimeCoords, var: Var):
     outdir = c.workdir / "grids" / yyyymmdd / hh / leadtime
     path = outdir / f"{var}.grib2"
     taskname = "Baseline grid %s" % path
-    url = c.baseline.template.format(yyyymmdd=yyyymmdd, hh=hh, ff="%02d" % int(leadtime))
-    idxdata = grib_index_data(c, outdir, tc, url=f"{url}.idx")
     yield taskname
     yield asset(path, path.is_file)
+    url = c.baseline.template.format(yyyymmdd=yyyymmdd, hh=hh, ff="%02d" % int(leadtime))
+    idxdata = grib_index_data(c, outdir, tc, url=f"{url}.idx")
     yield idxdata
     var_idxdata = refs(idxdata)[str(var)]
     fb, lb = var_idxdata.firstbyte, var_idxdata.lastbyte
@@ -110,9 +110,9 @@ def grid_nc(c: Config, varname: str, tc: TimeCoords, var: Var):
     yyyymmdd, hh, leadtime = tcinfo(tc)
     path = c.workdir / "grids" / yyyymmdd / hh / leadtime / f"{var}.nc"
     taskname = "Forecast grid %s" % path
-    fd = forecast_dataset(c.forecast.path)
     yield taskname
     yield asset(path, path.is_file)
+    fd = forecast_dataset(c.forecast.path)
     yield fd
     src = da_select(refs(fd), c, varname, tc, var)
     da = da_construct(src)
@@ -173,13 +173,13 @@ def plot(c: Config, varname: str, level: float | None):
     rundir = c.workdir / "run" / "plot" / str(var)
     path = rundir / "plot.png"
     taskname = "Plot %s" % path
+    yield taskname
+    yield asset(path, path.is_file)
     reformatted = reformat(c, varname, level, rundir)
     stat_fn = refs(reformatted).name
     cfgfile = plot_config(c, rundir, varname, var, plot_fn=path.name, stat_fn=stat_fn)
     content = "line.py %s >%s 2>&1" % (refs(cfgfile).name, "plot.log")
     script = runscript(basepath=path, content=content)
-    yield taskname
-    yield asset(path, path.is_file)
     yield [cfgfile, reformatted, script]
     mpexec(str(refs(script)), rundir, taskname)
 
@@ -263,15 +263,16 @@ def plot_config(c: Config, rundir: Path, varname: str, var: Var, plot_fn: str, s
 def reformat(c: Config, varname: str, level: float | None, rundir: Path):
     path = rundir / "reformat.data"
     taskname = "Reformatted stats %s" % path
+    yield taskname
+    yield asset(path, path.is_file)
     cfgfile = reformat_config(rundir)
     content = f"""
     export PYTHONWARNINGS=ignore::FutureWarning
     write_stat_ascii.py {refs(cfgfile).name} >reformat.log 2>&1
     """
     script = runscript(basepath=path, content=content)
-    yield taskname
-    yield asset(path, path.is_file)
-    yield [cfgfile, script, stats(c, varname, level, rundir)]
+    s = stats(c, varname, level, rundir)
+    yield [cfgfile, script, s]
     mpexec(str(refs(script)), rundir, taskname)
 
 
@@ -315,11 +316,13 @@ def stat(c: Config, varname: str, tc: TimeCoords, var: Var, prefix: str, source:
     yyyymmdd, hh, leadtime = tcinfo(tc)
     srcname = {Source.BASELINE: "baseline", Source.FORECAST: "forecast"}[source]
     taskname = "MET stats for %s %s at %s %sZ %s" % (srcname, var, yyyymmdd, hh, leadtime)
+    yield taskname
     rundir = c.workdir / "run" / "stat" / yyyymmdd / hh / leadtime
     yyyymmdd_valid, hh_valid, _ = tcinfo(TimeCoords(tc.validtime))
     template = "grid_stat_%s_%02d0000L_%s_%s0000V.stat"
     fn = template % (prefix, int(leadtime), yyyymmdd_valid, hh_valid)
     path = rundir / fn
+    yield asset(path, path.is_file)
     baseline = grid_grib(c, TimeCoords(cycle=tc.validtime, leadtime=0), var)
     forecast_forecast = grid_nc(c, varname, tc, var)
     baseline_forecast = grid_grib(c, tc, var)
@@ -336,8 +339,6 @@ def stat(c: Config, varname: str, tc: TimeCoords, var: Var, prefix: str, source:
     reqs = [vx_forecast, baseline, cfgfile, script]
     if source == Source.BASELINE:
         reqs.append(forecast_forecast)
-    yield taskname
-    yield asset(path, path.is_file)
     yield reqs
     mpexec(str(refs(script)), rundir, taskname)
 
@@ -345,14 +346,13 @@ def stat(c: Config, varname: str, tc: TimeCoords, var: Var, prefix: str, source:
 @task
 def stats(c: Config, varname: str, level: float | None, rundir: Path):
     taskname = "MET stats for %s " % _var(c, varname, level)
+    yield taskname
     genreqs = lambda source: [stat(*args) for args in _statargs(c, varname, level, source)]
     reqs = genreqs(Source.FORECAST)
-    # PM# THIS IS SURPRISINGLY SLOW ^^^
     if c.plot.baseline:
         reqs += genreqs(Source.BASELINE)
     files = [refs(x) for x in reqs]
     links = [rundir / x.name for x in files]
-    yield taskname
     yield [asset(link, link.is_symlink) for link in links]
     yield reqs
     for target, link in zip(files, links):
