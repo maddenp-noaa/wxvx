@@ -27,13 +27,16 @@ The activated virtual environment includes the [`metkit`](https://github.com/mad
 ## Use
 
 ```
-usage: wxvx -c FILE [-d] [-h] [-k] [-s] [-v]
+$ wxvx --help
+usage: wxvx -c FILE [-t [TASK]] [-d] [-h] [-k] [-s] [-v]
 
 wxvx
 
 Required arguments:
   -c FILE, --config FILE
       Configuration file
+  -t [TASK], --task [TASK]
+      Execute task (no argument => list available tasks)
 
 Optional arguments:
   -d, --debug
@@ -114,4 +117,4 @@ When you are finished, type `exit` to return to your previous shell. The `DEV-wx
 ## TODO
 
 - Generalize for more baseline dataset types.
-- Support loading Zarr forecast data remotely.
+- Support loading Zarr data remotely.
