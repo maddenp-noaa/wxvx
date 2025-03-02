@@ -20,12 +20,14 @@ from wxvx.util import pkgname, resource_path
 # Tests
 
 
-def test_cli_main(config_data, fs):
+@mark.parametrize("switch_c", ["-c", "--config"])
+@mark.parametrize("switch_t", ["-t", "--task"])
+def test_cli_main(config_data, fs, switch_c, switch_t):
     fs.add_real_file(resource_path("config.jsonschema"))
     fs.add_real_file(resource_path("info.json"))
     with patch.multiple(cli, workflow=D, sys=D, use_uwtools_logger=D) as mocks:
         cf = fs.create_file("/path/to/config.yaml", contents=yaml.safe_dump(config_data))
-        argv = [pkgname, "-c", cf.path, "-t", "plots"]
+        argv = [pkgname, switch_c, cf.path, switch_t, "plots"]
         mocks["sys"].argv = argv
         with patch.object(cli, "_parse_args", wraps=cli._parse_args) as _parse_args:
             cli.main()
@@ -60,7 +62,7 @@ def test_cli_main_check_config(fs, switch):
     plots.assert_not_called()
 
 
-def test_cli_main_list_tasks(caplog):
+def test_cli_main_task_list(caplog):
     caplog.set_level(logging.INFO)
     with (
         patch.object(cli.sys, "argv", [pkgname, "-c", str(resource_path("config.yaml"))]),
@@ -75,6 +77,20 @@ def test_cli_main_list_tasks(caplog):
         """
         for line in dedent(expected).strip().split("\n"):
             assert line in caplog.messages
+
+
+def test_cli_main_task_missing(caplog):
+    caplog.set_level(logging.INFO)
+    with (
+        patch.object(
+            cli.sys, "argv", [pkgname, "-c", str(resource_path("config.yaml")), "-t", "foo"]
+        ),
+        patch.object(cli, "use_uwtools_logger"),
+    ):
+        with raises(SystemExit) as e:
+            cli.main()
+        assert e.value.code == 1
+        assert "No such task: foo" in caplog.messages
 
 
 @mark.parametrize("c", ["-c", "--config"])
