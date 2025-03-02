@@ -2,7 +2,6 @@
 Tests for wxvx.workflow.
 """
 
-import logging
 from pathlib import Path
 from textwrap import dedent
 from threading import Event
@@ -15,8 +14,6 @@ from pytest import fixture, mark
 
 from wxvx import util, variables, workflow
 from wxvx.types import Source
-
-logging.getLogger().setLevel(logging.DEBUG)
 
 # Tests
 

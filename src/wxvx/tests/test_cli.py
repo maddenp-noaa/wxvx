@@ -2,8 +2,10 @@
 Tests for wxvx.cli.
 """
 
+import logging
 import re
 from pathlib import Path
+from textwrap import dedent
 from unittest.mock import DEFAULT as D
 from unittest.mock import Mock, patch
 
@@ -49,11 +51,30 @@ def test_cli_main_check_config(fs, switch):
     fs.add_real_file(resource_path("config.yaml"))
     fs.add_real_file(resource_path("info.json"))
     with (
-        patch.object(cli.sys, "argv", [pkgname, switch, "-c", str(resource_path("config.yaml")), "-t", "foo"]),
+        patch.object(
+            cli.sys, "argv", [pkgname, switch, "-c", str(resource_path("config.yaml")), "-t", "foo"]
+        ),
         patch.object(cli.workflow, "plots") as plots,
     ):
         cli.main()
     plots.assert_not_called()
+
+
+def test_cli_main_list_tasks(caplog):
+    caplog.set_level(logging.INFO)
+    with (
+        patch.object(cli.sys, "argv", [pkgname, "-c", str(resource_path("config.yaml"))]),
+        patch.object(cli, "use_uwtools_logger"),
+    ):
+        with raises(SystemExit) as e:
+            cli.main()
+        assert e.value.code == 0
+        expected = """
+        Available tasks:
+          plots
+        """
+        for line in dedent(expected).strip().split("\n"):
+            assert line in caplog.messages
 
 
 @mark.parametrize("c", ["-c", "--config"])
