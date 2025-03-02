@@ -288,8 +288,7 @@ def _reformat(c: Config, varname: str, level: float | None, rundir: Path):
     write_stat_ascii.py {refs(cfgfile).name} >reformat.log 2>&1
     """
     script = _runscript(basepath=path, content=content)
-    s = _stat_links(c, varname, level, rundir)
-    yield [cfgfile, script, s]
+    yield [cfgfile, script, _stat_links(c, varname, level, rundir)]
     mpexec(str(refs(script)), rundir, taskname)
 
 
