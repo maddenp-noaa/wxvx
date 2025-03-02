@@ -101,16 +101,6 @@ def _version() -> str:
     return "version %s build %s" % (info["version"], info["buildnum"])
 
 
-class ExecTask(Action):
-    def __init__(self, option_strings, dest, **kwargs):
-        super().__init__(option_strings, dest, **kwargs)
-
-    def __call__(self, parser, namespace, values, option_string=None):  # noqa: ARG002
-        for taskname in tasknames(workflow):
-            print(taskname)
-        sys.exit(0)
-
-
 class ShowConfig(Action):
     def __init__(self, option_strings, dest, **kwargs):
         super().__init__(option_strings, dest, **kwargs)
