@@ -13,9 +13,11 @@ from iotaa import asset, external, ready, refs
 from pytest import fixture, mark
 
 from wxvx import util, variables, workflow
+from wxvx.times import TimeCoords
 from wxvx.types import Source
+from wxvx.variables import Var
 
-# Tests
+# Task Tests
 
 
 def test_workflow_plots(c):
@@ -26,7 +28,7 @@ def test_workflow_plots(c):
 
     with patch.object(workflow, "_plot", mock):
         val = workflow.plots(c=c)
-    assert len(refs(val)) == len(c.variables)
+    assert len(refs(val)) == len(c.variables) + 1  # for 2x SPFH levels
 
 
 def test_workflow__existing(fakefs):
@@ -120,12 +122,12 @@ def test_workflow__grid_grib(c, tc):
         assert path.exists()
 
 
-def test_workflow__grid_nc(c_real, check_cf_metadata, da, tc):
+def test_workflow__grid_nc(c_real_fs, check_cf_metadata, da, tc):
     var = variables.Var(name="gh", level_type="isobaricInhPa", level=900)
-    path = Path(c_real.workdir, "a.nc")
+    path = Path(c_real_fs.workdir, "a.nc")
     da.to_netcdf(path)
-    c_real.forecast.path = path
-    val = workflow._grid_nc(c=c_real, varname="HGT", tc=tc, var=var)
+    c_real_fs.forecast.path = path
+    val = workflow._grid_nc(c=c_real_fs, varname="HGT", tc=tc, var=var)
     assert ready(val)
     assert check_cf_metadata(ds=xr.open_dataset(refs(val), decode_timedelta=True), name="HGT")
 
@@ -271,6 +273,56 @@ def test_workflow__stat_links(c, fakefs):
         workflow._stat_links(c=c, varname="T2M", level=2, rundir=rundir)
     assert link.is_symlink()
     assert link.resolve() == target
+
+
+# Support Tests
+
+
+def test__meta(c):
+    meta = workflow._meta(c=c, varname="HGT")
+    assert meta.standard_name == "geopotential_height"
+    assert meta.level_type == "isobaricInhPa"
+
+
+def test__statargs(c, utc):
+    level = 900
+    level_type = "isobaricInhPa"
+    source = Source.FORECAST
+    tc = TimeCoords(utc(2025, 3, 2, 12))
+    var = Var("gh", level_type, level)
+    varname = "HGT"
+    with (
+        patch.object(workflow, "_vxvars", return_value={var: varname}),
+        patch.object(workflow, "validtimes", return_value=[tc]),
+    ):
+        statargs = workflow._statargs(c=c, varname=varname, level=level, source=source)
+    assert list(statargs) == [
+        (c, varname, tc, var, f"forecast_gh_{level_type}_{level:04d}", source)
+    ]
+
+
+def test__var(c):
+    assert workflow._var(c=c, varname="HGT", level=900) == Var("gh", "isobaricInhPa", 900)
+
+
+def test__varnames_and_levels(c):
+    assert list(workflow._varnames_and_levels(c=c)) == [
+        ("HGT", 900),
+        ("REFC", None),
+        ("SPFH", 900),
+        ("SPFH", 1000),
+        ("T2M", 2),
+    ]
+
+
+def test__vxvars(c):
+    assert workflow._vxvars(c=c) == {
+        Var("2t", "heightAboveGround", 2): "T2M",
+        Var("gh", "isobaricInhPa", 900): "HGT",
+        Var("q", "isobaricInhPa", 1000): "SPFH",
+        Var("q", "isobaricInhPa", 900): "SPFH",
+        Var("refc", "atmosphere"): "REFC",
+    }
 
 
 # Fixtures

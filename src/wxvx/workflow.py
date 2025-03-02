@@ -32,15 +32,16 @@ if TYPE_CHECKING:
 
 @tasks
 def plots(c: Config):
-    taskname = "Verification of %s" % c.forecast.path
-    reqs = [
-        _plot(c, varname, level)
-        for varname, attrs in c.variables.items()
-        for level in attrs.get("levels", [None])
-    ]
+    taskname = "Plots for %s" % c.forecast.path
     yield taskname
-    yield reqs
+    yield [_plot(c, varname, level) for varname, level in _varnames_and_levels(c)]
 
+
+# @tasks
+# def stats(c: Config):
+#     taskname = "Stats for %s" % c.forecast.path
+#     yield taskname
+#     _stat(c: Config, varname: str, tc: TimeCoords, var: Var, prefix: str, source: Source)
 
 # Private tasks
 
@@ -399,6 +400,14 @@ def _statargs(c: Config, varname: str, level: float | None, source: Source) -> I
 def _var(c: Config, varname: str, level: float | None) -> Var:
     m = _meta(c, varname)
     return Var(m.name, m.level_type, level)
+
+
+def _varnames_and_levels(c: Config) -> Iterator[tuple[str, float | None]]:
+    return iter(
+        (varname, level)
+        for varname, attrs in c.variables.items()
+        for level in attrs.get("levels", [None])
+    )
 
 
 @cache

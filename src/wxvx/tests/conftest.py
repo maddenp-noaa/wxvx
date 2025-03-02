@@ -37,7 +37,7 @@ def c(config_data, fakefs):
 
 
 @fixture
-def c_real(config_data, tmp_path):
+def c_real_fs(config_data, tmp_path):
     return Config({**config_data, "workdir": str(tmp_path)})
 
 
@@ -78,7 +78,7 @@ def config_data():
             },
             "SPFH": {
                 "level_type": "isobaricInhPa",
-                "levels": [900],
+                "levels": [900, 1000],
                 "standard_name": "q",
             },
             "T2M": {
