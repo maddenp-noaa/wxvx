@@ -42,7 +42,10 @@ class Var:
 
     def __repr__(self):
         keys = sorted(self._keys)
-        vals = [f"{k}='{v}'" for k, v in zip(keys, [getattr(self, key) for key in keys])]
+        vals = [
+            f"{k}='{v}'" if isinstance(v, str) else f"{k}={v}"
+            for k, v in zip(keys, [getattr(self, key) for key in keys])
+        ]
         return "%s(%s)" % (self.__class__.__name__, ", ".join(vals))
 
     def __str__(self):

@@ -40,7 +40,7 @@ def test_variables_Var_with_level(level, level_type):
     assert hash(var) == hash(("foo", level_type, level))
     assert var < variables.Var("qux", level_type, level)
     assert var > variables.Var("foo", level_type, level - 1)
-    assert repr(var) == "Var(level='%s', level_type='%s', name='foo')" % (level, level_type)
+    assert repr(var) == "Var(level=%s, level_type='%s', name='foo')" % (level, level_type)
     assert str(var) == "foo-%s-%04d" % (level_type, level)
 
 
