@@ -201,7 +201,7 @@ def test_workflow__reformat(c, fakefs, testvars):
     taskname = f"Reformatted stats {path}"
     with (
         patch.object(workflow, "_reformat_config", mock),
-        patch.object(workflow, "_stats", mock),
+        patch.object(workflow, "_stat_links", mock),
         patch.object(workflow, "mpexec", side_effect=lambda *_: path.touch()) as mpexec,
     ):
         rundir.mkdir(parents=True)
@@ -256,7 +256,7 @@ def test_workflow__stat(c, fakefs, tc):
     assert stat.is_file()
 
 
-def test_workflow__stats(c, fakefs):
+def test_workflow__stat_links(c, fakefs):
     target = fakefs / "target" / "a.stats"
 
     @external
@@ -268,7 +268,7 @@ def test_workflow__stats(c, fakefs):
     link = rundir / "a.stats"
     assert not link.exists()
     with patch.object(workflow, "_stat", mock):
-        workflow._stats(c=c, varname="T2M", level=2, rundir=rundir)
+        workflow._stat_links(c=c, varname="T2M", level=2, rundir=rundir)
     assert link.is_symlink()
     assert link.resolve() == target
 

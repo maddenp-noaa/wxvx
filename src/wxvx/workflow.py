@@ -288,7 +288,7 @@ def _reformat(c: Config, varname: str, level: float | None, rundir: Path):
     write_stat_ascii.py {refs(cfgfile).name} >reformat.log 2>&1
     """
     script = _runscript(basepath=path, content=content)
-    s = _stats(c, varname, level, rundir)
+    s = _stat_links(c, varname, level, rundir)
     yield [cfgfile, script, s]
     mpexec(str(refs(script)), rundir, taskname)
 
@@ -361,7 +361,7 @@ def _stat(c: Config, varname: str, tc: TimeCoords, var: Var, prefix: str, source
 
 
 @task
-def _stats(c: Config, varname: str, level: float | None, rundir: Path):
+def _stat_links(c: Config, varname: str, level: float | None, rundir: Path):
     taskname = "MET stats for %s " % _var(c, varname, level)
     yield taskname
     genreqs = lambda source: [_stat(*args) for args in _statargs(c, varname, level, source)]
