@@ -14,31 +14,30 @@ from iotaa import asset, external, ready, refs
 from pytest import fixture, mark
 
 from wxvx import util, variables, workflow
-from wxvx.times import TimeCoords
+from wxvx.times import TimeCoords, validtimes
 from wxvx.types import Source
 from wxvx.variables import Var
 
 # Task Tests
 
 
-def test_workflow_plots(c):
-    @external
-    def mock(*_args, **_kwargs):
-        yield "mock"
-        yield asset(None, lambda: False)
+def test_workflow_grids(c, noop):
+    with patch.object(workflow, "_grid_grib", noop), patch.object(workflow, "_grid_nc", noop):
+        val = workflow.grids(c=c)
+    n_validtimes = len(validtimes(c.cycles, c.leadtimes))
+    n_var_level_pairs = len(list(workflow._varnames_and_levels(c)))
+    n_grids_per_pair = 3  # forecast grid, baseline grid, comparision grid
+    assert len(refs(val)) == n_var_level_pairs * n_validtimes * n_grids_per_pair
 
-    with patch.object(workflow, "_plot", mock):
+
+def test_workflow_plots(c, noop):
+    with patch.object(workflow, "_plot", noop):
         val = workflow.plots(c=c)
     assert len(refs(val)) == len(c.variables) + 1  # for 2x SPFH levels
 
 
-def test_workflow_stats(c):
-    @external
-    def mock(*_args, **_kwargs):
-        yield "mock"
-        yield asset(None, lambda: False)
-
-    with patch.object(workflow, "_statreqs", return_value=[mock()]) as _statreqs:
+def test_workflow_stats(c, noop):
+    with patch.object(workflow, "_statreqs", return_value=[noop()]) as _statreqs:
         val = workflow.stats(c=c)
     assert len(refs(val)) == len(c.variables) + 1  # for 2x SPFH levels
 
@@ -356,6 +355,16 @@ def test__vxvars(c):
 
 
 # Fixtures
+
+
+@fixture
+def noop():
+    @external
+    def noop(*_args, **_kwargs):
+        yield "mock"
+        yield asset(None, lambda: False)
+
+    return noop
 
 
 @fixture

@@ -31,6 +31,23 @@ if TYPE_CHECKING:
 
 
 @tasks
+def grids(c: Config):
+    taskname = "Grids for %s" % c.forecast.path
+    yield taskname
+    reqs: list[Node] = []
+    for var, varname in _vxvars(c).items():
+        for tc in validtimes(c.cycles, c.leadtimes):
+            forecast_grid = _grid_nc(c, varname, tc, var)
+            reqs.append(forecast_grid)
+            baseline_grid = _grid_grib(c, TimeCoords(cycle=tc.validtime, leadtime=0), var)
+            reqs.append(baseline_grid)
+            if c.plot.baseline:
+                comp_grid = _grid_grib(c, tc, var)
+                reqs.append(comp_grid)
+    yield reqs
+
+
+@tasks
 def plots(c: Config):
     taskname = "Plots for %s" % c.forecast.path
     yield taskname
@@ -346,8 +363,7 @@ def _stat(c: Config, varname: str, tc: TimeCoords, var: Var, prefix: str, source
     yield asset(path, path.is_file)
     baseline = _grid_grib(c, TimeCoords(cycle=tc.validtime, leadtime=0), var)
     forecast_forecast = _grid_nc(c, varname, tc, var)
-    baseline_forecast = _grid_grib(c, tc, var)
-    vx_forecast = baseline_forecast if source == Source.BASELINE else forecast_forecast
+    vx_forecast = _grid_grib(c, tc, var) if source == Source.BASELINE else forecast_forecast
     cfgfile = _grid_stat_config(
         c, refs(forecast_forecast), path, varname, rundir, var, prefix, source
     )
@@ -422,7 +438,7 @@ def _varnames_and_levels(c: Config) -> Iterator[tuple[str, float | None]]:
 @cache
 def _vxvars(c: Config) -> dict[Var, str]:
     return {
-        Var(name=attrs["standard_name"], level_type=attrs["level_type"], level=level): varname
+        Var(attrs["standard_name"], attrs["level_type"], level): varname
         for varname, attrs in c.variables.items()
         for level in attrs.get("levels", [None])
     }
