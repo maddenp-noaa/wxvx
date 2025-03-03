@@ -12,7 +12,7 @@ from warnings import catch_warnings, simplefilter
 
 import xarray as xr
 import yaml
-from iotaa import asset, external, refs, task, tasks
+from iotaa import Node, asset, external, refs, task, tasks
 from uwtools.api.template import render
 
 from wxvx.net import fetch, status
@@ -22,7 +22,7 @@ from wxvx.util import mpexec, resource_path
 from wxvx.variables import VARMETA, HRRRVar, Var, da_construct, da_select, ds_from_da, metlevel
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator  # pragma: no cover
+    from collections.abc import Iterator, Sequence  # pragma: no cover
     from types import SimpleNamespace as ns  # pragma: no cover
 
     from wxvx.types import Config  # pragma: no cover
@@ -37,11 +37,15 @@ def plots(c: Config):
     yield [_plot(c, varname, level) for varname, level in _varnames_and_levels(c)]
 
 
-# @tasks
-# def stats(c: Config):
-#     taskname = "Stats for %s" % c.forecast.path
-#     yield taskname
-#     _stat(c: Config, varname: str, tc: TimeCoords, var: Var, prefix: str, source: Source)
+@tasks
+def stats(c: Config):
+    taskname = "Stats for %s" % c.forecast.path
+    yield taskname
+    reqs: list[Node] = []
+    for varname, level in _varnames_and_levels(c):
+        reqs.extend(_statreqs(c, varname, level))
+    yield reqs
+
 
 # Private tasks
 
@@ -364,10 +368,7 @@ def _stat(c: Config, varname: str, tc: TimeCoords, var: Var, prefix: str, source
 def _stat_links(c: Config, varname: str, level: float | None, rundir: Path):
     taskname = "MET stats for %s " % _var(c, varname, level)
     yield taskname
-    genreqs = lambda source: [_stat(*args) for args in _statargs(c, varname, level, source)]
-    reqs = genreqs(Source.FORECAST)
-    if c.plot.baseline:
-        reqs += genreqs(Source.BASELINE)
+    reqs = _statreqs(c, varname, level)
     files = [refs(x) for x in reqs]
     links = [rundir / x.name for x in files]
     yield [asset(link, link.is_symlink) for link in links]
@@ -395,6 +396,14 @@ def _statargs(c: Config, varname: str, level: float | None, source: Source) -> I
         if vn == varname and var.level == level
     ]
     return iter(sorted(args))
+
+
+def _statreqs(c: Config, varname: str, level: float | None) -> Sequence[Node]:
+    genreqs = lambda source: [_stat(*args) for args in _statargs(c, varname, level, source)]
+    reqs: Sequence[Node] = genreqs(Source.FORECAST)
+    if c.plot.baseline:
+        reqs = [*reqs, *genreqs(Source.BASELINE)]
+    return reqs
 
 
 def _var(c: Config, varname: str, level: float | None) -> Var:

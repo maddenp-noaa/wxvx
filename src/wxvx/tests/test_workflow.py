@@ -5,6 +5,7 @@ Tests for wxvx.workflow.
 from pathlib import Path
 from textwrap import dedent
 from threading import Event
+from types import SimpleNamespace as ns
 from unittest.mock import ANY, patch
 
 import xarray as xr
@@ -284,21 +285,39 @@ def test__meta(c):
     assert meta.level_type == "isobaricInhPa"
 
 
-def test__statargs(c, utc):
-    level = 900
-    level_type = "isobaricInhPa"
-    source = Source.FORECAST
-    tc = TimeCoords(utc(2025, 3, 2, 12))
-    var = Var("gh", level_type, level)
-    varname = "HGT"
+def test__statargs(c, statkit):
     with (
-        patch.object(workflow, "_vxvars", return_value={var: varname}),
-        patch.object(workflow, "validtimes", return_value=[tc]),
+        patch.object(workflow, "_vxvars", return_value={statkit.var: statkit.varname}),
+        patch.object(workflow, "validtimes", return_value=[statkit.tc]),
     ):
-        statargs = workflow._statargs(c=c, varname=varname, level=level, source=source)
+        statargs = workflow._statargs(
+            c=c, varname=statkit.varname, level=statkit.level, source=statkit.source
+        )
     assert list(statargs) == [
-        (c, varname, tc, var, f"forecast_gh_{level_type}_{level:04d}", source)
+        (c, statkit.varname, statkit.tc, statkit.var, statkit.prefix, statkit.source)
     ]
+
+
+def test__statreqs(c, statkit):
+    with (
+        patch.object(workflow, "_stat") as _stat,
+        patch.object(workflow, "_vxvars", return_value={statkit.var: statkit.varname}),
+        patch.object(workflow, "validtimes", return_value=[statkit.tc]),
+    ):
+        reqs = workflow._statreqs(c=c, varname=statkit.varname, level=statkit.level)
+    assert len(reqs) == 2
+    assert _stat.call_count == 2
+    args = (c, statkit.varname, statkit.tc, statkit.var)
+    assert _stat.call_args_list[0].args == (
+        *args,
+        f"forecast_gh_{statkit.level_type}_{statkit.level:04d}",
+        Source.FORECAST,
+    )
+    assert _stat.call_args_list[1].args == (
+        *args,
+        f"baseline_gh_{statkit.level_type}_{statkit.level:04d}",
+        Source.BASELINE,
+    )
 
 
 def test__var(c):
@@ -326,6 +345,21 @@ def test__vxvars(c):
 
 
 # Fixtures
+
+
+@fixture
+def statkit(utc):
+    level = 900
+    level_type = "isobaricInhPa"
+    return ns(
+        level=level,
+        level_type=level_type,
+        prefix=f"forecast_gh_{level_type}_{level:04d}",
+        source=Source.FORECAST,
+        tc=TimeCoords(utc(2025, 3, 2, 12)),
+        var=Var("gh", level_type, level),
+        varname="HGT",
+    )
 
 
 @fixture
