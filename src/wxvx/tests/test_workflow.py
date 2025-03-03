@@ -25,10 +25,21 @@ def test_workflow_plots(c):
     @external
     def mock(*_args, **_kwargs):
         yield "mock"
-        yield asset(Path("/some/file"), lambda: False)
+        yield asset(None, lambda: False)
 
     with patch.object(workflow, "_plot", mock):
         val = workflow.plots(c=c)
+    assert len(refs(val)) == len(c.variables) + 1  # for 2x SPFH levels
+
+
+def test_workflow_stats(c):
+    @external
+    def mock(*_args, **_kwargs):
+        yield "mock"
+        yield asset(None, lambda: False)
+
+    with patch.object(workflow, "_statreqs", return_value=[mock()]) as _statreqs:
+        val = workflow.stats(c=c)
     assert len(refs(val)) == len(c.variables) + 1  # for 2x SPFH levels
 
 
