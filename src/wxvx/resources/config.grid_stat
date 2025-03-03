@@ -3,6 +3,7 @@ fcst = {
     {
       name = "{{ forecast_name }}";
       level = [ "{{ forecast_level }}" ];
+      GRIB2_cntr = 7;
     }
   ];
 }
@@ -17,6 +18,7 @@ obs = {
     {
       name = "{{ baseline_name }}";
       level = [ "{{ baseline_level }}" ];
+      GRIB2_cntr = 7;
     }
   ];
 }

@@ -2,8 +2,10 @@
 Tests for wxvx.cli.
 """
 
+import logging
 import re
 from pathlib import Path
+from textwrap import dedent
 from unittest.mock import DEFAULT as D
 from unittest.mock import Mock, patch
 
@@ -18,18 +20,20 @@ from wxvx.util import pkgname, resource_path
 # Tests
 
 
-def test_cli_main(config_data, fs):
+@mark.parametrize("switch_c", ["-c", "--config"])
+@mark.parametrize("switch_t", ["-t", "--task"])
+def test_cli_main(config_data, fs, switch_c, switch_t):
     fs.add_real_file(resource_path("config.jsonschema"))
     fs.add_real_file(resource_path("info.json"))
     with patch.multiple(cli, workflow=D, sys=D, use_uwtools_logger=D) as mocks:
         cf = fs.create_file("/path/to/config.yaml", contents=yaml.safe_dump(config_data))
-        argv = [pkgname, "-c", cf.path]
+        argv = [pkgname, switch_c, cf.path, switch_t, "plots"]
         mocks["sys"].argv = argv
         with patch.object(cli, "_parse_args", wraps=cli._parse_args) as _parse_args:
             cli.main()
         _parse_args.assert_called_once_with(argv)
     mocks["use_uwtools_logger"].assert_called_once_with(verbose=False)
-    mocks["workflow"].verification.assert_called_once_with(Config(config_data), threads=4)
+    mocks["workflow"].plots.assert_called_once_with(Config(config_data), threads=4)
 
 
 def test_cli_main_bad_config(fs):
@@ -49,11 +53,44 @@ def test_cli_main_check_config(fs, switch):
     fs.add_real_file(resource_path("config.yaml"))
     fs.add_real_file(resource_path("info.json"))
     with (
-        patch.object(cli.sys, "argv", [pkgname, switch, "-c", str(resource_path("config.yaml"))]),
-        patch.object(cli.workflow, "verification") as verification,
+        patch.object(
+            cli.sys, "argv", [pkgname, switch, "-c", str(resource_path("config.yaml")), "-t", "foo"]
+        ),
+        patch.object(cli.workflow, "plots") as plots,
     ):
         cli.main()
-    verification.assert_not_called()
+    plots.assert_not_called()
+
+
+def test_cli_main_task_list(caplog):
+    caplog.set_level(logging.INFO)
+    with (
+        patch.object(cli.sys, "argv", [pkgname, "-c", str(resource_path("config.yaml"))]),
+        patch.object(cli, "use_uwtools_logger"),
+    ):
+        with raises(SystemExit) as e:
+            cli.main()
+        assert e.value.code == 0
+        expected = """
+        Available tasks:
+          plots
+        """
+        for line in dedent(expected).strip().split("\n"):
+            assert line in caplog.messages
+
+
+def test_cli_main_task_missing(caplog):
+    caplog.set_level(logging.INFO)
+    with (
+        patch.object(
+            cli.sys, "argv", [pkgname, "-c", str(resource_path("config.yaml")), "-t", "foo"]
+        ),
+        patch.object(cli, "use_uwtools_logger"),
+    ):
+        with raises(SystemExit) as e:
+            cli.main()
+        assert e.value.code == 1
+        assert "No such task: foo" in caplog.messages
 
 
 @mark.parametrize("c", ["-c", "--config"])

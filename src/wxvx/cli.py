@@ -1,8 +1,10 @@
 import json
+import logging
 import sys
 from argparse import Action, ArgumentParser, HelpFormatter, Namespace
 from pathlib import Path
 
+from iotaa import tasknames
 from uwtools.api.config import get_yaml_config, validate
 from uwtools.api.logging import use_uwtools_logger
 
@@ -16,12 +18,20 @@ from wxvx.util import pkgname, resource, resource_path
 def main() -> None:
     args = _parse_args(sys.argv)
     use_uwtools_logger(verbose=args.debug)
+    if not args.task:
+        logging.info("Available tasks:")
+        for taskname in tasknames(workflow):
+            logging.info("  %s", taskname)
+        sys.exit(0)
     config_data = get_yaml_config(args.config)
     config_data.dereference()
     if not validate(schema_file=resource_path("config.jsonschema"), config_data=config_data):
         sys.exit(1)
     if not args.check:
-        workflow.verification(Config(config_data.data), threads=config_data["threads"])
+        if not (task := getattr(workflow, args.task, None)):
+            logging.error("No such task: %s", args.task)
+            sys.exit(1)
+        task(Config(config_data.data), threads=config_data["threads"])
 
 
 # Private
@@ -41,6 +51,14 @@ def _parse_args(argv: list[str]) -> Namespace:
         metavar="FILE",
         required=True,
         type=Path,
+    )
+    required.add_argument(
+        "-t",
+        "--task",
+        help="Execute task (no argument => list available tasks)",
+        metavar="TASK",
+        nargs="?",
+        default=None,
     )
     optional = parser.add_argument_group("Optional arguments")
     optional.add_argument(

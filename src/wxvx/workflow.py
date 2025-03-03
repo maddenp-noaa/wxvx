@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from functools import cache
 from itertools import pairwise, product
 from pathlib import Path
 from stat import S_IEXEC
@@ -11,7 +12,7 @@ from warnings import catch_warnings, simplefilter
 
 import xarray as xr
 import yaml
-from iotaa import asset, external, refs, task, tasks
+from iotaa import Node, asset, external, refs, task, tasks
 from uwtools.api.template import render
 
 from wxvx.net import fetch, status
@@ -21,26 +22,65 @@ from wxvx.util import mpexec, resource_path
 from wxvx.variables import VARMETA, HRRRVar, Var, da_construct, da_select, ds_from_da, metlevel
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator  # pragma: no cover
+    from collections.abc import Iterator, Sequence  # pragma: no cover
     from types import SimpleNamespace as ns  # pragma: no cover
 
     from wxvx.types import Config  # pragma: no cover
 
+# Public tasks
+
+
+@tasks
+def grids(c: Config):
+    taskname = "Grids for %s" % c.forecast.path
+    yield taskname
+    reqs: list[Node] = []
+    for var, varname in _vxvars(c).items():
+        for tc in validtimes(c.cycles, c.leadtimes):
+            forecast_grid = _grid_nc(c, varname, tc, var)
+            reqs.append(forecast_grid)
+            baseline_grid = _grid_grib(c, TimeCoords(cycle=tc.validtime, leadtime=0), var)
+            reqs.append(baseline_grid)
+            if c.plot.baseline:
+                comp_grid = _grid_grib(c, tc, var)
+                reqs.append(comp_grid)
+    yield reqs
+
+
+@tasks
+def plots(c: Config):
+    taskname = "Plots for %s" % c.forecast.path
+    yield taskname
+    yield [_plot(c, varname, level) for varname, level in _varnames_and_levels(c)]
+
+
+@tasks
+def stats(c: Config):
+    taskname = "Stats for %s" % c.forecast.path
+    yield taskname
+    reqs: list[Node] = []
+    for varname, level in _varnames_and_levels(c):
+        reqs.extend(_statreqs(c, varname, level))
+    yield reqs
+
+
+# Private tasks
+
 
 @external
-def existing(path: Path):
+def _existing(path: Path):
     taskname = "Existing path %s" % path
     yield taskname
     yield asset(path, path.exists)
 
 
 @task
-def forecast_dataset(path: Path):
+def _forecast_dataset(path: Path):
     taskname = "Forecast dataset from %s" % path
-    ds = xr.Dataset()
     yield taskname
+    ds = xr.Dataset()
     yield asset(ds, lambda: bool(ds))
-    yield existing(path)
+    yield _existing(path)
     logging.info("%s: Opening forecast %s", taskname, path)
     with catch_warnings():
         simplefilter("ignore")
@@ -48,16 +88,17 @@ def forecast_dataset(path: Path):
 
 
 @task
-def grib_index_data(c: Config, outdir: Path, tc: TimeCoords, url: str):
+def _grib_index_data(c: Config, outdir: Path, tc: TimeCoords, url: str):
     yyyymmdd, hh, leadtime = tcinfo(tc)
     taskname = "GRIB index data %s %sZ %s" % (yyyymmdd, hh, leadtime)
-    idxdata: dict[str, HRRRVar] = {}
-    idxfile = grib_index_file(outdir, url)
     yield taskname
+    idxdata: dict[str, HRRRVar] = {}
     yield asset(idxdata, lambda: bool(idxdata))
+    idxfile = _grib_index_file(outdir, url)
     yield idxfile
     lines = refs(idxfile).read_text(encoding="utf-8").strip().split("\n")
     lines.append(":-1:::::")  # end marker
+    vxvars = set(_vxvars(c).keys())
     for this_record, next_record in pairwise([line.split(":") for line in lines]):
         hrrrvar = HRRRVar(
             name=this_record[3],
@@ -65,37 +106,37 @@ def grib_index_data(c: Config, outdir: Path, tc: TimeCoords, url: str):
             firstbyte=int(this_record[1]),
             lastbyte=int(next_record[1]) - 1,
         )
-        if hrrrvar in _vxvars(c).values():
+        if hrrrvar in vxvars:
             idxdata[str(hrrrvar)] = hrrrvar
 
 
 @task
-def grib_index_file(outdir: Path, url: str):
+def _grib_index_file(outdir: Path, url: str):
     path = outdir / Path(urlparse(url).path).name
     taskname = "GRIB index file %s" % path
     yield taskname
     yield asset(path, path.is_file)
-    yield grib_index_remote(url)
+    yield _grib_index_remote(url)
     fetch(taskname, url, path)
 
 
 @external
-def grib_index_remote(url: str):
+def _grib_index_remote(url: str):
     taskname = "GRIB index remote %s" % url
     yield taskname
     yield asset(url, lambda: status(url) == 200)
 
 
 @task
-def grid_grib(c: Config, tc: TimeCoords, var: Var):
+def _grid_grib(c: Config, tc: TimeCoords, var: Var):
     yyyymmdd, hh, leadtime = tcinfo(tc)
     outdir = c.workdir / "grids" / yyyymmdd / hh / leadtime
     path = outdir / f"{var}.grib2"
     taskname = "Baseline grid %s" % path
-    url = c.baseline.template.format(yyyymmdd=yyyymmdd, hh=hh, ff="%02d" % int(leadtime))
-    idxdata = grib_index_data(c, outdir, tc, url=f"{url}.idx")
     yield taskname
     yield asset(path, path.is_file)
+    url = c.baseline.template.format(yyyymmdd=yyyymmdd, hh=hh, ff="%02d" % int(leadtime))
+    idxdata = _grib_index_data(c, outdir, tc, url=f"{url}.idx")
     yield idxdata
     var_idxdata = refs(idxdata)[str(var)]
     fb, lb = var_idxdata.firstbyte, var_idxdata.lastbyte
@@ -104,13 +145,13 @@ def grid_grib(c: Config, tc: TimeCoords, var: Var):
 
 
 @task
-def grid_nc(c: Config, varname: str, tc: TimeCoords, var: Var):
+def _grid_nc(c: Config, varname: str, tc: TimeCoords, var: Var):
     yyyymmdd, hh, leadtime = tcinfo(tc)
     path = c.workdir / "grids" / yyyymmdd / hh / leadtime / f"{var}.nc"
     taskname = "Forecast grid %s" % path
-    fd = forecast_dataset(c.forecast.path)
     yield taskname
     yield asset(path, path.is_file)
+    fd = _forecast_dataset(c.forecast.path)
     yield fd
     src = da_select(refs(fd), c, varname, tc, var)
     da = da_construct(src)
@@ -121,7 +162,7 @@ def grid_nc(c: Config, varname: str, tc: TimeCoords, var: Var):
 
 
 @task
-def grid_stat_config(
+def _grid_stat_config(
     c: Config,
     poly_path: Path,
     basepath: Path,
@@ -166,24 +207,24 @@ def grid_stat_config(
 
 
 @task
-def plot(c: Config, varname: str, level: float | None):
+def _plot(c: Config, varname: str, level: float | None):
     var = _var(c, varname, level)
     rundir = c.workdir / "run" / "plot" / str(var)
     path = rundir / "plot.png"
     taskname = "Plot %s" % path
-    reformatted = reformat(c, varname, rundir)
-    stat_fn = refs(reformatted).name
-    cfgfile = plot_config(c, rundir, varname, var, plot_fn=path.name, stat_fn=stat_fn)
-    content = "line.py %s >%s 2>&1" % (refs(cfgfile).name, "plot.log")
-    script = runscript(basepath=path, content=content)
     yield taskname
     yield asset(path, path.is_file)
+    reformatted = _reformat(c, varname, level, rundir)
+    stat_fn = refs(reformatted).name
+    cfgfile = _plot_config(c, rundir, varname, var, plot_fn=path.name, stat_fn=stat_fn)
+    content = "line.py %s >%s 2>&1" % (refs(cfgfile).name, "plot.log")
+    script = _runscript(basepath=path, content=content)
     yield [cfgfile, reformatted, script]
     mpexec(str(refs(script)), rundir, taskname)
 
 
 @task
-def plot_config(c: Config, rundir: Path, varname: str, var: Var, plot_fn: str, stat_fn: str):
+def _plot_config(c: Config, rundir: Path, varname: str, var: Var, plot_fn: str, stat_fn: str):
     path = rundir / "plot.yaml"
     taskname = "Plot config %s" % path
     yield taskname
@@ -258,23 +299,23 @@ def plot_config(c: Config, rundir: Path, varname: str, var: Var, plot_fn: str, s
 
 
 @task
-def reformat(c: Config, varname: str, rundir: Path):
+def _reformat(c: Config, varname: str, level: float | None, rundir: Path):
     path = rundir / "reformat.data"
     taskname = "Reformatted stats %s" % path
-    cfgfile = reformat_config(rundir)
+    yield taskname
+    yield asset(path, path.is_file)
+    cfgfile = _reformat_config(rundir)
     content = f"""
     export PYTHONWARNINGS=ignore::FutureWarning
     write_stat_ascii.py {refs(cfgfile).name} >reformat.log 2>&1
     """
-    script = runscript(basepath=path, content=content)
-    yield taskname
-    yield asset(path, path.is_file)
-    yield [cfgfile, script, stats(c, varname, rundir)]
+    script = _runscript(basepath=path, content=content)
+    yield [cfgfile, script, _stat_links(c, varname, level, rundir)]
     mpexec(str(refs(script)), rundir, taskname)
 
 
 @task
-def reformat_config(rundir: Path):
+def _reformat_config(rundir: Path):
     path = rundir / "reformat.yaml"
     taskname = "Reformat config %s" % path
     yield taskname
@@ -296,7 +337,7 @@ def reformat_config(rundir: Path):
 
 
 @task
-def runscript(basepath: Path, content: str):
+def _runscript(basepath: Path, content: str):
     path = (basepath.parent / basepath.stem).with_suffix(".sh")
     yield "Runscript %s" % path
     yield asset(path, path.is_file)
@@ -309,20 +350,21 @@ def runscript(basepath: Path, content: str):
 
 
 @task
-def stat(c: Config, varname: str, tc: TimeCoords, var: Var, prefix: str, source: Source):
+def _stat(c: Config, varname: str, tc: TimeCoords, var: Var, prefix: str, source: Source):
     yyyymmdd, hh, leadtime = tcinfo(tc)
     srcname = {Source.BASELINE: "baseline", Source.FORECAST: "forecast"}[source]
     taskname = "MET stats for %s %s at %s %sZ %s" % (srcname, var, yyyymmdd, hh, leadtime)
+    yield taskname
     rundir = c.workdir / "run" / "stat" / yyyymmdd / hh / leadtime
     yyyymmdd_valid, hh_valid, _ = tcinfo(TimeCoords(tc.validtime))
     template = "grid_stat_%s_%02d0000L_%s_%s0000V.stat"
     fn = template % (prefix, int(leadtime), yyyymmdd_valid, hh_valid)
     path = rundir / fn
-    baseline = grid_grib(c, TimeCoords(cycle=tc.validtime, leadtime=0), var)
-    forecast_forecast = grid_nc(c, varname, tc, var)
-    baseline_forecast = grid_grib(c, tc, var)
-    vx_forecast = baseline_forecast if source == Source.BASELINE else forecast_forecast
-    cfgfile = grid_stat_config(
+    yield asset(path, path.is_file)
+    baseline = _grid_grib(c, TimeCoords(cycle=tc.validtime, leadtime=0), var)
+    forecast_forecast = _grid_nc(c, varname, tc, var)
+    vx_forecast = _grid_grib(c, tc, var) if source == Source.BASELINE else forecast_forecast
+    cfgfile = _grid_stat_config(
         c, refs(forecast_forecast), path, varname, rundir, var, prefix, source
     )
     log = f"{path.stem}.log"
@@ -330,26 +372,21 @@ def stat(c: Config, varname: str, tc: TimeCoords, var: Var, prefix: str, source:
     export OMP_NUM_THREADS=1
     grid_stat -v 4 {refs(vx_forecast)} {refs(baseline)} {refs(cfgfile).name} >{log} 2>&1
     """
-    script = runscript(basepath=path, content=content)
+    script = _runscript(basepath=path, content=content)
     reqs = [vx_forecast, baseline, cfgfile, script]
     if source == Source.BASELINE:
         reqs.append(forecast_forecast)
-    yield taskname
-    yield asset(path, path.is_file)
     yield reqs
     mpexec(str(refs(script)), rundir, taskname)
 
 
 @task
-def stats(c: Config, varname: str, rundir: Path):
-    taskname = "MET stats for %s" % varname
-    genreqs = lambda source: [stat(*args) for args in _statargs(c, varname, source)]
-    reqs = genreqs(Source.FORECAST)
-    if c.plot.baseline:
-        reqs += genreqs(Source.BASELINE)
+def _stat_links(c: Config, varname: str, level: float | None, rundir: Path):
+    taskname = "MET stats for %s " % _var(c, varname, level)
+    yield taskname
+    reqs = _statreqs(c, varname, level)
     files = [refs(x) for x in reqs]
     links = [rundir / x.name for x in files]
-    yield taskname
     yield [asset(link, link.is_symlink) for link in links]
     yield reqs
     for target, link in zip(files, links):
@@ -359,18 +396,6 @@ def stats(c: Config, varname: str, rundir: Path):
             link.symlink_to(target)
 
 
-@tasks
-def verification(c: Config):
-    taskname = "Verification of %s" % c.forecast.path
-    reqs = [
-        plot(c, varname, level)
-        for varname, attrs in c.variables.items()
-        for level in attrs.get("levels", [None])
-    ]
-    yield taskname
-    yield reqs
-
-
 # Support
 
 
@@ -378,15 +403,23 @@ def _meta(c: Config, varname: str) -> ns:
     return VARMETA[tuple(c.variables[varname][x] for x in ["standard_name", "level_type"])]
 
 
-def _statargs(c: Config, varname: str, source: Source) -> Iterator:
+def _statargs(c: Config, varname: str, level: float | None, source: Source) -> Iterator:
     name = (c.baseline if source == Source.BASELINE else c.forecast).name.lower()
     prefix = lambda var: "%s_%s" % (name, str(var).replace("-", "_"))
     args = [
-        (c, varname_, tc, var, prefix(var), source)
-        for (varname_, var), tc in product(_vxvars(c).items(), validtimes(c.cycles, c.leadtimes))
-        if varname_ == varname
+        (c, vn, tc, var, prefix(var), source)
+        for (var, vn), tc in product(_vxvars(c).items(), validtimes(c.cycles, c.leadtimes))
+        if vn == varname and var.level == level
     ]
-    return iter(args)
+    return iter(sorted(args))
+
+
+def _statreqs(c: Config, varname: str, level: float | None) -> Sequence[Node]:
+    genreqs = lambda source: [_stat(*args) for args in _statargs(c, varname, level, source)]
+    reqs: Sequence[Node] = genreqs(Source.FORECAST)
+    if c.plot.baseline:
+        reqs = [*reqs, *genreqs(Source.BASELINE)]
+    return reqs
 
 
 def _var(c: Config, varname: str, level: float | None) -> Var:
@@ -394,11 +427,18 @@ def _var(c: Config, varname: str, level: float | None) -> Var:
     return Var(m.name, m.level_type, level)
 
 
-def _vxvars(c: Config) -> dict[str, Var]:
-    vxvars = {}
-    for varname, attrs in c.variables.items():
-        for level in attrs.get("levels", [None]):
-            vxvars[varname] = Var(
-                name=attrs["standard_name"], level_type=attrs["level_type"], level=level
-            )
-    return vxvars
+def _varnames_and_levels(c: Config) -> Iterator[tuple[str, float | None]]:
+    return iter(
+        (varname, level)
+        for varname, attrs in c.variables.items()
+        for level in attrs.get("levels", [None])
+    )
+
+
+@cache
+def _vxvars(c: Config) -> dict[Var, str]:
+    return {
+        Var(attrs["standard_name"], attrs["level_type"], level): varname
+        for varname, attrs in c.variables.items()
+        for level in attrs.get("levels", [None])
+    }
