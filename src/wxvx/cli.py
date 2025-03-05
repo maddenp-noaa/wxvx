@@ -31,6 +31,7 @@ def main() -> None:
         if not (task := getattr(workflow, args.task, None)):
             logging.error("No such task: %s", args.task)
             sys.exit(1)
+        logging.info("Preparing to execute: %s", args.task)
         task(Config(config_data.data), threads=config_data["threads"])
 
 
