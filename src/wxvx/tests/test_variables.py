@@ -55,16 +55,21 @@ def test_variables_HRRRVar():
     assert variables.HRRRVar(name="TMP", levstr="surface", firstbyte=1, lastbyte=2)._keys == keys
 
 
+@mark.parametrize(("name", "expected"), [("t", "TMP"), ("2t", "TMP"), ("foo", variables.UNKNOWN)])
+def test_variables_HRRRVar_varname(name, expected):
+    assert variables.HRRRVar.varname(name=name) == expected
+
+
 @mark.parametrize(
     ("name", "level_type", "expected"),
     [
-        ("t", "isobaricInhPa", "TMP"),
-        ("2t", "heightAboveGround", "TMP"),
-        ("foo", "foolev", variables.UNKNOWN),
+        ("TMP", "isobaricInhPa", "t"),
+        ("TMP", "heightAboveGround", "2t"),
+        ("FOO", "suface", variables.UNKNOWN),
     ],
 )
-def test_variables_HRRRVar_varname(name, level_type, expected):
-    assert variables.HRRRVar.varname(name=name, level_type=level_type) == expected
+def test_variables_HRRRVar__canonicalize(name, level_type, expected):
+    assert variables.HRRRVar._canonicalize(name=name, level_type=level_type) == expected
 
 
 @mark.parametrize(
@@ -81,18 +86,6 @@ def test_variables_HRRRVar__levinfo(expected, levstr):
     assert variables.HRRRVar._levinfo(levstr) == expected
 
 
-@mark.parametrize(
-    ("name", "level_type", "expected"),
-    [
-        ("TMP", "isobaricInhPa", "t"),
-        ("TMP", "heightAboveGround", "2t"),
-        ("FOO", "suface", variables.UNKNOWN),
-    ],
-)
-def test_variables_HRRRVar__standard_name(name, level_type, expected):
-    assert variables.HRRRVar._standard_name(name=name, level_type=level_type) == expected
-
-
 def test_variables_da_construct(c, da, tc):
     var = variables.Var(name="gh", level_type="isobaricInhPa", level=900)
     selected = variables.da_select(ds=da.to_dataset(), c=c, varname="HGT", tc=tc, var=var)
@@ -104,11 +97,9 @@ def test_variables_da_construct(c, da, tc):
     assert new.forecast_reference_time == [np.datetime64(str(tc.cycle.isoformat()))]
 
 
-@mark.parametrize(
-    ("fail", "standard_name", "varname"), [(False, "gh", "HGT"), (True, "foo", "FOO")]
-)
-def test_variables_da_select(c, da, fail, standard_name, tc, varname):
-    var = variables.Var(name=standard_name, level_type="isobaricInhPa", level=900)
+@mark.parametrize(("fail", "name", "varname"), [(False, "gh", "HGT"), (True, "foo", "FOO")])
+def test_variables_da_select(c, da, fail, name, tc, varname):
+    var = variables.Var(name=name, level_type="isobaricInhPa", level=900)
     kwargs = dict(ds=da.to_dataset(), c=c, varname=varname, tc=tc, var=var)
     if fail:
         with raises(WXVXError) as e:

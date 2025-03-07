@@ -21,11 +21,10 @@ from wxvx.types import Source
 from wxvx.util import mpexec, resource_path
 from wxvx.variables import VARMETA, HRRRVar, Var, da_construct, da_select, ds_from_da, metlevel
 
-if TYPE_CHECKING:
-    from collections.abc import Iterator, Sequence  # pragma: no cover
-    from types import SimpleNamespace as ns  # pragma: no cover
+if TYPE_CHECKING:  # pragma: no cover
+    from collections.abc import Iterator, Sequence
 
-    from wxvx.types import Config  # pragma: no cover
+    from wxvx.types import Config, VarMeta
 
 # Public tasks
 
@@ -76,7 +75,7 @@ def _existing(path: Path):
 
 @task
 def _forecast_dataset(path: Path):
-    taskname = "Forecast dataset from %s" % path
+    taskname = "Forecast dataset %s" % path
     yield taskname
     ds = xr.Dataset()
     yield asset(ds, lambda: bool(ds))
@@ -130,12 +129,12 @@ def _grib_index_remote(url: str):
 @task
 def _grid_grib(c: Config, tc: TimeCoords, var: Var):
     yyyymmdd, hh, leadtime = tcinfo(tc)
-    outdir = c.workdir / "grids" / yyyymmdd / hh / leadtime
+    outdir = c.paths.grids / yyyymmdd / hh / leadtime
     path = outdir / f"{var}.grib2"
     taskname = "Baseline grid %s" % path
     yield taskname
     yield asset(path, path.is_file)
-    url = c.baseline.template.format(yyyymmdd=yyyymmdd, hh=hh, ff="%02d" % int(leadtime))
+    url = c.baseline.template.format(yyyymmdd, hh, ff="%02d" % int(leadtime))
     idxdata = _grib_index_data(c, outdir, tc, url=f"{url}.idx")
     yield idxdata
     var_idxdata = refs(idxdata)[str(var)]
@@ -147,7 +146,7 @@ def _grid_grib(c: Config, tc: TimeCoords, var: Var):
 @task
 def _grid_nc(c: Config, varname: str, tc: TimeCoords, var: Var):
     yyyymmdd, hh, leadtime = tcinfo(tc)
-    path = c.workdir / "grids" / yyyymmdd / hh / leadtime / f"{var}.nc"
+    path = c.paths.grids / yyyymmdd / hh / leadtime / f"{var}.nc"
     taskname = "Forecast grid %s" % path
     yield taskname
     yield asset(path, path.is_file)
@@ -179,8 +178,8 @@ def _grid_stat_config(
     yield None
     attrs = {
         Source.BASELINE: (
-            metlevel(level_type=var.level_type, level=var.level),
-            HRRRVar.varname(name=var.name, level_type=var.level_type),
+            metlevel(var.level_type, var.level),
+            HRRRVar.varname(var.name),
             c.baseline.name,
         ),
         Source.FORECAST: (
@@ -192,11 +191,13 @@ def _grid_stat_config(
     forecast_level, forecast_name, model = attrs[source]
     poly_level, poly_name, _ = attrs[Source.FORECAST]
     poly = r"%s {name = \"%s\"; level = \"%s\";}" % (poly_path, poly_name, poly_level)
+    meta = _meta(c, varname)
     values = {
-        "baseline_level": metlevel(level_type=var.level_type, level=var.level),
-        "baseline_name": HRRRVar.varname(name=var.name, level_type=var.level_type),
+        "baseline_level": metlevel(var.level_type, var.level),
+        "baseline_name": HRRRVar.varname(var.name),
         "forecast_level": forecast_level,
         "forecast_name": forecast_name,
+        "met_linetype": meta.met_linetype,
         "model": model,
         "obtype": c.baseline.name,
         "poly": poly,
@@ -209,7 +210,7 @@ def _grid_stat_config(
 @task
 def _plot(c: Config, varname: str, level: float | None):
     var = _var(c, varname, level)
-    rundir = c.workdir / "run" / "plot" / str(var)
+    rundir = c.paths.run / "plot" / str(var)
     path = rundir / "plot.png"
     taskname = "Plot %s" % path
     yield taskname
@@ -230,13 +231,14 @@ def _plot_config(c: Config, rundir: Path, varname: str, var: Var, plot_fn: str, 
     yield taskname
     yield asset(path, path.is_file)
     yield None
-    stat = "RMSE"
+    meta = _meta(c, varname)
+    stat = meta.met_stat
     vts = validtimes(c.cycles, c.leadtimes)
     x_axis_labels = [
         vt.validtime.strftime("%Y%m%d %HZ") if i % 10 == 0 else "" for i, vt in enumerate(vts)
     ]
     title = "%s %s vs %s" % (
-        _meta(c, varname).description.format(level=var.level),
+        meta.description.format(level=var.level),
         stat,
         c.baseline.name,
     )
@@ -249,9 +251,9 @@ def _plot_config(c: Config, rundir: Path, varname: str, var: Var, plot_fn: str, 
         indy_vals=[vt.validtime.strftime("%Y-%m-%d %H:%M:%S") for vt in vts],
         indy_var="fcst_init_beg",
         legend_box="n",
-        line_type="cnt",
         list_stat_1=[stat],
         log_level="DEBUG",
+        met_linetype=meta.met_linetype,
         plot_caption="",
         plot_ci=["none"],
         plot_disp=[True],
@@ -275,7 +277,7 @@ def _plot_config(c: Config, rundir: Path, varname: str, var: Var, plot_fn: str, 
     )
     if c.plot.baseline:
         update = dict(
-            fcst_var_val_2={HRRRVar.varname(var.name, var.level_type): [stat]},
+            fcst_var_val_2={HRRRVar.varname(var.name): [stat]},
             list_stat_2=[stat],
             series_val_2={"model": [c.baseline.name]},
         )
@@ -304,7 +306,7 @@ def _reformat(c: Config, varname: str, level: float | None, rundir: Path):
     taskname = "Reformatted stats %s" % path
     yield taskname
     yield asset(path, path.is_file)
-    cfgfile = _reformat_config(rundir)
+    cfgfile = _reformat_config(c, varname, rundir)
     content = f"""
     export PYTHONWARNINGS=ignore::FutureWarning
     write_stat_ascii.py {refs(cfgfile).name} >reformat.log 2>&1
@@ -315,16 +317,17 @@ def _reformat(c: Config, varname: str, level: float | None, rundir: Path):
 
 
 @task
-def _reformat_config(rundir: Path):
+def _reformat_config(c: Config, varname: str, rundir: Path):
     path = rundir / "reformat.yaml"
     taskname = "Reformat config %s" % path
     yield taskname
     yield asset(path, path.is_file)
     yield None
+    meta = _meta(c, varname)
     config = dict(
         input_data_dir=".",
         input_stats_aggregated=True,
-        line_type="CNT",
+        line_type=meta.met_linetype.upper(),
         log_directory=".",
         log_filename="/dev/stdout",
         log_level="debug",
@@ -355,7 +358,7 @@ def _stat(c: Config, varname: str, tc: TimeCoords, var: Var, prefix: str, source
     srcname = {Source.BASELINE: "baseline", Source.FORECAST: "forecast"}[source]
     taskname = "MET stats for %s %s at %s %sZ %s" % (srcname, var, yyyymmdd, hh, leadtime)
     yield taskname
-    rundir = c.workdir / "run" / "stat" / yyyymmdd / hh / leadtime
+    rundir = c.paths.run / "stats" / yyyymmdd / hh / leadtime
     yyyymmdd_valid, hh_valid, _ = tcinfo(TimeCoords(tc.validtime))
     template = "grid_stat_%s_%02d0000L_%s_%s0000V.stat"
     fn = template % (prefix, int(leadtime), yyyymmdd_valid, hh_valid)
@@ -399,8 +402,8 @@ def _stat_links(c: Config, varname: str, level: float | None, rundir: Path):
 # Support
 
 
-def _meta(c: Config, varname: str) -> ns:
-    return VARMETA[tuple(c.variables[varname][x] for x in ["standard_name", "level_type"])]
+def _meta(c: Config, varname: str) -> VarMeta:
+    return VARMETA[c.variables[varname]["name"]]
 
 
 def _statargs(c: Config, varname: str, level: float | None, source: Source) -> Iterator:
@@ -438,7 +441,7 @@ def _varnames_and_levels(c: Config) -> Iterator[tuple[str, float | None]]:
 @cache
 def _vxvars(c: Config) -> dict[Var, str]:
     return {
-        Var(attrs["standard_name"], attrs["level_type"], level): varname
+        Var(attrs["name"], attrs["level_type"], level): varname
         for varname, attrs in c.variables.items()
         for level in attrs.get("levels", [None])
     }

@@ -4,6 +4,9 @@ import json
 from dataclasses import dataclass
 from enum import Enum, auto
 from pathlib import Path
+from typing import Any
+
+Source = Enum("Source", [("BASELINE", auto()), ("FORECAST", auto())])
 
 
 @dataclass(frozen=True)
@@ -18,11 +21,11 @@ class Config:
         self.cycles = Cycles(**config_data["cycles"])
         self.forecast = Forecast(**config_data["forecast"])
         self.leadtimes = Leadtimes(**config_data["leadtimes"])
+        self.paths = Paths(**config_data["paths"])
         self.plot = Plot(**config_data["plot"])
         self.variables = config_data["variables"]
-        self.workdir = Path(config_data["workdir"])
 
-    KEYS = ("baseline", "cycles", "forecast", "leadtimes", "variables", "workdir")
+    KEYS = ("baseline", "cycles", "forecast", "leadtimes", "paths", "plot", "variables")
 
     def __eq__(self, other):
         return all(getattr(self, k) == getattr(other, k) for k in self.KEYS)
@@ -46,18 +49,13 @@ class Cycles:
     stop: str
 
 
+@dataclass(frozen=True)
 class Forecast:
-    def __init__(self, name: str, path: str):
-        self.name = name
-        self.path = Path(path)
+    name: str
+    path: Path
 
-    KEYS = ("name", "path")
-
-    def __eq__(self, other):
-        return all(getattr(self, k) == getattr(other, k) for k in self.KEYS)
-
-    def __hash__(self):
-        return hash(tuple(getattr(self, k) for k in self.KEYS))
+    def __post_init__(self):
+        force(self, "path", Path(self.path))
 
 
 @dataclass(frozen=True)
@@ -68,8 +66,40 @@ class Leadtimes:
 
 
 @dataclass(frozen=True)
+class Paths:
+    grids: Path
+    run: Path
+
+    def __post_init__(self):
+        force(self, "grids", Path(self.grids))
+        force(self, "run", Path(self.run))
+
+
+@dataclass(frozen=True)
 class Plot:
     baseline: bool
 
 
-Source = Enum("Source", [("BASELINE", auto()), ("FORECAST", auto())])
+@dataclass(frozen=True)
+class VarMeta:
+    cf_standard_name: str
+    description: str
+    level_type: str
+    met_linetype: str
+    met_stat: str
+    name: str
+    units: str
+
+    def __post_init__(self):
+        for val in vars(self):
+            assert val  # i.e. no empty strings
+        assert self.level_type in ["atmosphere", "heightAboveGround", "isobaricInhPa", "surface"]
+        assert self.met_linetype in ["cnt", "cts"]
+        assert self.met_stat in ["RMSE", "PODY"]
+
+
+# Helpers
+
+
+def force(obj: Any, name: str, val: Any) -> None:
+    object.__setattr__(obj, name, val)

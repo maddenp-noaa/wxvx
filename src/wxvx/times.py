@@ -6,8 +6,8 @@ from typing import TYPE_CHECKING, overload
 
 from wxvx.util import WXVXError
 
-if TYPE_CHECKING:
-    from wxvx.types import Cycles, Leadtimes  # pragma: no cover
+if TYPE_CHECKING:  # pragma: no cover
+    from wxvx.types import Cycles, Leadtimes
 
 # Public
 

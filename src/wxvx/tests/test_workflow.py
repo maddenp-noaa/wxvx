@@ -65,7 +65,7 @@ def test_workflow__grib_index_data(c, tc):
     2:1:d=2024040103:FOO:900 mb:anl:
     3:2:d=2024040103:TMP:900 mb:anl:
     """
-    idxfile = c.workdir / "hrrr.idx"
+    idxfile = c.paths.grids / "hrrr.idx"
     idxfile.write_text(dedent(gribidx).strip())
 
     @external
@@ -74,7 +74,7 @@ def test_workflow__grib_index_data(c, tc):
         yield asset(idxfile, idxfile.exists)
 
     with patch.object(workflow, "_grib_index_file", mock):
-        val = workflow._grib_index_data(c=c, outdir=c.workdir, tc=tc, url=c.baseline.template)
+        val = workflow._grib_index_data(c=c, outdir=c.paths.grids, tc=tc, url=c.baseline.template)
     assert refs(val) == {
         "gh-isobaricInhPa-0900": variables.HRRRVar(
             name="HGT", levstr="900 mb", firstbyte=0, lastbyte=0
@@ -85,13 +85,13 @@ def test_workflow__grib_index_data(c, tc):
 def test_workflow__grib_index_file(c):
     url = f"{c.baseline.template}.idx"
     with patch.object(workflow, "_grib_index_remote"):
-        val = workflow._grib_index_file(outdir=c.workdir, url=url)
+        val = workflow._grib_index_file(outdir=c.paths.grids, url=url)
         path: Path = refs(val)
         assert not path.exists()
         path.parent.mkdir(parents=True, exist_ok=True)
         with patch.object(workflow, "fetch") as fetch:
             fetch.side_effect = lambda taskname, url, path: path.touch()  # noqa: ARG005
-            workflow._grib_index_file(outdir=c.workdir, url=url)
+            workflow._grib_index_file(outdir=c.paths.grids, url=url)
         fetch.assert_called_once_with(ANY, url, path)
     assert path.exists()
 
@@ -135,9 +135,9 @@ def test_workflow__grid_grib(c, tc):
 
 def test_workflow__grid_nc(c_real_fs, check_cf_metadata, da, tc):
     var = variables.Var(name="gh", level_type="isobaricInhPa", level=900)
-    path = Path(c_real_fs.workdir, "a.nc")
+    path = Path(c_real_fs.paths.grids, "a.nc")
     da.to_netcdf(path)
-    c_real_fs.forecast.path = path
+    object.__setattr__(c_real_fs.forecast, "path", path)
     val = workflow._grid_nc(c=c_real_fs, varname="HGT", tc=tc, var=var)
     assert ready(val)
     assert check_cf_metadata(ds=xr.open_dataset(refs(val), decode_timedelta=True), name="HGT")
@@ -225,11 +225,11 @@ def test_workflow__reformat(c, fakefs, testvars):
     assert path.is_file()
 
 
-def test_workflow__reformat_config(fakefs):
-    val = workflow._reformat_config(rundir=fakefs, dry_run=True)
+def test_workflow__reformat_config(c, fakefs):
+    val = workflow._reformat_config(c=c, varname="HGT", rundir=fakefs, dry_run=True)
     assert not ready(val)
     assert not refs(val).is_file()
-    val = workflow._reformat_config(rundir=fakefs)
+    val = workflow._reformat_config(c, varname="HGT", rundir=fakefs)
     assert ready(val)
     assert refs(val).is_file()
 
@@ -249,7 +249,7 @@ def test_workflow__stat(c, fakefs, tc):
         yield "mock"
         yield asset(Path("/some/file"), lambda: True)
 
-    rundir = fakefs / "run" / "stat" / "19700101" / "00" / "000"
+    rundir = fakefs / "run" / "stats" / "19700101" / "00" / "000"
     taskname = "MET stats for baseline 2t-heightAboveGround-0002 at 19700101 00Z 000"
     var = variables.Var(name="2t", level_type="heightAboveGround", level=2)
     kwargs = dict(c=c, varname="T2M", tc=tc, var=var, prefix="foo", source=Source.BASELINE)
@@ -277,7 +277,7 @@ def test_workflow__stat_links(c, fakefs):
         yield "mock"
         yield asset(target, lambda: True)
 
-    rundir = c.workdir / "run" / "plot"
+    rundir = c.paths.run / "plot"
     link = rundir / "a.stats"
     assert not link.exists()
     with patch.object(workflow, "_stat", mock):
@@ -291,7 +291,7 @@ def test_workflow__stat_links(c, fakefs):
 
 def test__meta(c):
     meta = workflow._meta(c=c, varname="HGT")
-    assert meta.standard_name == "geopotential_height"
+    assert meta.cf_standard_name == "geopotential_height"
     assert meta.level_type == "isobaricInhPa"
 
 
@@ -385,6 +385,6 @@ def statkit(utc):
 @fixture
 def testvars():
     return {
-        name: variables.Var(name=standard_name, level_type="isobaricInhPa", level=900)
-        for name, standard_name in [("HGT", "gh"), ("TMP", "t")]
+        varname: variables.Var(name=name, level_type="isobaricInhPa", level=900)
+        for varname, name in [("HGT", "gh"), ("TMP", "t")]
     }

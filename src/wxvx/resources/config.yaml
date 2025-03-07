@@ -14,6 +14,10 @@ leadtimes:
   stop: "01:00:00"
 meta:
   levels: &levels [200, 300, 475, 800, 825, 850, 875, 900, 925, 950, 975, 1000]
+  workdir: /path/to/workdir
+paths:
+  grids: "{{ meta.workdir }}/grids"
+  run: "{{ meta.workdir }}/run"
 plot:
   baseline: true
 threads: 0
@@ -21,32 +25,31 @@ variables:
   HGT:
     level_type: isobaricInhPa
     levels: *levels
-    standard_name: gh
+    name: gh
   REFC:
     level_type: atmosphere
-    standard_name: refc
+    name: refc
   SPFH:
     level_type: isobaricInhPa
     levels: *levels
-    standard_name: q
+    name: q
   T2M:
     level_type: heightAboveGround
     levels: [2]
-    standard_name: 2t
+    name: 2t
   TMP:
     level_type: isobaricInhPa
     levels: *levels
-    standard_name: t
+    name: t
   UGRD:
     level_type: isobaricInhPa
     levels: *levels
-    standard_name: u
+    name: u
   VGRD:
     level_type: isobaricInhPa
     levels: *levels
-    standard_name: v
+    name: v
   VVEL:
     level_type: isobaricInhPa
     levels: *levels
-    standard_name: w
-workdir: /path/to/workdir/
+    name: w

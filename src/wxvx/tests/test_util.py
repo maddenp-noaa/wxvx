@@ -2,12 +2,29 @@
 Tests for wxvx.util.
 """
 
+import logging
 from pathlib import Path
 from unittest.mock import patch
+
+from pytest import raises
 
 from wxvx import util
 
 # Tests
+
+
+def test_fail(caplog):
+    caplog.set_level(logging.INFO)
+    with raises(SystemExit) as e:
+        util.fail()
+    assert not caplog.messages
+    with raises(SystemExit) as e:
+        util.fail("foo")
+    assert "foo" in caplog.messages
+    with raises(SystemExit) as e:
+        util.fail("foo %s", "bar")
+    assert "foo bar" in caplog.messages
+    assert e.value.code == 1
 
 
 def test_util_mpexec(tmp_path):

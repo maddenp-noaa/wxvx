@@ -90,6 +90,22 @@
     "meta": {
       "type": "object"
     },
+    "paths": {
+      "additionalProperties": false,
+      "properties": {
+        "grids": {
+          "type": "string"
+        },
+        "run": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "grids",
+        "run"
+      ],
+      "type": "object"
+    },
     "plot": {
       "additionalProperties": false,
       "properties": {
@@ -150,21 +166,18 @@
               },
               "type": "array"
             },
-            "standard_name": {
+            "name": {
               "type": "string"
             }
           },
           "required": [
             "level_type",
-            "standard_name"
+            "name"
           ],
           "type": "object"
         }
       },
       "type": "object"
-    },
-    "workdir": {
-      "type": "string"
     }
   },
   "required": [
@@ -172,10 +185,10 @@
     "cycles",
     "forecast",
     "leadtimes",
+    "paths",
     "plot",
     "threads",
-    "variables",
-    "workdir"
+    "variables"
   ],
   "type": "object"
 }

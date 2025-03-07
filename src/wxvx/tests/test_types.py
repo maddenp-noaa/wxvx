@@ -94,10 +94,11 @@ def test_Config(baseline, config_data, cycles, forecast, leadtimes, plot):
     assert obj.cycles == cycles
     assert obj.forecast == forecast
     assert obj.leadtimes == leadtimes
+    assert obj.paths.grids == Path(config_data["paths"]["grids"])
+    assert obj.paths.run == Path(config_data["paths"]["run"])
     assert obj.plot == plot
     assert obj.variables == config_data["variables"]
-    assert obj.workdir == Path(config_data["workdir"])
     other = types.Config(config_data=config_data)
     assert obj == other
-    other.workdir = Path("/other/path")
+    other.variables = {}
     assert obj != other

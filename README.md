@@ -74,6 +74,9 @@ The content of the YAML configuration file supplied via `-c` / `--config` is des
 │   step:            │   Interval between leadtimes as hh[:mm[:ss]] │
 │   stop:            │   Last leadtime as hh[:mm[:ss]]              │
 │ meta:              │ Optional free-form data section              │
+│ paths:             │ Paths                                        │
+│   grids:           │   Where to store netCDF/GRIB grids           │
+│   run:             │   Where to store run data                    │
 │ plot:              │ Plotting options                             │
 │   baseline         │   Plot baseline-model forecast               │
 │ threads:           │ Number of concurrent threads to use          │
@@ -81,8 +84,7 @@ The content of the YAML configuration file supplied via `-c` / `--config` is des
 │   VAR:             │   Forecast-dataset variable name             │
 │     level_type:    │     Generic level type                       │
 │     levels:        │     Sequence of level values                 │
-│     standard_name: │     Generic variable name                    │
-│ workdir:           │ Base directory for temporary files           │
+│     name:          │     Canonical variable name                  │
 └────────────────────┴──────────────────────────────────────────────┘
 ```
 

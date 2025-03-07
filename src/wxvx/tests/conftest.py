@@ -33,12 +33,18 @@ def check_cf_metadata() -> Callable:
 
 @fixture
 def c(config_data, fakefs):
-    return Config({**config_data, "workdir": str(fakefs)})
+    grids, run = [fakefs / x for x in ("grids", "run")]
+    grids.mkdir()
+    run.mkdir()
+    return Config({**config_data, "paths": {"grids": str(grids), "run": str(run)}})
 
 
 @fixture
 def c_real_fs(config_data, tmp_path):
-    return Config({**config_data, "workdir": str(tmp_path)})
+    grids, run = [tmp_path / x for x in ("grids", "run")]
+    grids.mkdir()
+    run.mkdir()
+    return Config({**config_data, "paths": {"grids": str(grids), "run": str(run)}})
 
 
 @fixture
@@ -62,6 +68,10 @@ def config_data():
             "step": "06:00:00",
             "stop": "12:00:00",
         },
+        "paths": {
+            "grids": "/path/to/grids",
+            "run": "/path/to/run",
+        },
         "plot": {
             "baseline": True,
         },
@@ -70,24 +80,23 @@ def config_data():
             "HGT": {
                 "level_type": "isobaricInhPa",
                 "levels": [900],
-                "standard_name": "gh",
+                "name": "gh",
             },
             "REFC": {
                 "level_type": "atmosphere",
-                "standard_name": "refc",
+                "name": "refc",
             },
             "SPFH": {
                 "level_type": "isobaricInhPa",
                 "levels": [900, 1000],
-                "standard_name": "q",
+                "name": "q",
             },
             "T2M": {
                 "level_type": "heightAboveGround",
                 "levels": [2],
-                "standard_name": "2t",
+                "name": "2t",
             },
         },
-        "workdir": "/path/to/workdir",
     }
 
 

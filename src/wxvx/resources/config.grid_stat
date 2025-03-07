@@ -1,9 +1,9 @@
 fcst = {
   field = [
     {
+      cat_thresh = [ >0 ];
       name = "{{ forecast_name }}";
       level = [ "{{ forecast_level }}" ];
-      GRIB2_cntr = 7;
     }
   ];
 }
@@ -16,15 +16,15 @@ nc_pairs_flag = FALSE;
 obs = {
   field = [
     {
+      cat_thresh = [ >0 ];
       name = "{{ baseline_name }}";
       level = [ "{{ baseline_level }}" ];
-      GRIB2_cntr = 7;
     }
   ];
 }
 obtype = "{{ obtype }}";
 output_flag = {
-  cnt = BOTH;
+  {{ met_linetype }} = BOTH;
 }
 output_prefix = "{{ prefix }}";
 regrid = {

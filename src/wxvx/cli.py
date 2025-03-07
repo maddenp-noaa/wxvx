@@ -10,7 +10,7 @@ from uwtools.api.logging import use_uwtools_logger
 
 from wxvx import workflow
 from wxvx.types import Config
-from wxvx.util import pkgname, resource, resource_path
+from wxvx.util import fail, pkgname, resource, resource_path
 
 # Public
 
@@ -26,11 +26,10 @@ def main() -> None:
     config_data = get_yaml_config(args.config)
     config_data.dereference()
     if not validate(schema_file=resource_path("config.jsonschema"), config_data=config_data):
-        sys.exit(1)
+        fail()
     if not args.check:
         if not (task := getattr(workflow, args.task, None)):
-            logging.error("No such task: %s", args.task)
-            sys.exit(1)
+            fail("No such task: %s", args.task)
         logging.info("Preparing to execute: %s", args.task)
         task(Config(config_data.data), threads=config_data["threads"])
 

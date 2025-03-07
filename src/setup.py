@@ -7,7 +7,7 @@ import os
 import re
 from pathlib import Path
 
-from setuptools import find_packages, setup
+from setuptools import find_packages, setup  # type: ignore[import-untyped]
 
 # Collect package metadata.
 

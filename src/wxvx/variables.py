@@ -2,18 +2,18 @@ from __future__ import annotations
 
 import logging
 import re
-from types import SimpleNamespace as ns
 from typing import TYPE_CHECKING
 
 import netCDF4  # noqa: F401 # import before xarray cf. https://github.com/pydata/xarray/issues/7259
 import numpy as np
 import xarray as xr
 
+from wxvx.types import VarMeta
 from wxvx.util import WXVXError
 
-if TYPE_CHECKING:
-    from wxvx.times import TimeCoords  # pragma: no cover
-    from wxvx.types import Config  # pragma: no cover
+if TYPE_CHECKING:  # pragma: no cover
+    from wxvx.times import TimeCoords
+    from wxvx.types import Config
 
 UNKNOWN = "unknown"
 
@@ -61,7 +61,7 @@ class HRRRVar(Var):
 
     def __init__(self, name: str, levstr: str, firstbyte: int, lastbyte: int):
         level_type, level = self._levinfo(levstr=levstr)
-        name = self._standard_name(name=name, level_type=level_type)
+        name = self._canonicalize(name=name, level_type=level_type)
         super().__init__(name=name, level_type=level_type, level=level)
         self.firstbyte: int = firstbyte
         self.lastbyte: int | None = lastbyte if lastbyte > -1 else None
@@ -72,16 +72,29 @@ class HRRRVar(Var):
         )
 
     @staticmethod
-    def varname(name: str, level_type: str) -> str:
+    def varname(name: str) -> str:
         return {
-            ("2t", "heightAboveGround"): "TMP",
-            ("gh", "isobaricInhPa"): "HGT",
-            ("q", "isobaricInhPa"): "SPFH",
-            ("refc", "atmosphere"): "REFC",
-            ("t", "isobaricInhPa"): "TMP",
-            ("u", "isobaricInhPa"): "UGRD",
-            ("v", "isobaricInhPa"): "VGRD",
-            ("w", "isobaricInhPa"): "VVEL",
+            "2t": "TMP",
+            "gh": "HGT",
+            "q": "SPFH",
+            "refc": "REFC",
+            "t": "TMP",
+            "u": "UGRD",
+            "v": "VGRD",
+            "w": "VVEL",
+        }.get(name, UNKNOWN)
+
+    @staticmethod
+    def _canonicalize(name: str, level_type: str) -> str:
+        return {
+            ("HGT", "isobaricInhPa"): "gh",
+            ("REFC", "atmosphere"): "refc",
+            ("SPFH", "isobaricInhPa"): "q",
+            ("TMP", "heightAboveGround"): "2t",
+            ("TMP", "isobaricInhPa"): "t",
+            ("UGRD", "isobaricInhPa"): "u",
+            ("VGRD", "isobaricInhPa"): "v",
+            ("VVEL", "isobaricInhPa"): "w",
         }.get((name, level_type), UNKNOWN)
 
     @staticmethod
@@ -95,19 +108,6 @@ class HRRRVar(Var):
         if m := re.match(r"^surface$", levstr):
             return ("surface", None)
         return (UNKNOWN, None)
-
-    @staticmethod
-    def _standard_name(name: str, level_type: str) -> str:
-        return {
-            ("HGT", "isobaricInhPa"): "gh",
-            ("REFC", "atmosphere"): "refc",
-            ("SPFH", "isobaricInhPa"): "q",
-            ("TMP", "heightAboveGround"): "2t",
-            ("TMP", "isobaricInhPa"): "t",
-            ("UGRD", "isobaricInhPa"): "u",
-            ("VGRD", "isobaricInhPa"): "v",
-            ("VVEL", "isobaricInhPa"): "w",
-        }.get((name, level_type), UNKNOWN)
 
 
 def da_construct(src: xr.DataArray) -> xr.DataArray:
@@ -151,10 +151,10 @@ def ds_from_da(c: Config, da: xr.DataArray, taskname: str) -> xr.Dataset:
         if hasattr(da, name):
             updates = {"standard_name": standard_name, "units": units}
             da[name].attrs.update(updates)
-    meta = VARMETA[tuple(c.variables[da.name][x] for x in ["standard_name", "level_type"])]
+    meta = VARMETA[c.variables[da.name]["name"]]
     updates = {
         "grid_mapping_name": "latitude_longitude",
-        "standard_name": meta.standard_name,
+        "standard_name": meta.cf_standard_name,
         "units": meta.units,
     }
     da.attrs.update(updates)
@@ -183,65 +183,79 @@ def _levelstr2num(levelstr: str) -> float | int:
 
 
 VARMETA = {
-    (name, levtype): ns(
-        name=name, level_type=levtype, standard_name=stdname, units=units, description=desc
-    )
-    for name, levtype, stdname, units, desc in [
-        (
-            "2t",
-            "heightAboveGround",
-            "air_temperature",
-            "K",
-            "2m Temperature",
+    x.name: x
+    for x in [
+        VarMeta(
+            cf_standard_name="air_temperature",
+            description="2m Temperature",
+            level_type="heightAboveGround",
+            met_linetype="cnt",
+            met_stat="RMSE",
+            name="2t",
+            units="K",
         ),
-        (
-            "gh",
-            "isobaricInhPa",
-            "geopotential_height",
-            "m",
-            "Geopotential Height at {level} mb",
+        VarMeta(
+            cf_standard_name="geopotential_height",
+            description="Geopotential Height at {level} mb",
+            level_type="isobaricInhPa",
+            met_linetype="cnt",
+            met_stat="RMSE",
+            name="gh",
+            units="m",
         ),
-        (
-            "q",
-            "isobaricInhPa",
-            "specific_humidity",
-            "1",
-            "Specific Humidity at {level} mb",
+        VarMeta(
+            cf_standard_name="specific_humidity",
+            description="Specific Humidity at {level} mb",
+            level_type="isobaricInhPa",
+            met_linetype="cnt",
+            met_stat="RMSE",
+            name="q",
+            units="1",
         ),
-        (
-            "refc",
-            "atmosphere",
-            "unknown",
-            "dBZ",
-            "Composite Reflectivity",
+        VarMeta(
+            cf_standard_name="unknown",
+            description="Composite Reflectivity",
+            level_type="atmosphere",
+            met_linetype="cts",
+            met_stat="PODY",
+            name="refc",
+            units="dBZ",
         ),
-        (
-            "t",
-            "isobaricInhPa",
-            "air_temperature",
-            "K",
-            "Temperature at {level} mb",
+        VarMeta(
+            cf_standard_name="air_temperature",
+            description="Temperature at {level} mb",
+            level_type="isobaricInhPa",
+            met_linetype="cnt",
+            met_stat="RMSE",
+            name="t",
+            units="K",
         ),
-        (
-            "u",
-            "isobaricInhPa",
-            "eastward_wind",
-            "m s-1",
-            "U-Component of Wind at {level} mb",
+        VarMeta(
+            cf_standard_name="eastward_wind",
+            description="U-Component of Wind at {level} mb",
+            level_type="isobaricInhPa",
+            met_linetype="cnt",
+            met_stat="RMSE",
+            name="u",
+            units="m s-1",
         ),
-        (
-            "v",
-            "isobaricInhPa",
-            "northward_wind",
-            "m s-1",
-            "V-Component of Wind at {level} mb",
+        VarMeta(
+            cf_standard_name="northward_wind",
+            description="V-Component of Wind at {level} mb",
+            level_type="isobaricInhPa",
+            met_linetype="cnt",
+            met_stat="RMSE",
+            name="v",
+            units="m s-1",
         ),
-        (
-            "w",
-            "isobaricInhPa",
-            "lagrangian_tendency_of_air_pressure",
-            "Pa s-1",
-            "Vertical Velocity at {level} mb",
+        VarMeta(
+            cf_standard_name="lagrangian_tendency_of_air_pressure",
+            description="Vertical Velocity at {level} mb",
+            level_type="isobaricInhPa",
+            met_linetype="cnt",
+            met_stat="RMSE",
+            name="w",
+            units="Pa s-1",
         ),
     ]
 }

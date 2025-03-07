@@ -1,16 +1,23 @@
 from __future__ import annotations
 
 import logging
+import sys
 from importlib import resources
 from multiprocessing import Process
 from pathlib import Path
 from subprocess import run
-from typing import cast
+from typing import NoReturn, cast
 
 pkgname = __name__.split(".", maxsplit=1)[0]
 
 
 class WXVXError(Exception): ...
+
+
+def fail(msg: str | None = None, *args) -> NoReturn:
+    if msg:
+        logging.error(msg, *args)
+    sys.exit(1)
 
 
 def mpexec(cmd: str, rundir: Path, taskname: str, env: dict | None = None) -> None:
