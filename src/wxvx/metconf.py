@@ -15,7 +15,7 @@ d = {
     #     "poly": [ "a.nc" ],
     # },
     "model": "GraphHRRRR",
-    # "nc_pairs_flag": "FALSE",
+    "nc_pairs_flag": "FALSE",
     # "obs": {
     #     "field": [
     #         {
@@ -80,6 +80,8 @@ def top(config: dict) -> str:
         match k:
             case "model" | "obtype" | "output_prefix" | "tmp_dir":
                 lines.append(pair(k, quoted(v), level))
+            case "nc_pairs_flag":
+                lines.append(pair(k, bare(v), level))
             case "output_flag":
                 lines.extend(mapping(k, output_flag(v, level + 1), level))
             case "regrid":
