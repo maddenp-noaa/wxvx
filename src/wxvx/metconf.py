@@ -10,10 +10,9 @@ d = {
     #         }
     #     ]
     # },
-    # "mask": {
-    #     "grid": [],
-    #     "poly": [ "a.nc" ],
-    # },
+    "mask": {
+        "poly": [ "a.nc" ],
+    },
     "model": "GraphHRRRR",
     "nc_pairs_flag": "FALSE",
     # "obs": {
@@ -54,6 +53,16 @@ def quoted(s: str) -> str:
 def mapping(k: str, v: list[str], level: int) -> list[str]:
     return [indent("%s = {" % k, level), *v, indent("}", level)]
 
+def mask(d: dict, level: int) -> list[str]:
+    lines = []
+    for k, v in sorted(d.items()):
+        match k:
+            case "poly":
+                lines.extend(sequence(k, v, level + 1))
+            case _:
+                fail(k)
+    return lines
+
 def output_flag(d: dict, level: int) -> list[str]:
     lines = []
     for k, v in sorted(d.items()):
@@ -74,12 +83,17 @@ def regrid(d: dict, level: int) -> list[str]:
                 fail(k)
     return lines
 
+def sequence(k: str, v: list, level: int) -> list[str]:
+    return [indent("%s = [" % k, level), *[indent(str(f"{x},"), level+1) for x in v], indent("]", level)]
+
 def top(config: dict) -> str:
     lines, level = [], 0
     for k, v in sorted(d.items()):
         match k:
             case "model" | "obtype" | "output_prefix" | "tmp_dir":
                 lines.append(pair(k, quoted(v), level))
+            case "mask":
+                lines.extend(mapping(k, mask(v, level + 1), level))
             case "nc_pairs_flag":
                 lines.append(pair(k, bare(v), level))
             case "output_flag":
