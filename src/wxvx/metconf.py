@@ -46,15 +46,11 @@ def sequence(k: str, v: list, handler: Callable, level: int) -> list[str]:
 # Item-specific:
 
 
-def fcst_or_obs(d: dict, level: int) -> list[str]:
-    lines = []
-    for k, v in sorted(d.items()):
-        match k:
-            case "field":
-                lines.extend(field_sequence(k, v, level))
-            case _:
-                fail(k)
-    return lines
+def fcst_or_obs(k: str, v: list[dict], level: int) -> list[str]:
+    match k:
+        case "field":
+            return field_sequence(k, v, level)
+    fail(k)
 
 
 def field_mapping(d: dict, level: int) -> str:
@@ -107,7 +103,7 @@ def render(config: dict) -> str:
     for k, v in sorted(config.items()):
         match k:
             case "fcst" | "obs":
-                lines.extend(mapping(k, fcst_or_obs(v, level + 1), level))
+                lines.extend(mapping(k, collect(fcst_or_obs, v, level + 1), level))
             case "model" | "obtype" | "output_prefix" | "tmp_dir":
                 lines.extend(kvpair(k, quoted(v), level))
             case "mask":
