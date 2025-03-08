@@ -1,29 +1,29 @@
-from typing import NoReturn
+from typing import Callable, NoReturn
 
 d = {
-    # "fcst": {
-    #     "field": [
-    #         {
-    #             "cat_thresh": [ ">0" ],
-    #             "name": "TMP",
-    #             "level": [ "Z2" ],
-    #         }
-    #     ]
-    # },
+    "fcst": {
+        "field": [
+            {
+                "cat_thresh": [">0"],
+                "name": "TMP",
+                "level": ["Z2"],
+            }
+        ]
+    },
     "mask": {
         "poly": ["a.nc"],
     },
     "model": "GraphHRRRR",
     "nc_pairs_flag": "FALSE",
-    # "obs": {
-    #     "field": [
-    #         {
-    #             "cat_thresh": [ ">0" ],
-    #             "name": "TMP",
-    #             "level": [ "Z2" ],
-    #         }
-    #     ]
-    # },
+    "obs": {
+        "field": [
+            {
+                "cat_thresh": [">0"],
+                "name": "TMP",
+                "level": ["Z2"],
+            }
+        ]
+    },
     "obtype": "HRRR",
     "output_flag": {"cnt": "BOTH"},
     "output_prefix": "foo_bar",
@@ -34,55 +34,78 @@ d = {
 # Generic:
 
 
-def bare(s: str) -> str:
-    return f"{s}"
+def bare(v: str) -> str:
+    return f"{v}"
 
 
 def fail(k: str) -> NoReturn:
-    raise ValueError(f"Unsupported key: {k}")
+    msg = f"Unsupported key: {k}"
+    raise ValueError(msg)
 
 
-def indent(s: str, level: int) -> str:
-    return "  " * level + s
+def indent(v: str, level: int) -> str:
+    return "  " * level + v
 
 
 def kvpair(k: str, v: str, level: int) -> str:
     return indent(f"{k} = {v};", level)
 
 
-def quoted(s: str) -> str:
-    return f'"{s}"'
+def quoted(v: str) -> str:
+    return f'"{v}"'
 
 
 def mapping(k: str, v: list[str], level: int) -> list[str]:
     return [indent("%s = {" % k, level), *v, indent("}", level)]
 
 
-def sequence(k: str, v: list, level: int) -> list[str]:
+def sequence(k: str, v: list, handler: Callable, level: int) -> list[str]:
     return [
         indent("%s = [" % k, level),
-        *",\n".join([indent(str(x), level + 1) for x in v]).split("\n"),
+        *",\n".join([indent(handler(x), level + 1) for x in v]).split("\n"),
         indent("];", level),
     ]
 
+
 # Item-specific:
+
 
 def fcst_or_obs(d: dict, level: int) -> list[str]:
     lines = []
     for k, v in sorted(d.items()):
         match k:
             case "field":
-                lines.extend(field_sequence(k, v, level + 1))
+                lines.extend(field_sequence(k, v, level))
             case _:
                 fail(k)
     return lines
 
 
-def field_sequence(k: str, v: list, level: int) -> list[str]:
+def field_mapping(d: dict, level: int) -> str:
+    lines = [indent("{", level), *field_mapping_kvpairs(d, level + 1), indent("}", level)]
+    return "\n".join(lines)
+
+
+def field_mapping_kvpairs(d: dict, level: int) -> list[str]:
+    lines = []
+    for k, v in sorted(d.items()):
+        match k:
+            case "cat_thresh":
+                lines.extend(sequence(k, v, bare, level))
+            case "level":
+                lines.extend(sequence(k, v, quoted, level))
+            case "name":
+                lines.append(kvpair(k, quoted(v), level))
+            case _:
+                fail(k)
+    return lines
+
+
+def field_sequence(k: str, v: list[dict], level: int) -> list[str]:
     return [
         indent("%s = [" % k, level),
-        *",\n".join([indent(str(x), level + 1) for x in v]).split("\n"),
-        indent("]", level),
+        *",\n".join([field_mapping(d, level + 1) for d in v]).split("\n"),
+        indent("];", level),
     ]
 
 
@@ -91,7 +114,7 @@ def mask(d: dict, level: int) -> list[str]:
     for k, v in sorted(d.items()):
         match k:
             case "poly":
-                lines.extend(sequence(k, v, level))
+                lines.extend(sequence(k, v, quoted, level))
             case _:
                 fail(k)
     return lines
@@ -118,11 +141,13 @@ def regrid(d: dict, level: int) -> list[str]:
                 fail(k)
     return lines
 
+
 # Top-level handler:
+
 
 def top(config: dict) -> str:
     lines, level = [], 0
-    for k, v in sorted(d.items()):
+    for k, v in sorted(config.items()):
         match k:
             case "fcst" | "obs":
                 lines.extend(mapping(k, fcst_or_obs(v, level + 1), level))
