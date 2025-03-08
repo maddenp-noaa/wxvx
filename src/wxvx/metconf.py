@@ -1,10 +1,17 @@
-from typing import Callable, NoReturn
+from typing import Any, Callable, NoReturn
 
 # Generic:
 
 
 def bare(v: str) -> str:
     return f"{v}"
+
+
+def collect(f: Callable, d: dict, level: int) -> list[str]:
+    lines = []
+    for k, v in sorted(d.items()):
+        lines.extend(f(k, v, level))
+    return lines
 
 
 def fail(k: str) -> NoReturn:
@@ -51,64 +58,45 @@ def fcst_or_obs(d: dict, level: int) -> list[str]:
 
 
 def field_mapping(d: dict, level: int) -> str:
-    lines = [indent("{", level), *field_mapping_kvpairs(d, level + 1), indent("}", level)]
+    lines = [indent("{", level), *collect(field_mapping_kvpairs, d, level + 1), indent("}", level)]
     return "\n".join(lines)
 
 
-def field_mapping_kvpairs(d: dict, level: int) -> list[str]:
-    lines = []
-    for k, v in sorted(d.items()):
-        match k:
-            case "cat_thresh":
-                lines.extend(sequence(k, v, bare, level))
-            case "level":
-                lines.extend(sequence(k, v, quoted, level))
-            case "name":
-                lines.extend(kvpair(k, quoted(v), level))
-            case _:
-                fail(k)
-    return lines
+def field_mapping_kvpairs(k: str, v: Any, level: int) -> list[str]:
+    match k:
+        case "cat_thresh":
+            return sequence(k, v, bare, level)
+        case "level":
+            return sequence(k, v, quoted, level)
+        case "name":
+            return kvpair(k, quoted(v), level)
+    fail(k)
 
 
 def field_sequence(k: str, v: list[dict], level: int) -> list[str]:
-    return [
-        indent("%s = [" % k, level),
-        *",\n".join([field_mapping(d, level + 1) for d in v]).split("\n"),
-        indent("];", level),
-    ]
+    mappings = ",\n".join([field_mapping(d, level + 1) for d in v]).split("\n")
+    return [indent("%s = [" % k, level), *mappings, indent("];", level)]
 
 
-def mask(d: dict, level: int) -> list[str]:
-    lines = []
-    for k, v in sorted(d.items()):
-        match k:
-            case "poly":
-                lines.extend(sequence(k, v, quoted, level))
-            case _:
-                fail(k)
-    return lines
+def mask(k: str, v: list, level: int) -> list[str]:
+    match k:
+        case "poly":
+            return sequence(k, v, quoted, level)
+    fail(k)
 
 
-def output_flag(d: dict, level: int) -> list[str]:
-    lines = []
-    for k, v in sorted(d.items()):
-        match k:
-            case "cnt" | "cts":
-                lines.extend(kvpair(k, bare(v), level))
-            case _:
-                fail(k)
-    return lines
+def output_flag(k: str, v: str, level: int) -> list[str]:
+    match k:
+        case "cnt" | "cts":
+            return kvpair(k, bare(v), level)
+    fail(k)
 
 
-def regrid(d: dict, level: int) -> list[str]:
-    lines = []
-    for k, v in sorted(d.items()):
-        match k:
-            case "to_grid":
-                lines.extend(kvpair(k, bare(v), level))
-            case _:
-                fail(k)
-    return lines
+def regrid(k: str, v: Any, level: int) -> list[str]:
+    match k:
+        case "to_grid":
+            return kvpair(k, bare(v), level)
+    fail(k)
 
 
 # Top-level handler:
@@ -123,13 +111,13 @@ def render(config: dict) -> str:
             case "model" | "obtype" | "output_prefix" | "tmp_dir":
                 lines.extend(kvpair(k, quoted(v), level))
             case "mask":
-                lines.extend(mapping(k, mask(v, level + 1), level))
+                lines.extend(mapping(k, collect(mask, v, level + 1), level))
             case "nc_pairs_flag":
                 lines.extend(kvpair(k, bare(v), level))
             case "output_flag":
-                lines.extend(mapping(k, output_flag(v, level + 1), level))
+                lines.extend(mapping(k, collect(output_flag, v, level + 1), level))
             case "regrid":
-                lines.extend(mapping(k, regrid(v, level + 1), level))
+                lines.extend(mapping(k, collect(regrid, v, level + 1), level))
             case _:
                 fail(k)
     return "\n".join(lines)
