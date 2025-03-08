@@ -20,12 +20,12 @@ def kvpair(k: str, v: str, level: int) -> list[str]:
     return [indent(f"{k} = {v};", level)]
 
 
-def quoted(v: str) -> str:
-    return f'"{v}"'
-
-
 def mapping(k: str, v: list[str], level: int) -> list[str]:
     return [indent("%s = {" % k, level), *v, indent("}", level)]
+
+
+def quoted(v: str) -> str:
+    return f'"{v}"'
 
 
 def sequence(k: str, v: list, handler: Callable, level: int) -> list[str]:
