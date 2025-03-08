@@ -20,7 +20,6 @@ paths:
   run: "{{ meta.workdir }}/run"
 plot:
   baseline: true
-threads: 0
 variables:
   HGT:
     level_type: isobaricInhPa

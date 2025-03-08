@@ -75,7 +75,6 @@ def config_data():
         "plot": {
             "baseline": True,
         },
-        "threads": 4,
         "variables": {
             "HGT": {
                 "level_type": "isobaricInhPa",
