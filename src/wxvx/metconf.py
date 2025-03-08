@@ -31,9 +31,11 @@ d = {
     "tmp_dir": "/path/to",
 }
 
+# Generic:
+
 
 def bare(s: str) -> str:
-    return f"{s};"
+    return f"{s}"
 
 
 def fail(k: str) -> NoReturn:
@@ -44,16 +46,44 @@ def indent(s: str, level: int) -> str:
     return "  " * level + s
 
 
-def pair(k: str, v: str, level: int) -> str:
-    return indent(f"{k} = {v}", level)
+def kvpair(k: str, v: str, level: int) -> str:
+    return indent(f"{k} = {v};", level)
 
 
 def quoted(s: str) -> str:
-    return f'"{s}";'
+    return f'"{s}"'
 
 
 def mapping(k: str, v: list[str], level: int) -> list[str]:
     return [indent("%s = {" % k, level), *v, indent("}", level)]
+
+
+def sequence(k: str, v: list, level: int) -> list[str]:
+    return [
+        indent("%s = [" % k, level),
+        *",\n".join([indent(str(x), level + 1) for x in v]).split("\n"),
+        indent("]", level),
+    ]
+
+# Item-specific:
+
+def fcst_or_obs(d: dict, level: int) -> list[str]:
+    lines = []
+    for k, v in sorted(d.items()):
+        match k:
+            case "field":
+                lines.extend(field_sequence(k, v, level + 1))
+            case _:
+                fail(k)
+    return lines
+
+
+def field_sequence(k: str, v: list, level: int) -> list[str]:
+    return [
+        indent("%s = [" % k, level),
+        *",\n".join([indent(str(x), level + 1) for x in v]).split("\n"),
+        indent("]", level),
+    ]
 
 
 def mask(d: dict, level: int) -> list[str]:
@@ -72,7 +102,7 @@ def output_flag(d: dict, level: int) -> list[str]:
     for k, v in sorted(d.items()):
         match k:
             case "cnt" | "cts":
-                lines.append(pair(k, bare(v), level))
+                lines.append(kvpair(k, bare(v), level))
             case _:
                 fail(k)
     return lines
@@ -83,30 +113,25 @@ def regrid(d: dict, level: int) -> list[str]:
     for k, v in sorted(d.items()):
         match k:
             case "to_grid":
-                lines.append(pair(k, bare(v), level))
+                lines.append(kvpair(k, bare(v), level))
             case _:
                 fail(k)
     return lines
 
-
-def sequence(k: str, v: list, level: int) -> list[str]:
-    return [
-        indent("%s = [" % k, level),
-        *[indent(str(f"{x},"), level + 1) for x in v],
-        indent("]", level),
-    ]
-
+# Top-level handler:
 
 def top(config: dict) -> str:
     lines, level = [], 0
     for k, v in sorted(d.items()):
         match k:
+            case "fcst" | "obs":
+                lines.extend(mapping(k, fcst_or_obs(v, level + 1), level))
             case "model" | "obtype" | "output_prefix" | "tmp_dir":
-                lines.append(pair(k, quoted(v), level))
+                lines.append(kvpair(k, quoted(v), level))
             case "mask":
                 lines.extend(mapping(k, mask(v, level + 1), level))
             case "nc_pairs_flag":
-                lines.append(pair(k, bare(v), level))
+                lines.append(kvpair(k, bare(v), level))
             case "output_flag":
                 lines.extend(mapping(k, output_flag(v, level + 1), level))
             case "regrid":
