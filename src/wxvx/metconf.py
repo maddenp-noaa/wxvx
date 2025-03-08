@@ -95,25 +95,27 @@ def regrid(k: str, v: Any, level: int) -> list[str]:
     fail(k)
 
 
-# Top-level handler:
+def top(k: str, v: Any, level: int) -> list[str]:
+    match k:
+        case "fcst" | "obs":
+            return mapping(k, collect(fcst_or_obs, v, level + 1), level)
+        case "model" | "obtype" | "output_prefix" | "tmp_dir":
+            return kvpair(k, quoted(v), level)
+        case "mask":
+            return mapping(k, collect(mask, v, level + 1), level)
+        case "nc_pairs_flag":
+            return kvpair(k, bare(v), level)
+        case "output_flag":
+            return mapping(k, collect(output_flag, v, level + 1), level)
+        case "regrid":
+            return mapping(k, collect(regrid, v, level + 1), level)
+    fail(k)
+
+
+# API:
 
 
 def render(config: dict) -> str:
-    lines, level = [], 0
-    for k, v in sorted(config.items()):
-        match k:
-            case "fcst" | "obs":
-                lines.extend(mapping(k, collect(fcst_or_obs, v, level + 1), level))
-            case "model" | "obtype" | "output_prefix" | "tmp_dir":
-                lines.extend(kvpair(k, quoted(v), level))
-            case "mask":
-                lines.extend(mapping(k, collect(mask, v, level + 1), level))
-            case "nc_pairs_flag":
-                lines.extend(kvpair(k, bare(v), level))
-            case "output_flag":
-                lines.extend(mapping(k, collect(output_flag, v, level + 1), level))
-            case "regrid":
-                lines.extend(mapping(k, collect(regrid, v, level + 1), level))
-            case _:
-                fail(k)
+    lines = []
+    lines.extend(collect(top, config, 0))
     return "\n".join(lines)
