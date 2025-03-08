@@ -130,4 +130,6 @@ def render(config: dict) -> str:
                 lines.extend(mapping(k, output_flag(v, level + 1), level))
             case "regrid":
                 lines.extend(mapping(k, regrid(v, level + 1), level))
+            case _:
+                fail(k)
     return "\n".join(lines)

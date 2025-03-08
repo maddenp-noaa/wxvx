@@ -1,3 +1,5 @@
+from pytest import raises
+
 from wxvx import metconf
 
 config = {
@@ -61,3 +63,8 @@ tmp_dir = "/path/to/dir";
 
 def test_metconf_render():
     assert metconf.render(config=config).strip() == expected.strip()
+
+
+def test_metconf_render_fail():
+    with raises(ValueError, match="Unsupported key: foo"):
+        metconf.render(config={"foo": "bar"})
