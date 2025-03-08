@@ -120,6 +120,4 @@ def _top(k: str, v: Any, level: int) -> list[str]:
 
 
 def render(config: dict) -> str:
-    lines = []
-    lines.extend(_collect(_top, config, 0))
-    return "\n".join(lines)
+    return "\n".join(_collect(_top, config, 0))
