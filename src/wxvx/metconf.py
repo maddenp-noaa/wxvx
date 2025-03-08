@@ -62,7 +62,7 @@ def sequence(k: str, v: list, level: int) -> list[str]:
     return [
         indent("%s = [" % k, level),
         *",\n".join([indent(str(x), level + 1) for x in v]).split("\n"),
-        indent("]", level),
+        indent("];", level),
     ]
 
 # Item-specific:
@@ -91,7 +91,7 @@ def mask(d: dict, level: int) -> list[str]:
     for k, v in sorted(d.items()):
         match k:
             case "poly":
-                lines.extend(sequence(k, v, level + 1))
+                lines.extend(sequence(k, v, level))
             case _:
                 fail(k)
     return lines
