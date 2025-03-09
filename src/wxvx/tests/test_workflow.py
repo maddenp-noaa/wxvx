@@ -13,7 +13,7 @@ import yaml
 from iotaa import asset, external, ready, refs
 from pytest import fixture, mark
 
-from wxvx import util, variables, workflow
+from wxvx import variables, workflow
 from wxvx.times import TimeCoords, validtimes
 from wxvx.types import Source
 from wxvx.variables import Var
@@ -143,8 +143,7 @@ def test_workflow__grid_nc(c_real_fs, check_cf_metadata, da, tc):
     assert check_cf_metadata(ds=xr.open_dataset(refs(val), decode_timedelta=True), name="HGT")
 
 
-def test_workflow__grid_stat_config(c, fakefs, fs):
-    fs.add_real_file(util.resource_path("config.grid_stat"))
+def test_workflow__grid_stat_config(c, fakefs):
     var = variables.Var(name="refc", level_type="atmosphere")
     basepath = fakefs / "refc.stat"
     kwargs = dict(
