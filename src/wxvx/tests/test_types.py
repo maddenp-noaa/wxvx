@@ -38,7 +38,7 @@ def plot(config_data):
 def test_Baseline(baseline, config_data):
     obj = baseline
     assert obj.name == "Baseline"
-    assert obj.template == "https://some.url/path/to/a.grib2"
+    assert obj.template == "https://some.url/{yyyymmdd}/{hh}/{ff}/a.grib2"
     other1 = types.Baseline(**config_data["baseline"])
     assert obj == other1
     other2 = types.Baseline(**{**config_data["baseline"], "name": "foo"})

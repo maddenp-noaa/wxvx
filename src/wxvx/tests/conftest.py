@@ -52,7 +52,7 @@ def config_data():
     return {
         "baseline": {
             "name": "Baseline",
-            "template": "https://some.url/path/to/a.grib2",
+            "template": "https://some.url/{yyyymmdd}/{hh}/{ff}/a.grib2",
         },
         "cycles": {
             "start": "2024-12-19T18:00:00",

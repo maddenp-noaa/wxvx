@@ -121,7 +121,7 @@ def test_workflow__grid_grib(c, tc):
         yield asset(idxdata, ready.is_set)
 
     var = variables.Var(name="t", level_type="isobaricInhPa", level=900)
-    with patch.object(workflow, "_grib_index_data", mock):
+    with patch.object(workflow, "_grib_index_data", wraps=mock) as _grib_index_data:
         val = workflow._grid_grib(c=c, tc=tc, var=var)
         path = refs(val)
         assert not path.exists()
@@ -131,6 +131,12 @@ def test_workflow__grid_grib(c, tc):
             path.parent.mkdir(parents=True, exist_ok=True)
             workflow._grid_grib(c=c, tc=tc, var=var)
         assert path.exists()
+    yyyymmdd = tc.yyyymmdd
+    hh = tc.hh
+    fh = int(tc.leadtime.total_seconds() // 3600)
+    outdir = c.paths.grids / tc.yyyymmdd / tc.hh / f"{fh:03d}"
+    url = f"https://some.url/{yyyymmdd}/{hh}/{fh:02d}/a.grib2.idx"
+    _grib_index_data.assert_called_with(c, outdir, tc, url=url)
 
 
 def test_workflow__grid_nc(c_real_fs, check_cf_metadata, da, tc):
