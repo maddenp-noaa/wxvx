@@ -118,9 +118,6 @@
       ],
       "type": "object"
     },
-    "threads": {
-      "type": "integer"
-    },
     "variables": {
       "patternProperties": {
         "^.*$": {
@@ -187,7 +184,6 @@
     "leadtimes",
     "paths",
     "plot",
-    "threads",
     "variables"
   ],
   "type": "object"

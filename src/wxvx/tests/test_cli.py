@@ -21,19 +21,20 @@ from wxvx.util import pkgname, resource_path
 
 
 @mark.parametrize("switch_c", ["-c", "--config"])
+@mark.parametrize("switch_n", ["-n", "--threads"])
 @mark.parametrize("switch_t", ["-t", "--task"])
-def test_cli_main(config_data, fs, switch_c, switch_t):
+def test_cli_main(config_data, fs, switch_c, switch_n, switch_t):
     fs.add_real_file(resource_path("config.jsonschema"))
     fs.add_real_file(resource_path("info.json"))
     with patch.multiple(cli, workflow=D, sys=D, use_uwtools_logger=D) as mocks:
         cf = fs.create_file("/path/to/config.yaml", contents=yaml.safe_dump(config_data))
-        argv = [pkgname, switch_c, cf.path, switch_t, "plots"]
+        argv = [pkgname, switch_c, cf.path, switch_n, "2", switch_t, "plots"]
         mocks["sys"].argv = argv
         with patch.object(cli, "_parse_args", wraps=cli._parse_args) as _parse_args:
             cli.main()
         _parse_args.assert_called_once_with(argv)
     mocks["use_uwtools_logger"].assert_called_once_with(verbose=False)
-    mocks["workflow"].plots.assert_called_once_with(Config(config_data), threads=4)
+    mocks["workflow"].plots.assert_called_once_with(Config(config_data), threads=2)
 
 
 def test_cli_main_bad_config(fs):
@@ -52,12 +53,8 @@ def test_cli_main_check_config(fs, switch):
     fs.add_real_file(resource_path("config.jsonschema"))
     fs.add_real_file(resource_path("config.yaml"))
     fs.add_real_file(resource_path("info.json"))
-    with (
-        patch.object(
-            cli.sys, "argv", [pkgname, switch, "-c", str(resource_path("config.yaml")), "-t", "foo"]
-        ),
-        patch.object(cli.workflow, "plots") as plots,
-    ):
+    argv = [pkgname, switch, "-c", str(resource_path("config.yaml")), "-t", "foo"]
+    with patch.object(cli.sys, "argv", argv), patch.object(cli.workflow, "plots") as plots:
         cli.main()
     plots.assert_not_called()
 
@@ -81,12 +78,8 @@ def test_cli_main_task_list(caplog):
 
 def test_cli_main_task_missing(caplog):
     caplog.set_level(logging.INFO)
-    with (
-        patch.object(
-            cli.sys, "argv", [pkgname, "-c", str(resource_path("config.yaml")), "-t", "foo"]
-        ),
-        patch.object(cli, "use_uwtools_logger"),
-    ):
+    argv = [pkgname, "-c", str(resource_path("config.yaml")), "-t", "foo"]
+    with patch.object(cli.sys, "argv", argv), patch.object(cli, "use_uwtools_logger"):
         with raises(SystemExit) as e:
             cli.main()
         assert e.value.code == 1
@@ -123,6 +116,14 @@ def test_cli__parse_args_required_arg_missing():
     with raises(SystemExit) as e:
         cli._parse_args([pkgname])
     assert e.value.code == 2
+
+
+@mark.parametrize("n", ["-n", "--threads"])
+def test_cli__parse_args_threads_bad(capsys, n):
+    with raises(SystemExit) as e:
+        cli._parse_args([pkgname, "-c", "a.yaml", n, "0"])
+    assert e.value.code == 1
+    assert capsys.readouterr().err.strip() == "Specify at least 1 thread"
 
 
 def test_cli__version():

@@ -28,7 +28,7 @@ The activated virtual environment includes the [`metkit`](https://github.com/mad
 
 ```
 $ wxvx --help
-usage: wxvx -c FILE [-t [TASK]] [-d] [-h] [-k] [-s] [-v]
+usage: wxvx -c FILE [-t [TASK]] [-d] [-h] [-k] [-n N] [-s] [-v]
 
 wxvx
 
@@ -45,6 +45,8 @@ Optional arguments:
       Show help and exit
   -k, --check
       Check config and exit
+  -n N, --threads N
+      Threads
   -s, --show
       Show a pro-forma config and exit
   -v, --version
@@ -79,7 +81,6 @@ The content of the YAML configuration file supplied via `-c` / `--config` is des
 │   run:             │   Where to store run data                    │
 │ plot:              │ Plotting options                             │
 │   baseline         │   Plot baseline-model forecast               │
-│ threads:           │ Number of concurrent threads to use          │
 │ variables:         │ Mapping describing variables to verify       │
 │   VAR:             │   Forecast-dataset variable name             │
 │     level_type:    │     Generic level type                       │

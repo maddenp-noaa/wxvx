@@ -8,7 +8,6 @@ fcst = {
   ];
 }
 mask = {
-  grid = [];
   poly = [ "{{ poly }}" ];
 }
 model = "{{ model }}";

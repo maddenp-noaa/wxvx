@@ -13,13 +13,13 @@ from warnings import catch_warnings, simplefilter
 import xarray as xr
 import yaml
 from iotaa import Node, asset, external, refs, task, tasks
-from uwtools.api.template import render
 
+from wxvx.metconf import render
 from wxvx.net import fetch, status
 from wxvx.times import TimeCoords, tcinfo, validtimes
 from wxvx.types import Source
-from wxvx.util import mpexec, resource_path
-from wxvx.variables import VARMETA, HRRRVar, Var, da_construct, da_select, ds_from_da, metlevel
+from wxvx.util import mpexec
+from wxvx.variables import HRRR, VARMETA, Var, da_construct, da_select, ds_from_da, metlevel
 
 if TYPE_CHECKING:  # pragma: no cover
     from collections.abc import Iterator, Sequence
@@ -91,7 +91,7 @@ def _grib_index_data(c: Config, outdir: Path, tc: TimeCoords, url: str):
     yyyymmdd, hh, leadtime = tcinfo(tc)
     taskname = "GRIB index data %s %sZ %s" % (yyyymmdd, hh, leadtime)
     yield taskname
-    idxdata: dict[str, HRRRVar] = {}
+    idxdata: dict[str, HRRR] = {}
     yield asset(idxdata, lambda: bool(idxdata))
     idxfile = _grib_index_file(outdir, url)
     yield idxfile
@@ -99,7 +99,7 @@ def _grib_index_data(c: Config, outdir: Path, tc: TimeCoords, url: str):
     lines.append(":-1:::::")  # end marker
     vxvars = set(_vxvars(c).keys())
     for this_record, next_record in pairwise([line.split(":") for line in lines]):
-        hrrrvar = HRRRVar(
+        hrrrvar = HRRR(
             name=this_record[3],
             levstr=this_record[4],
             firstbyte=int(this_record[1]),
@@ -179,7 +179,7 @@ def _grid_stat_config(
     attrs = {
         Source.BASELINE: (
             metlevel(var.level_type, var.level),
-            HRRRVar.varname(var.name),
+            HRRR.varname(var.name),
             c.baseline.name,
         ),
         Source.FORECAST: (
@@ -189,22 +189,29 @@ def _grid_stat_config(
         ),
     }
     forecast_level, forecast_name, model = attrs[source]
+    field_fcst = {"level": [forecast_level], "name": forecast_name}
+    field_obs = {"level": [metlevel(var.level_type, var.level)], "name": HRRR.varname(var.name)}
+    meta = _meta(c, varname)
+    if meta.met_linetype == "cts":
+        field_fcst["cat_thresh"] = [">0"]
+        field_obs["cat_thresh"] = [">0"]
     poly_level, poly_name, _ = attrs[Source.FORECAST]
     poly = r"%s {name = \"%s\"; level = \"%s\";}" % (poly_path, poly_name, poly_level)
-    meta = _meta(c, varname)
-    values = {
-        "baseline_level": metlevel(var.level_type, var.level),
-        "baseline_name": HRRRVar.varname(var.name),
-        "forecast_level": forecast_level,
-        "forecast_name": forecast_name,
-        "met_linetype": meta.met_linetype,
-        "model": model,
-        "obtype": c.baseline.name,
-        "poly": poly,
-        "prefix": f"{prefix}",
-        "tmpdir": rundir,
-    }
-    render(values_src=values, input_file=resource_path("config.grid_stat"), output_file=path)
+    config = render(
+        {
+            "fcst": {"field": [field_fcst]},
+            "mask": {"grid": [], "poly": [poly]},
+            "model": model,
+            "nc_pairs_flag": "FALSE",
+            "obs": {"field": [field_obs]},
+            "obtype": c.baseline.name,
+            "output_flag": {meta.met_linetype: "BOTH"},
+            "output_prefix": f"{prefix}",
+            "regrid": {"to_grid": "FCST"},
+            "tmp_dir": rundir,
+        }
+    )
+    path.write_text(f"{config}\n")
 
 
 @task
@@ -277,7 +284,7 @@ def _plot_config(c: Config, rundir: Path, varname: str, var: Var, plot_fn: str, 
     )
     if c.plot.baseline:
         update = dict(
-            fcst_var_val_2={HRRRVar.varname(var.name): [stat]},
+            fcst_var_val_2={HRRR.varname(var.name): [stat]},
             list_stat_2=[stat],
             series_val_2={"model": [c.baseline.name]},
         )

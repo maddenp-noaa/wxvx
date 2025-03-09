@@ -76,7 +76,7 @@ def test_workflow__grib_index_data(c, tc):
     with patch.object(workflow, "_grib_index_file", mock):
         val = workflow._grib_index_data(c=c, outdir=c.paths.grids, tc=tc, url=c.baseline.template)
     assert refs(val) == {
-        "gh-isobaricInhPa-0900": variables.HRRRVar(
+        "gh-isobaricInhPa-0900": variables.HRRR(
             name="HGT", levstr="900 mb", firstbyte=0, lastbyte=0
         )
     }
@@ -106,10 +106,10 @@ def test_workflow__grib_index_remote(c, code):
 
 def test_workflow__grid_grib(c, tc):
     idxdata = {
-        "gh-isobaricInhPa-0900": variables.HRRRVar(
+        "gh-isobaricInhPa-0900": variables.HRRR(
             name="HGT", levstr="900 mb", firstbyte=0, lastbyte=0
         ),
-        "t-isobaricInhPa-0900": variables.HRRRVar(
+        "t-isobaricInhPa-0900": variables.HRRR(
             name="TMP", levstr="900 mb", firstbyte=2, lastbyte=2
         ),
     }
@@ -145,13 +145,13 @@ def test_workflow__grid_nc(c_real_fs, check_cf_metadata, da, tc):
 
 def test_workflow__grid_stat_config(c, fakefs, fs):
     fs.add_real_file(util.resource_path("config.grid_stat"))
-    var = variables.Var(name="2t", level_type="heightAboveGround", level=2)
-    basepath = fakefs / "T2M.stat"
+    var = variables.Var(name="refc", level_type="atmosphere")
+    basepath = fakefs / "refc.stat"
     kwargs = dict(
         c=c,
         poly_path="/path/to/forecast.nc",
         basepath=basepath,
-        varname="T2M",
+        varname="REFC",
         rundir=fakefs,
         var=var,
         prefix="foo",

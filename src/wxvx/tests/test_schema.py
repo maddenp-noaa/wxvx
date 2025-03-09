@@ -29,7 +29,6 @@ def test_schema(logged, config_data, fs):
         "leadtimes",
         "paths",
         "plot",
-        "threads",
         "variables",
     ]:
         assert not ok(with_del(config, key))
@@ -41,10 +40,6 @@ def test_schema(logged, config_data, fs):
     for key in ["cycles", "leadtimes", "paths", "plot", "variables"]:
         assert not ok(with_set(config, None, key))
         assert logged("None is not of type 'object'")
-    # Some keys have integer values:
-    for key in ["threads"]:
-        assert not ok(with_set(config, None, key))
-        assert logged("None is not of type 'integer'")
 
 
 def test_schema_baseline(logged, config_data, fs):

@@ -44,20 +44,20 @@ def test_variables_Var_with_level(level, level_type):
     assert str(var) == "foo-%s-%04d" % (level_type, level)
 
 
-def test_variables_HRRRVar():
+def test_variables_HRRR():
     keys = {"name", "level_type", "firstbyte", "lastbyte"}
-    var = variables.HRRRVar(name="TMP", levstr="900 mb", firstbyte=1, lastbyte=2)
+    var = variables.HRRR(name="TMP", levstr="900 mb", firstbyte=1, lastbyte=2)
     assert var.level_type == "isobaricInhPa"
     assert var.level == 900
     assert var.firstbyte == 1
     assert var.lastbyte == 2
     assert var._keys == {*keys, "level"}
-    assert variables.HRRRVar(name="TMP", levstr="surface", firstbyte=1, lastbyte=2)._keys == keys
+    assert variables.HRRR(name="TMP", levstr="surface", firstbyte=1, lastbyte=2)._keys == keys
 
 
 @mark.parametrize(("name", "expected"), [("t", "TMP"), ("2t", "TMP"), ("foo", variables.UNKNOWN)])
-def test_variables_HRRRVar_varname(name, expected):
-    assert variables.HRRRVar.varname(name=name) == expected
+def test_variables_HRRR_varname(name, expected):
+    assert variables.HRRR.varname(name=name) == expected
 
 
 @mark.parametrize(
@@ -68,8 +68,8 @@ def test_variables_HRRRVar_varname(name, expected):
         ("FOO", "suface", variables.UNKNOWN),
     ],
 )
-def test_variables_HRRRVar__canonicalize(name, level_type, expected):
-    assert variables.HRRRVar._canonicalize(name=name, level_type=level_type) == expected
+def test_variables_HRRR__canonicalize(name, level_type, expected):
+    assert variables.HRRR._canonicalize(name=name, level_type=level_type) == expected
 
 
 @mark.parametrize(
@@ -82,8 +82,8 @@ def test_variables_HRRRVar__canonicalize(name, level_type, expected):
         ((variables.UNKNOWN, None), "something else"),
     ],
 )
-def test_variables_HRRRVar__levinfo(expected, levstr):
-    assert variables.HRRRVar._levinfo(levstr) == expected
+def test_variables_HRRR__levinfo(expected, levstr):
+    assert variables.HRRR._levinfo(levstr) == expected
 
 
 def test_variables_da_construct(c, da, tc):

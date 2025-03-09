@@ -31,7 +31,7 @@ def main() -> None:
         if not (task := getattr(workflow, args.task, None)):
             fail("No such task: %s", args.task)
         logging.info("Preparing to execute: %s", args.task)
-        task(Config(config_data.data), threads=config_data["threads"])
+        task(Config(config_data.data), threads=args.threads)
 
 
 # Private
@@ -80,6 +80,14 @@ def _parse_args(argv: list[str]) -> Namespace:
         help="Check config and exit",
     )
     optional.add_argument(
+        "-n",
+        "--threads",
+        help="Threads",
+        default=1,
+        metavar="N",
+        type=int,
+    )
+    optional.add_argument(
         "-s",
         "--show",
         action=ShowConfig,
@@ -93,7 +101,11 @@ def _parse_args(argv: list[str]) -> Namespace:
         help="Show version and exit",
         version=f"{Path(argv[0]).name} {_version()}",
     )
-    return parser.parse_args(argv[1:])
+    args = parser.parse_args(argv[1:])
+    if args.threads < 1:
+        print("Specify at least 1 thread", file=sys.stderr)
+        sys.exit(1)
+    return args
 
 
 def _version() -> str:

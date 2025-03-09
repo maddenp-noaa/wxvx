@@ -54,7 +54,7 @@ class Var:
         return "-".join(vals)
 
 
-class HRRRVar(Var):
+class HRRR(Var):
     """
     A HRRR variable.
     """
