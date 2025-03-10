@@ -153,7 +153,7 @@ def ds_from_da(c: Config, da: xr.DataArray, taskname: str) -> xr.Dataset:
             da[name].attrs.update(updates)
     meta = VARMETA[c.variables[da.name]["name"]]
     updates = {
-        "grid_mapping_name": "latitude_longitude",
+        "grid_mapping_name": c.forecast.projection,
         "standard_name": meta.cf_standard_name,
         "units": meta.units,
     }
