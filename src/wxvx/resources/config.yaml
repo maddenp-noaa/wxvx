@@ -6,8 +6,9 @@ cycles:
   step: "01:00:00"
   stop: "2024-04-07T23:00:00"
 forecast:
-  name: GraphHRRR
+  name: ResHRRR
   path: /path/to/forecast.zarr
+  projection: lambert_conformal_conic
 leadtimes:
   start: "01:00:00"
   step: "01:00:00"

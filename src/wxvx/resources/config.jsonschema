@@ -59,11 +59,18 @@
         },
         "path": {
           "type": "string"
+        },
+        "projection": {
+          "enum": [
+            "lambert_conformal_conic",
+            "latitude_longitude"
+          ]
         }
       },
       "required": [
         "name",
-        "path"
+        "path",
+        "projection"
       ],
       "type": "object"
     },

@@ -71,6 +71,7 @@ The content of the YAML configuration file supplied via `-c` / `--config` is des
 │ forecast:          │ Description of the forecast dataset          │
 │   name:            │   Dataset descriptive name                   │
 │   path:            │   Filesystem path to Zarr/netCDF dataset     │
+│   projection:      │   CF projection name                         │
 │ leadtimes:         │ Leadtimes to verify                          │
 │   start:           │   First leadtime as hh[:mm[:ss]]             │
 │   step:            │   Interval between leadtimes as hh[:mm[:ss]] │
