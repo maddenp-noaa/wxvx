@@ -211,6 +211,7 @@ def _grid_stat_config(
             "tmp_dir": rundir,
         }
     )
+    path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(f"{config}\n")
 
 
