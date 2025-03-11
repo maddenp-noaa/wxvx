@@ -121,14 +121,15 @@ def test_variables_ds_from_da(c, check_cf_metadata):
     name = "HGT"
     one = np.array([1], dtype="float32")
     da = xr.DataArray(
-        data=one.reshape((1, 1, 1, 1)),
+        data=one.reshape((1, 1, 1, 1, 1)),
         coords=dict(
             forecast_reference_time=np.array([0], dtype="datetime64[ns]"),
+            time=np.array([1], dtype="timedelta64[ns]"),
+            level=np.array([1], dtype="int64"),
             latitude=(["latitude", "longitude"], one.reshape((1, 1))),
             longitude=(["latitude", "longitude"], one.reshape((1, 1))),
-            time=np.array([1], dtype="timedelta64[ns]"),
         ),
-        dims=("forecast_reference_time", "time", "latitude", "longitude"),
+        dims=("forecast_reference_time", "time", "level", "latitude", "longitude"),
         name=name,
     )
     assert not check_cf_metadata(ds=da.to_dataset(), name=name)

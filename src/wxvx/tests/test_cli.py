@@ -7,7 +7,7 @@ import re
 from pathlib import Path
 from textwrap import dedent
 from unittest.mock import DEFAULT as D
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import yaml
 from pytest import mark, raises
@@ -37,14 +37,16 @@ def test_cli_main(config_data, fs, switch_c, switch_n, switch_t):
     mocks["workflow"].plots.assert_called_once_with(Config(config_data), threads=2)
 
 
-def test_cli_main_bad_config(fs):
-    resources_dir = resource_path("")
-    config_file = Path(fs.create_file(resources_dir / "test.yaml", contents="{}").path)
-    fs.add_real_file(resources_dir / "config.jsonschema")
-    with patch.multiple(cli, _parse_args=D, use_uwtools_logger=D) as mocks:
-        mocks["_parse_args"].return_value = Mock(debug=False, config=config_file)
-        with raises(SystemExit) as e:
-            cli.main()
+def test_cli_main_bad_config(fakefs, fs):
+    fs.add_real_file(resource_path("config.jsonschema"))
+    fs.add_real_file(resource_path("info.json"))
+    bad_config = fakefs / "config.yaml"
+    bad_config.write_text("{}")
+    with (
+        patch.object(cli.sys, "argv", [pkgname, "-c", str(bad_config), "-t", "grids"]),
+        raises(SystemExit) as e,
+    ):
+        cli.main()
     assert e.value.code == 1
 
 
@@ -53,10 +55,14 @@ def test_cli_main_check_config(fs, switch):
     fs.add_real_file(resource_path("config.jsonschema"))
     fs.add_real_file(resource_path("config.yaml"))
     fs.add_real_file(resource_path("info.json"))
-    argv = [pkgname, switch, "-c", str(resource_path("config.yaml")), "-t", "foo"]
-    with patch.object(cli.sys, "argv", argv), patch.object(cli.workflow, "plots") as plots:
+    argv = [pkgname, switch, "-c", str(resource_path("config.yaml")), "-t", "grids"]
+    with (
+        patch.object(cli.sys, "argv", argv),
+        patch.object(cli, "tasknames", return_value=["grids"]),
+        patch.object(cli.workflow, "grids") as grids,
+    ):
         cli.main()
-    plots.assert_not_called()
+    grids.assert_not_called()
 
 
 def test_cli_main_task_list(caplog):
