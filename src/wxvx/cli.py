@@ -33,13 +33,6 @@ def main() -> None:
         task(Config(config_data.data), threads=args.threads)
 
 
-def _show_tasks(code: int) -> NoReturn:
-    logging.info("Available tasks:")
-    for taskname in tasknames(workflow):
-        logging.info("  %s", taskname)
-    sys.exit(code)
-
-
 # Private
 
 
@@ -112,6 +105,13 @@ def _parse_args(argv: list[str]) -> Namespace:
         print("Specify at least 1 thread", file=sys.stderr)
         sys.exit(1)
     return args
+
+
+def _show_tasks(code: int) -> NoReturn:
+    logging.info("Available tasks:")
+    for taskname in tasknames(workflow):
+        logging.info("  %s", taskname)
+    sys.exit(code)
 
 
 def _version() -> str:
