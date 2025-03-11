@@ -118,7 +118,12 @@ This will create and activate a conda virtual environment named `DEV-wxvx`, wher
 
 When you are finished, type `exit` to return to your previous shell. The `DEV-wxvx` environment will still exist, and a future `make devshell` command will more-or-less instantly activate it again.
 
-## TODO
+## Recipe for Determining CF grid_mapping
 
-- Generalize for more baseline dataset types.
-- Support loading Zarr data remotely.
+``` python
+from pprint import pprint
+from pyproj import CRS
+import pygrib
+
+pprint(CRS(pygrib.open("a.grib2").message(1).projparams).to_cf())
+```
