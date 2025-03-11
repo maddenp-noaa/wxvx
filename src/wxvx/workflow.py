@@ -363,30 +363,27 @@ def _runscript(basepath: Path, content: str):
 @task
 def _stat(c: Config, varname: str, tc: TimeCoords, var: Var, prefix: str, source: Source):
     yyyymmdd, hh, leadtime = tcinfo(tc)
-    srcname = {Source.BASELINE: "baseline", Source.FORECAST: "forecast"}[source]
-    taskname = "MET stats for %s %s at %s %sZ %s" % (srcname, var, yyyymmdd, hh, leadtime)
+    source_name = {Source.BASELINE: "baseline", Source.FORECAST: "forecast"}[source]
+    taskname = "MET stats for %s %s at %s %sZ %s" % (source_name, var, yyyymmdd, hh, leadtime)
     yield taskname
     rundir = c.paths.run / "stats" / yyyymmdd / hh / leadtime
     yyyymmdd_valid, hh_valid, _ = tcinfo(TimeCoords(tc.validtime))
     template = "grid_stat_%s_%02d0000L_%s_%s0000V.stat"
-    fn = template % (prefix, int(leadtime), yyyymmdd_valid, hh_valid)
-    path = rundir / fn
+    path = rundir / (template % (prefix, int(leadtime), yyyymmdd_valid, hh_valid))
     yield asset(path, path.is_file)
     baseline = _grid_grib(c, TimeCoords(cycle=tc.validtime, leadtime=0), var)
-    forecast_forecast = _grid_nc(c, varname, tc, var)
-    vx_forecast = _grid_grib(c, tc, var) if source == Source.BASELINE else forecast_forecast
-    cfgfile = _grid_stat_config(
-        c, refs(forecast_forecast), path, varname, rundir, var, prefix, source
-    )
+    forecast = _grid_nc(c, varname, tc, var)
+    toverify = _grid_grib(c, tc, var) if source == Source.BASELINE else forecast
+    cfgfile = _grid_stat_config(c, refs(forecast), path, varname, rundir, var, prefix, source)
     log = f"{path.stem}.log"
     content = f"""
     export OMP_NUM_THREADS=1
-    grid_stat -v 4 {refs(vx_forecast)} {refs(baseline)} {refs(cfgfile).name} >{log} 2>&1
+    grid_stat -v 4 {refs(toverify)} {refs(baseline)} {refs(cfgfile).name} >{log} 2>&1
     """
     script = _runscript(basepath=path, content=content)
-    reqs = [vx_forecast, baseline, cfgfile, script]
+    reqs = [toverify, baseline, cfgfile, script]
     if source == Source.BASELINE:
-        reqs.append(forecast_forecast)
+        reqs.append(forecast)
     yield reqs
     mpexec(str(refs(script)), rundir, taskname)
 
