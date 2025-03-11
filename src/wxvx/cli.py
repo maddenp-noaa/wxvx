@@ -3,6 +3,7 @@ import logging
 import sys
 from argparse import Action, ArgumentParser, HelpFormatter, Namespace
 from pathlib import Path
+from typing import NoReturn
 
 from iotaa import tasknames
 from uwtools.api.config import get_yaml_config, validate
@@ -19,19 +20,24 @@ def main() -> None:
     args = _parse_args(sys.argv)
     use_uwtools_logger(verbose=args.debug)
     if not args.task:
-        logging.info("Available tasks:")
-        for taskname in tasknames(workflow):
-            logging.info("  %s", taskname)
-        sys.exit(0)
-    config_data = get_yaml_config(args.config)
-    config_data.dereference()
-    if not validate(schema_file=resource_path("config.jsonschema"), config_data=config_data):
-        fail()
+        _show_tasks(0)
     if not args.check:
-        if not (task := getattr(workflow, args.task, None)):
-            fail("No such task: %s", args.task)
+        if not args.task in tasknames(workflow):
+            logging.error("No such task: %s", args.task)
+            _show_tasks(1)
+        config_data = get_yaml_config(args.config)
+        config_data.dereference()
+        if not validate(schema_file=resource_path("config.jsonschema"), config_data=config_data):
+            fail()
         logging.info("Preparing to execute: %s", args.task)
         task(Config(config_data.data), threads=args.threads)
+
+
+def _show_tasks(code: int) -> NoReturn:
+    logging.info("Available tasks:")
+    for taskname in tasknames(workflow):
+        logging.info("  %s", taskname)
+    sys.exit(code)
 
 
 # Private
