@@ -20,16 +20,17 @@ def main() -> None:
     args = _parse_args(sys.argv)
     use_uwtools_logger(verbose=args.debug)
     if not args.task:
-        _show_tasks(0)
+        _show_tasks_and_exit(0)
+    if args.task not in tasknames(workflow):
+        logging.error("No such task: %s", args.task)
+        _show_tasks_and_exit(1)
+    config_data = get_yaml_config(args.config)
+    config_data.dereference()
+    if not validate(schema_file=resource_path("config.jsonschema"), config_data=config_data):
+        fail()
     if not args.check:
-        if not args.task in tasknames(workflow):
-            logging.error("No such task: %s", args.task)
-            _show_tasks(1)
-        config_data = get_yaml_config(args.config)
-        config_data.dereference()
-        if not validate(schema_file=resource_path("config.jsonschema"), config_data=config_data):
-            fail()
         logging.info("Preparing to execute: %s", args.task)
+        task = getattr(workflow, args.task)
         task(Config(config_data.data), threads=args.threads)
 
 
@@ -107,7 +108,7 @@ def _parse_args(argv: list[str]) -> Namespace:
     return args
 
 
-def _show_tasks(code: int) -> NoReturn:
+def _show_tasks_and_exit(code: int) -> NoReturn:
     logging.info("Available tasks:")
     for taskname in tasknames(workflow):
         logging.info("  %s", taskname)
