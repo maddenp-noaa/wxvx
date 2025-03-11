@@ -156,6 +156,7 @@ def ds_from_da(c: Config, da: xr.DataArray, taskname: str) -> xr.Dataset:
         "standard_name": meta.cf_standard_name,
         "units": meta.units,
     }
+    # if c.forecast.grid_mapping:
     da.attrs.update(updates)
     ds = da.to_dataset()
     ds.attrs["Conventions"] = "CF-1.8"

@@ -84,16 +84,12 @@ def test_schema_forecast(logged, config_data, fs):
     # Basic correctness:
     assert ok(config)
     # Certain top-level keys are required:
-    for key in ["name", "path", "projection"]:
+    for key in ["name", "path"]:
         assert not ok(with_del(config, key))
         assert logged(f"'{key}' is a required property")
     # Addional keys are not allowed:
     assert not ok(with_set(config, 42, "n"))
     assert logged("'n' was unexpected")
-    # Some keys have enum values:
-    for key in ["projection"]:
-        assert not ok(with_set(config, None, key))
-        assert logged("None is not one of")
     # Some keys have string values:
     for key in ["name", "path"]:
         assert not ok(with_set(config, None, key))

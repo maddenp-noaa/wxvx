@@ -53,7 +53,6 @@ class Cycles:
 class Forecast:
     name: str
     path: Path
-    projection: str
 
     def __post_init__(self):
         force(self, "path", Path(self.path))

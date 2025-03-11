@@ -62,7 +62,6 @@ def config_data():
         "forecast": {
             "name": "Forecast",
             "path": "/path/to/forecast",
-            "projection": "lambert_conformal_conic",
         },
         "leadtimes": {
             "start": "00:00:00",

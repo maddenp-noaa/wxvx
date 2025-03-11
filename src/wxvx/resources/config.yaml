@@ -8,7 +8,6 @@ cycles:
 forecast:
   name: ResHRRR
   path: /path/to/forecast.zarr
-  projection: lambert_conformal_conic
 leadtimes:
   start: "01:00:00"
   step: "01:00:00"

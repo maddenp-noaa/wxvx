@@ -61,7 +61,6 @@ def test_Forecast(config_data, forecast):
     assert hash(obj)
     assert obj.name == "Forecast"
     assert obj.path == Path("/path/to/forecast")
-    assert obj.projection == "lambert_conformal_conic"
     other1 = types.Forecast(**config_data["forecast"])
     assert obj == other1
     other2 = types.Forecast(**{**config_data["forecast"], "name": "foo"})
