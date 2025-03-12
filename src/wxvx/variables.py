@@ -140,28 +140,83 @@ def da_select(ds: xr.Dataset, c: Config, varname: str, tc: TimeCoords, var: Var)
 
 
 def ds_from_da(c: Config, da: xr.DataArray, taskname: str) -> xr.Dataset:
-    logging.info("%s: Setting CF metadata on %s", taskname, da.name)
-    da["forecast_reference_time"].attrs["standard_name"] = "forecast_reference_time"
-    da["grid_mapping"] = 0
-    da["grid_mapping"].attrs = {
-        "grid_mapping_name": "lambert_conformal_conic",
-        "standard_parallel": (38.5, 38.5),
-        "longitude_of_central_meridian": 262.5,
-        "latitude_of_projection_origin": 38.5,
-    }
-    da["time"].attrs["standard_name"] = "time"
-    da["latitude"].attrs.update({"standard_name": "latitude", "units": "degrees_north"})
-    da["longitude"].attrs.update({"standard_name": "longitude", "units": "degrees_east"})
-    if hasattr(da, "level"):
-        da["level"].attrs.update({"standard_name": "air_pressure", "units": "hPa"})
+    logging.info("%s: Creating CF-compliant %s dataset", taskname, da.name)
+    delta = 6000  # meters
     meta = VARMETA[c.variables[da.name]["name"]]
-    updates = {
-        "grid_mapping": "grid_mapping",
-        "standard_name": meta.cf_standard_name,
-        "units": meta.units,
-    }
-    da.attrs.update(updates)
-    ds = da.to_dataset()
+    d2 = xr.DataArray(
+        data=da.values,
+        coords=dict(
+            forecast_reference_time=xr.DataArray(
+                data=da.forecast_reference_time.values,
+                dims=["forecast_reference_time"],
+                name=da.forecast_reference_time.name,
+                attrs=dict(
+                    standard_name="forecast_reference_time",
+                ),
+            ),
+            time=xr.DataArray(
+                data=da.time.values,
+                dims=["time"],
+                name=da.time.name,
+                attrs=dict(
+                    standard_name="time",
+                ),
+            ),
+            latitude=xr.DataArray(
+                data=da.latitude.values,
+                dims=["y", "x"],
+                attrs=dict(
+                    standard_name="latitude",
+                    units="degrees_north",
+                ),
+            ),
+            longitude=xr.DataArray(
+                data=da.longitude.values,
+                dims=["y", "x"],
+                attrs=dict(
+                    standard_name="longitude",
+                    units="degrees_east",
+                ),
+            ),
+            y=xr.DataArray(
+                data=np.arange(0, delta * da.sizes["latitude"], delta, dtype="int64"),
+                dims=["y"],
+                attrs=dict(
+                    long_name="y coordinate of projection",
+                    standard_name="projection_y_coordinate",
+                    units="m",
+                    grid_spacing=float(delta),
+                ),
+            ),
+            x=xr.DataArray(
+                data=np.arange(0, delta * da.sizes["longitude"], delta, dtype="int64"),
+                dims=["x"],
+                attrs=dict(
+                    long_name="x coordinate of projection",
+                    standard_name="projection_x_coordinate",
+                    units="m",
+                    grid_spacing=float(delta),
+                ),
+            ),
+            grid_mapping=xr.DataArray(
+                attrs=dict(
+                    grid_mapping_name="lambert_conformal_conic",
+                    standard_parallel=(38.5, 38.5),
+                    longitude_of_central_meridian=262.5,
+                    latitude_of_projection_origin=38.5,
+                ),
+            ),
+        ),
+        dims=["forecast_reference_time", "time", "y", "x"],
+        name=da.name,
+        attrs=dict(
+            grid_mapping="grid_mapping", standard_name=meta.cf_standard_name, units=meta.units
+        ),
+    )
+    # PM deal with level
+    # if hasattr(d2, "level"):
+    #     d2["level"].attrs.update({"standard_name": "air_pressure", "units": "hPa"})
+    ds = d2.to_dataset()
     ds.attrs["Conventions"] = "CF-1.8"
     return ds
 
