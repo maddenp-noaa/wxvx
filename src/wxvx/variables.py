@@ -182,28 +182,24 @@ def ds_from_da(c: Config, da: xr.DataArray, taskname: str) -> xr.Dataset:
                 data=np.arange(0, delta * da.sizes["latitude"], delta, dtype="int64"),
                 dims=["y"],
                 attrs=dict(
-                    long_name="y coordinate of projection",
                     standard_name="projection_y_coordinate",
                     units="m",
-                    grid_spacing=float(delta),
                 ),
             ),
             x=xr.DataArray(
                 data=np.arange(0, delta * da.sizes["longitude"], delta, dtype="int64"),
                 dims=["x"],
                 attrs=dict(
-                    long_name="x coordinate of projection",
                     standard_name="projection_x_coordinate",
                     units="m",
-                    grid_spacing=float(delta),
                 ),
             ),
             grid_mapping=xr.DataArray(
                 attrs=dict(
                     grid_mapping_name="lambert_conformal_conic",
-                    standard_parallel=(38.5, 38.5),
-                    longitude_of_central_meridian=262.5,
                     latitude_of_projection_origin=38.5,
+                    longitude_of_central_meridian=262.5,
+                    standard_parallel=(38.5, 38.5),
                 ),
             ),
         ),
@@ -223,11 +219,7 @@ def ds_from_da(c: Config, da: xr.DataArray, taskname: str) -> xr.Dataset:
 
 def metlevel(level_type: str, level: float | None) -> str:
     try:
-        prefix = {
-            "atmosphere": "L",
-            "heightAboveGround": "Z",
-            "isobaricInhPa": "P",
-        }[level_type]
+        prefix = {"atmosphere": "L", "heightAboveGround": "Z", "isobaricInhPa": "P"}[level_type]
     except KeyError as e:
         raise WXVXError("No MET level defined for level type %s" % level_type) from e
     return f"{prefix}%03d" % int(level or 0)
