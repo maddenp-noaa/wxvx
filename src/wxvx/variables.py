@@ -142,6 +142,7 @@ def da_select(ds: xr.Dataset, c: Config, varname: str, tc: TimeCoords, var: Var)
 def ds_from_da(c: Config, da: xr.DataArray, taskname: str) -> xr.Dataset:
     logging.info("%s: Creating CF-compliant %s dataset", taskname, da.name)
     delta = 6000  # meters
+    yo, xo = [delta * da.sizes[k] / 2 for k in ("latitude", "longitude")]
     meta = VARMETA[c.variables[da.name]["name"]]
     d2 = xr.DataArray(
         data=da.values,
@@ -179,7 +180,7 @@ def ds_from_da(c: Config, da: xr.DataArray, taskname: str) -> xr.Dataset:
                 ),
             ),
             y=xr.DataArray(
-                data=np.arange(0, delta * da.sizes["latitude"], delta, dtype="int64"),
+                data=np.arange(-yo, yo, delta, dtype="int64"),
                 dims=["y"],
                 attrs=dict(
                     standard_name="projection_y_coordinate",
@@ -187,7 +188,7 @@ def ds_from_da(c: Config, da: xr.DataArray, taskname: str) -> xr.Dataset:
                 ),
             ),
             x=xr.DataArray(
-                data=np.arange(0, delta * da.sizes["longitude"], delta, dtype="int64"),
+                data=np.arange(-xo, xo, delta, dtype="int64"),
                 dims=["x"],
                 attrs=dict(
                     standard_name="projection_x_coordinate",
@@ -196,8 +197,6 @@ def ds_from_da(c: Config, da: xr.DataArray, taskname: str) -> xr.Dataset:
             ),
             grid_mapping=xr.DataArray(
                 attrs=dict(
-                    false_easting=2700000,
-                    false_northing=1590000,
                     grid_mapping_name="lambert_conformal_conic",
                     latitude_of_projection_origin=38.5,
                     longitude_of_central_meridian=262.5,
