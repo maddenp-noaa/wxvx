@@ -167,53 +167,35 @@ def ds_from_da(c: Config, da: xr.DataArray, taskname: str) -> xr.Dataset:
                 data=da.forecast_reference_time.values,
                 dims=["forecast_reference_time"],
                 name=da.forecast_reference_time.name,
-                attrs=dict(
-                    standard_name="forecast_reference_time",
-                ),
+                attrs=dict(standard_name="forecast_reference_time"),
             ),
             time=xr.DataArray(
                 data=da.time.values,
                 dims=["time"],
                 name=da.time.name,
-                attrs=dict(
-                    standard_name="time",
-                ),
+                attrs=dict(standard_name="time"),
             ),
             latitude=xr.DataArray(
                 data=da.latitude.values,
                 dims=["y", "x"],
-                attrs=dict(
-                    standard_name="latitude",
-                    units="degrees_north",
-                ),
+                attrs=dict(standard_name="latitude", units="degrees_north"),
             ),
             longitude=xr.DataArray(
                 data=da.longitude.values,
                 dims=["y", "x"],
-                attrs=dict(
-                    standard_name="longitude",
-                    units="degrees_east",
-                ),
+                attrs=dict(standard_name="longitude", units="degrees_east"),
             ),
             y=xr.DataArray(
                 data=np.arange(-yo, yo, delta, dtype="int64"),
                 dims=["y"],
-                attrs=dict(
-                    standard_name="projection_y_coordinate",
-                    units="m",
-                ),
+                attrs=dict(standard_name="projection_y_coordinate", units="m"),
             ),
             x=xr.DataArray(
                 data=np.arange(-xo, xo, delta, dtype="int64"),
                 dims=["x"],
-                attrs=dict(
-                    standard_name="projection_x_coordinate",
-                    units="m",
-                ),
+                attrs=dict(standard_name="projection_x_coordinate", units="m"),
             ),
-            grid_mapping=xr.DataArray(
-                attrs=p.crs.to_cf(),
-            ),
+            grid_mapping=xr.DataArray(attrs=p.crs.to_cf()),
         ),
         dims=["forecast_reference_time", "time", "y", "x"],
         name=da.name,
