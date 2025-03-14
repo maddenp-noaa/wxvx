@@ -156,6 +156,15 @@ def ds_from_da(c: Config, da: xr.DataArray, taskname: str) -> xr.Dataset:
         x_0=0,
         y_0=0,
     )
+    cf_keys = [
+        "false_easting",
+        "false_northing",
+        "grid_mapping_name",
+        "latitude_of_projection_origin",
+        "longitude_of_central_meridian",
+        "standard_parallel",
+    ]
+    cf_attrs = {k: v for k, v in p.crs.to_cf().items() if k in cf_keys}
     delta = dist(*[p(da.longitude.values[n][0], da.latitude.values[n][0]) for n in (0, 1)])
     yo, xo = [delta * da.sizes[k] / 2 for k in ("latitude", "longitude")]
     meta = VARMETA[c.variables[da.name]["name"]]
@@ -194,7 +203,7 @@ def ds_from_da(c: Config, da: xr.DataArray, taskname: str) -> xr.Dataset:
                 dims=["x"],
                 attrs=dict(standard_name="projection_x_coordinate", units="m"),
             ),
-            grid_mapping=xr.DataArray(attrs=p.crs.to_cf()),
+            grid_mapping=xr.DataArray(attrs=cf_attrs),
         ),
         dims=["forecast_reference_time", "time", "y", "x"],
         name=da.name,
