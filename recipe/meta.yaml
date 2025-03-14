@@ -19,6 +19,7 @@ requirements:
     - iotaa >=1.1.2
     - metkit 11.0.*
     - netcdf4 >=1.7,<2
+    - pyproj 3.7.*
     - python >={{ pymin }}
     - pyyaml 6.*
     - requests >=2.32,<3

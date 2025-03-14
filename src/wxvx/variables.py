@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import logging
 import re
+from math import dist
 from typing import TYPE_CHECKING
 
 import netCDF4  # noqa: F401 # import before xarray cf. https://github.com/pydata/xarray/issues/7259
 import numpy as np
 import xarray as xr
+from pyproj import Proj
 
 from wxvx.types import VarMeta
 from wxvx.util import WXVXError
@@ -141,7 +143,22 @@ def da_select(ds: xr.Dataset, c: Config, varname: str, tc: TimeCoords, var: Var)
 
 def ds_from_da(c: Config, da: xr.DataArray, taskname: str) -> xr.Dataset:
     logging.info("%s: Creating CF-compliant %s dataset", taskname, da.name)
-    delta = 6000  # meters
+    p = Proj(
+        proj="lcc",
+        lat_0=38.5,
+        lon_0=262.5,
+        lat_1=38.5,
+        lat_2=38.5,
+        x_0=0,
+        y_0=0,
+        R=6371200,
+        datum="WGS84",
+        units="m",
+        no_defs=True,
+    )
+    p0 = p(longitude=da.longitude.values[0][0], latitude=da.latitude.values[0][0])
+    p1 = p(longitude=da.longitude.values[1][0], latitude=da.latitude.values[1][0])
+    delta = dist(p0, p1)
     yo, xo = [delta * da.sizes[k] / 2 for k in ("latitude", "longitude")]
     meta = VARMETA[c.variables[da.name]["name"]]
     d2 = xr.DataArray(
