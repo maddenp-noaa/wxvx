@@ -212,12 +212,7 @@ def ds_from_da(c: Config, da: xr.DataArray, taskname: str) -> xr.Dataset:
                 ),
             ),
             grid_mapping=xr.DataArray(
-                attrs=dict(
-                    grid_mapping_name="lambert_conformal_conic",
-                    latitude_of_projection_origin=38.5,
-                    longitude_of_central_meridian=262.5,
-                    standard_parallel=(38.5, 38.5),
-                ),
+                attrs=p.crs.to_cf(),
             ),
         ),
         dims=["forecast_reference_time", "time", "y", "x"],
