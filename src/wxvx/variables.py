@@ -144,20 +144,19 @@ def da_select(ds: xr.Dataset, c: Config, varname: str, tc: TimeCoords, var: Var)
 def ds_from_da(c: Config, da: xr.DataArray, taskname: str) -> xr.Dataset:
     logging.info("%s: Creating CF-compliant %s dataset", taskname, da.name)
     p = Proj(
-        proj="lcc",
-        lat_0=38.5,
-        lon_0=262.5,
-        lat_1=38.5,
-        lat_2=38.5,
-        x_0=0,
-        y_0=0,
         R=6371200,
         datum="WGS84",
-        units="m",
+        lat_0=38.5,
+        lat_1=38.5,
+        lat_2=38.5,
+        lon_0=262.5,
         no_defs=True,
+        proj="lcc",
+        units="m",
+        x_0=0,
+        y_0=0,
     )
-    p0 = p(longitude=da.longitude.values[0][0], latitude=da.latitude.values[0][0])
-    p1 = p(longitude=da.longitude.values[1][0], latitude=da.latitude.values[1][0])
+    p0, p1 = [p(da.longitude.values[n][0], da.latitude.values[n][0]) for n in (0, 1)]
     delta = dist(p0, p1)
     yo, xo = [delta * da.sizes[k] / 2 for k in ("latitude", "longitude")]
     meta = VARMETA[c.variables[da.name]["name"]]
