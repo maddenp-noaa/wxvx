@@ -156,8 +156,7 @@ def ds_from_da(c: Config, da: xr.DataArray, taskname: str) -> xr.Dataset:
         x_0=0,
         y_0=0,
     )
-    p0, p1 = [p(da.longitude.values[n][0], da.latitude.values[n][0]) for n in (0, 1)]
-    delta = dist(p0, p1)
+    delta = dist(*[p(da.longitude.values[n][0], da.latitude.values[n][0]) for n in (0, 1)])
     yo, xo = [delta * da.sizes[k] / 2 for k in ("latitude", "longitude")]
     meta = VARMETA[c.variables[da.name]["name"]]
     d2 = xr.DataArray(
@@ -186,12 +185,12 @@ def ds_from_da(c: Config, da: xr.DataArray, taskname: str) -> xr.Dataset:
                 attrs=dict(standard_name="longitude", units="degrees_east"),
             ),
             y=xr.DataArray(
-                data=np.arange(-yo, yo, delta, dtype="int64"),
+                data=np.arange(-yo, yo, delta, dtype="double"),
                 dims=["y"],
                 attrs=dict(standard_name="projection_y_coordinate", units="m"),
             ),
             x=xr.DataArray(
-                data=np.arange(-xo, xo, delta, dtype="int64"),
+                data=np.arange(-xo, xo, delta, dtype="double"),
                 dims=["x"],
                 attrs=dict(standard_name="projection_x_coordinate", units="m"),
             ),
