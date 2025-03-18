@@ -156,7 +156,7 @@ def _grid_nc(c: Config, varname: str, tc: TimeCoords, var: Var):
     da = da_construct(src)
     ds = ds_from_da(c, da, taskname)
     path.parent.mkdir(parents=True, exist_ok=True)
-    ds.to_netcdf(path)
+    ds.to_netcdf(path, encoding={varname: {"zlib": True, "complevel": 9}})
     logging.info("%s: Wrote %s", taskname, path)
 
 
