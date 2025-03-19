@@ -143,19 +143,7 @@ def da_select(ds: xr.Dataset, c: Config, varname: str, tc: TimeCoords, var: Var)
 
 def ds_from_da(c: Config, da: xr.DataArray, taskname: str) -> xr.Dataset:
     logging.info("%s: Creating CF-compliant %s dataset", taskname, da.name)
-    p = Proj(
-        R=6371200,
-        datum="WGS84",
-        lat_0=38.5,
-        lat_1=38.5,
-        lat_2=38.5,
-        lon_0=262.5,
-        no_defs=True,
-        proj="lcc",
-        units="m",
-        x_0=0,
-        y_0=0,
-    )
+    p = Proj({'a': 6371229, 'b': 6371229, 'proj': 'lcc', 'lon_0': 262.5, 'lat_0': 38.5, 'lat_1': 38.5, 'lat_2': 38.5})
     cf_keys = [
         "false_easting",
         "false_northing",
