@@ -21,6 +21,85 @@ if TYPE_CHECKING:  # pragma: no cover
 UNKNOWN = "unknown"
 
 
+VARMETA = {
+    x.name: x
+    for x in [
+        VarMeta(
+            cf_standard_name="air_temperature",
+            description="2m Temperature",
+            level_type="heightAboveGround",
+            met_linetype="cnt",
+            met_stat="RMSE",
+            name="2t",
+            units="K",
+        ),
+        VarMeta(
+            cf_standard_name="geopotential_height",
+            description="Geopotential Height at {level} mb",
+            level_type="isobaricInhPa",
+            met_linetype="cnt",
+            met_stat="RMSE",
+            name="gh",
+            units="m",
+        ),
+        VarMeta(
+            cf_standard_name="specific_humidity",
+            description="Specific Humidity at {level} mb",
+            level_type="isobaricInhPa",
+            met_linetype="cnt",
+            met_stat="RMSE",
+            name="q",
+            units="1",
+        ),
+        VarMeta(
+            cf_standard_name="unknown",
+            description="Composite Reflectivity",
+            level_type="atmosphere",
+            met_linetype="cts",
+            met_stat="PODY",
+            name="refc",
+            units="dBZ",
+        ),
+        VarMeta(
+            cf_standard_name="air_temperature",
+            description="Temperature at {level} mb",
+            level_type="isobaricInhPa",
+            met_linetype="cnt",
+            met_stat="RMSE",
+            name="t",
+            units="K",
+        ),
+        VarMeta(
+            cf_standard_name="eastward_wind",
+            description="U-Component of Wind at {level} mb",
+            level_type="isobaricInhPa",
+            met_linetype="cnt",
+            met_stat="RMSE",
+            name="u",
+            units="m s-1",
+        ),
+        VarMeta(
+            cf_standard_name="northward_wind",
+            description="V-Component of Wind at {level} mb",
+            level_type="isobaricInhPa",
+            met_linetype="cnt",
+            met_stat="RMSE",
+            name="v",
+            units="m s-1",
+        ),
+        VarMeta(
+            cf_standard_name="lagrangian_tendency_of_air_pressure",
+            description="Vertical Velocity at {level} mb",
+            level_type="isobaricInhPa",
+            met_linetype="cnt",
+            met_stat="RMSE",
+            name="w",
+            units="Pa s-1",
+        ),
+    ]
+}
+
+
 class Var:
     """
     A generic variable.
@@ -155,15 +234,6 @@ def ds_from_da(c: Config, da: xr.DataArray, taskname: str) -> xr.Dataset:
             "lat_2": 38.5,
         }
     )
-    cf_keys = [
-        "false_easting",
-        "false_northing",
-        "grid_mapping_name",
-        "latitude_of_projection_origin",
-        "longitude_of_central_meridian",
-        "standard_parallel",
-    ]
-    cf_attrs = {k: v for k, v in proj.crs.to_cf().items() if k in cf_keys}
     meta = VARMETA[c.variables[da.name]["name"]]
     (
         np.array(
@@ -208,7 +278,7 @@ def ds_from_da(c: Config, da: xr.DataArray, taskname: str) -> xr.Dataset:
                 dims=["x"],
                 attrs=dict(standard_name="projection_x_coordinate", units="m"),
             ),
-            grid_mapping=xr.DataArray(attrs=cf_attrs),
+            grid_mapping=_da_grid_mapping(proj),
         ),
         dims=["forecast_reference_time", "time", "y", "x"],
         name=da.name,
@@ -232,84 +302,6 @@ def metlevel(level_type: str, level: float | None) -> str:
     return f"{prefix}%03d" % int(level or 0)
 
 
-VARMETA = {
-    x.name: x
-    for x in [
-        VarMeta(
-            cf_standard_name="air_temperature",
-            description="2m Temperature",
-            level_type="heightAboveGround",
-            met_linetype="cnt",
-            met_stat="RMSE",
-            name="2t",
-            units="K",
-        ),
-        VarMeta(
-            cf_standard_name="geopotential_height",
-            description="Geopotential Height at {level} mb",
-            level_type="isobaricInhPa",
-            met_linetype="cnt",
-            met_stat="RMSE",
-            name="gh",
-            units="m",
-        ),
-        VarMeta(
-            cf_standard_name="specific_humidity",
-            description="Specific Humidity at {level} mb",
-            level_type="isobaricInhPa",
-            met_linetype="cnt",
-            met_stat="RMSE",
-            name="q",
-            units="1",
-        ),
-        VarMeta(
-            cf_standard_name="unknown",
-            description="Composite Reflectivity",
-            level_type="atmosphere",
-            met_linetype="cts",
-            met_stat="PODY",
-            name="refc",
-            units="dBZ",
-        ),
-        VarMeta(
-            cf_standard_name="air_temperature",
-            description="Temperature at {level} mb",
-            level_type="isobaricInhPa",
-            met_linetype="cnt",
-            met_stat="RMSE",
-            name="t",
-            units="K",
-        ),
-        VarMeta(
-            cf_standard_name="eastward_wind",
-            description="U-Component of Wind at {level} mb",
-            level_type="isobaricInhPa",
-            met_linetype="cnt",
-            met_stat="RMSE",
-            name="u",
-            units="m s-1",
-        ),
-        VarMeta(
-            cf_standard_name="northward_wind",
-            description="V-Component of Wind at {level} mb",
-            level_type="isobaricInhPa",
-            met_linetype="cnt",
-            met_stat="RMSE",
-            name="v",
-            units="m s-1",
-        ),
-        VarMeta(
-            cf_standard_name="lagrangian_tendency_of_air_pressure",
-            description="Vertical Velocity at {level} mb",
-            level_type="isobaricInhPa",
-            met_linetype="cnt",
-            met_stat="RMSE",
-            name="w",
-            units="Pa s-1",
-        ),
-    ]
-}
-
 # Private
 
 
@@ -321,6 +313,18 @@ def _da_grid_coords(
     lats, lons = [da[k].values for k in ks]
     i1, i2 = {"latitude": (lambda n: (n, 0), 1), "longitude": (lambda n: (0, n), 0)}[k]
     return np.array([proj(lons[i1(n)], lats[i1(n)])[i2] for n in range(da.latitude.sizes[k])])
+
+
+def _da_grid_mapping(proj: Proj) -> xr.DataArray:
+    cf_keys = [
+        "false_easting",
+        "false_northing",
+        "grid_mapping_name",
+        "latitude_of_projection_origin",
+        "longitude_of_central_meridian",
+        "standard_parallel",
+    ]
+    return xr.DataArray(attrs={k: v for k, v in proj.crs.to_cf().items() if k in cf_keys})
 
 
 def _levelstr2num(levelstr: str) -> float | int:
