@@ -143,7 +143,7 @@ def da_select(ds: xr.Dataset, c: Config, varname: str, tc: TimeCoords, var: Var)
 
 def ds_from_da(c: Config, da: xr.DataArray, taskname: str) -> xr.Dataset:
     logging.info("%s: Creating CF-compliant %s dataset", taskname, da.name)
-    p = Proj({'a': 6371229, 'b': 6371229, 'proj': 'lcc', 'lon_0': 262.5, 'lat_0': 38.5, 'lat_1': 38.5, 'lat_2': 38.5})
+    proj = Proj({'a': 6371229, 'b': 6371229, 'proj': 'lcc', 'lon_0': 262.5, 'lat_0': 38.5, 'lat_1': 38.5, 'lat_2': 38.5})
     cf_keys = [
         "false_easting",
         "false_northing",
@@ -152,9 +152,9 @@ def ds_from_da(c: Config, da: xr.DataArray, taskname: str) -> xr.Dataset:
         "longitude_of_central_meridian",
         "standard_parallel",
     ]
-    cf_attrs = {k: v for k, v in p.crs.to_cf().items() if k in cf_keys}
-    delta = dist(*[p(da.longitude.values[n][0], da.latitude.values[n][0]) for n in (0, 1)])
-    yo, xo = [delta * da.sizes[k] / 2 for k in ("latitude", "longitude")]
+    cf_attrs = {k: v for k, v in proj.crs.to_cf().items() if k in cf_keys}
+    # delta = dist(*[proj(da.longitude.values[n][0], da.latitude.values[n][0]) for n in (0, 1)])
+    # yo, xo = [delta * da.sizes[k] / 2 for k in ("latitude", "longitude")]
     meta = VARMETA[c.variables[da.name]["name"]]
     d2 = xr.DataArray(
         data=da.values,
@@ -182,12 +182,12 @@ def ds_from_da(c: Config, da: xr.DataArray, taskname: str) -> xr.Dataset:
                 attrs=dict(standard_name="longitude", units="degrees_east"),
             ),
             y=xr.DataArray(
-                data=np.arange(-yo, yo, delta, dtype="double"),
+                data=np.array([proj(da.longitude.values[n][0], da.latitude.values[n][0])[1] for n in range(da.latitude.sizes["latitude"])]), #np.arange(-yo, yo, delta, dtype="double"),
                 dims=["y"],
                 attrs=dict(standard_name="projection_y_coordinate", units="m"),
             ),
             x=xr.DataArray(
-                data=np.arange(-xo, xo, delta, dtype="double"),
+                data=np.array([proj(da.longitude.values[0][n], da.latitude.values[0][n])[0] for n in range(da.longitude.sizes["longitude"])]), #np.arange(-xo, xo, delta, dtype="double"),
                 dims=["x"],
                 attrs=dict(standard_name="projection_x_coordinate", units="m"),
             ),
