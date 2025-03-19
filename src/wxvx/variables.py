@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
-from math import dist
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 import netCDF4  # noqa: F401 # import before xarray cf. https://github.com/pydata/xarray/issues/7259
 import numpy as np
@@ -16,6 +15,8 @@ from wxvx.util import WXVXError
 if TYPE_CHECKING:  # pragma: no cover
     from wxvx.times import TimeCoords
     from wxvx.types import Config
+
+# Public
 
 UNKNOWN = "unknown"
 
@@ -143,7 +144,17 @@ def da_select(ds: xr.Dataset, c: Config, varname: str, tc: TimeCoords, var: Var)
 
 def ds_from_da(c: Config, da: xr.DataArray, taskname: str) -> xr.Dataset:
     logging.info("%s: Creating CF-compliant %s dataset", taskname, da.name)
-    proj = Proj({'a': 6371229, 'b': 6371229, 'proj': 'lcc', 'lon_0': 262.5, 'lat_0': 38.5, 'lat_1': 38.5, 'lat_2': 38.5})
+    proj = Proj(
+        {
+            "a": 6371229,
+            "b": 6371229,
+            "proj": "lcc",
+            "lon_0": 262.5,
+            "lat_0": 38.5,
+            "lat_1": 38.5,
+            "lat_2": 38.5,
+        }
+    )
     cf_keys = [
         "false_easting",
         "false_northing",
@@ -154,7 +165,14 @@ def ds_from_da(c: Config, da: xr.DataArray, taskname: str) -> xr.Dataset:
     ]
     cf_attrs = {k: v for k, v in proj.crs.to_cf().items() if k in cf_keys}
     meta = VARMETA[c.variables[da.name]["name"]]
-    np.array([proj(da.longitude.values[n][0], da.latitude.values[n][0])[1] for n in range(da.latitude.sizes["latitude"])]),
+    (
+        np.array(
+            [
+                proj(da.longitude.values[n][0], da.latitude.values[n][0])[1]
+                for n in range(da.latitude.sizes["latitude"])
+            ]
+        ),
+    )
     d2 = xr.DataArray(
         data=da.values,
         coords=dict(
@@ -181,12 +199,12 @@ def ds_from_da(c: Config, da: xr.DataArray, taskname: str) -> xr.Dataset:
                 attrs=dict(standard_name="longitude", units="degrees_east"),
             ),
             y=xr.DataArray(
-                data=np.array([proj(da.longitude.values[n][0], da.latitude.values[n][0])[1] for n in range(da.latitude.sizes["latitude"])]),
+                data=_da_grid_coords(da, proj, "latitude"),
                 dims=["y"],
                 attrs=dict(standard_name="projection_y_coordinate", units="m"),
             ),
             x=xr.DataArray(
-                data=np.array([proj(da.longitude.values[0][n], da.latitude.values[0][n])[0] for n in range(da.longitude.sizes["longitude"])]),
+                data=_da_grid_coords(da, proj, "longitude"),
                 dims=["x"],
                 attrs=dict(standard_name="projection_x_coordinate", units="m"),
             ),
@@ -212,13 +230,6 @@ def metlevel(level_type: str, level: float | None) -> str:
     except KeyError as e:
         raise WXVXError("No MET level defined for level type %s" % level_type) from e
     return f"{prefix}%03d" % int(level or 0)
-
-
-def _levelstr2num(levelstr: str) -> float | int:
-    try:
-        return int(levelstr)
-    except ValueError:
-        return float(levelstr)
 
 
 VARMETA = {
@@ -298,3 +309,22 @@ VARMETA = {
         ),
     ]
 }
+
+# Private
+
+
+def _da_grid_coords(
+    da: xr.DataArray, proj: Proj, k: Literal["latitude", "longitude"]
+) -> np.ndarray:
+    ks = ("latitude", "longitude")
+    assert k in ks
+    lats, lons = [da[k].values for k in ks]
+    i1, i2 = {"latitude": (lambda n: (n, 0), 1), "longitude": (lambda n: (0, n), 0)}[k]
+    return np.array([proj(lons[i1(n)], lats[i1(n)])[i2] for n in range(da.latitude.sizes[k])])
+
+
+def _levelstr2num(levelstr: str) -> float | int:
+    try:
+        return int(levelstr)
+    except ValueError:
+        return float(levelstr)
