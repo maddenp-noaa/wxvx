@@ -221,28 +221,23 @@ def da_select(ds: xr.Dataset, c: Config, varname: str, tc: TimeCoords, var: Var)
     return da
 
 
+PROJ = Proj(
+    {
+        "a": 6371229,
+        "b": 6371229,
+        "proj": "lcc",
+        "lon_0": 262.5,
+        "lat_0": 38.5,
+        "lat_1": 38.5,
+        "lat_2": 38.5,
+    }
+)  # PM remove after ds_from_da() receives from arg, config, etc.
+
+
 def ds_from_da(c: Config, da: xr.DataArray, taskname: str) -> xr.Dataset:
     logging.info("%s: Creating CF-compliant %s dataset", taskname, da.name)
-    proj = Proj(
-        {
-            "a": 6371229,
-            "b": 6371229,
-            "proj": "lcc",
-            "lon_0": 262.5,
-            "lat_0": 38.5,
-            "lat_1": 38.5,
-            "lat_2": 38.5,
-        }
-    )
+    proj = PROJ  # PM get from arg or config or...
     meta = VARMETA[c.variables[da.name]["name"]]
-    (
-        np.array(
-            [
-                proj(da.longitude.values[n][0], da.latitude.values[n][0])[1]
-                for n in range(da.latitude.sizes["latitude"])
-            ]
-        ),
-    )
     d2 = xr.DataArray(
         data=da.values,
         coords=dict(
