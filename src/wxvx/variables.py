@@ -233,7 +233,7 @@ PROJ = Proj(
     }
 )  # PM remove after ds_from_da() receives from arg, config, etc.
 
-
+# def _da_to_da(da: xr.DataArray, 
 def ds_from_da(c: Config, da: xr.DataArray, taskname: str) -> xr.Dataset:
     logging.info("%s: Creating CF-compliant %s dataset", taskname, da.name)
     proj = PROJ  # PM get from arg or config or...
@@ -242,24 +242,24 @@ def ds_from_da(c: Config, da: xr.DataArray, taskname: str) -> xr.Dataset:
         data=da.values,
         coords=dict(
             forecast_reference_time=xr.DataArray(
-                data=da.forecast_reference_time.values,
+                data=da["forecast_reference_time"].values,
                 dims=["forecast_reference_time"],
                 name=da.forecast_reference_time.name,
                 attrs=dict(standard_name="forecast_reference_time"),
             ),
             time=xr.DataArray(
-                data=da.time.values,
+                data=da["time"].values,
                 dims=["time"],
                 name=da.time.name,
                 attrs=dict(standard_name="time"),
             ),
             latitude=xr.DataArray(
-                data=da.latitude.values,
+                data=da["latitude"].values,
                 dims=["y", "x"],
                 attrs=dict(standard_name="latitude", units="degrees_north"),
             ),
             longitude=xr.DataArray(
-                data=da.longitude.values,
+                data=da["longitude"].values,
                 dims=["y", "x"],
                 attrs=dict(standard_name="longitude", units="degrees_east"),
             ),
