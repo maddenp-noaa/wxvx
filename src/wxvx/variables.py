@@ -221,65 +221,35 @@ def da_select(ds: xr.Dataset, c: Config, varname: str, tc: TimeCoords, var: Var)
     return da
 
 
-PROJ = Proj(
-    {
-        "a": 6371229,
-        "b": 6371229,
-        "proj": "lcc",
-        "lon_0": 262.5,
-        "lat_0": 38.5,
-        "lat_1": 38.5,
-        "lat_2": 38.5,
-    }
-)  # PM remove after ds_from_da() receives from arg, config, etc.
-
-# def _da_to_da(da: xr.DataArray, 
 def ds_from_da(c: Config, da: xr.DataArray, taskname: str) -> xr.Dataset:
     logging.info("%s: Creating CF-compliant %s dataset", taskname, da.name)
-    proj = PROJ  # PM get from arg or config or...
+    proj = Proj(
+        {
+            "a": 6371229,
+            "b": 6371229,
+            "proj": "lcc",
+            "lon_0": 262.5,
+            "lat_0": 38.5,
+            "lat_1": 38.5,
+            "lat_2": 38.5,
+        }
+    )
     meta = VARMETA[c.variables[da.name]["name"]]
+    attrs = dict(grid_mapping="grid_mapping", standard_name=meta.cf_standard_name, units=meta.units)
     d2 = xr.DataArray(
         data=da.values,
         coords=dict(
-            forecast_reference_time=xr.DataArray(
-                data=da["forecast_reference_time"].values,
-                dims=["forecast_reference_time"],
-                name=da.forecast_reference_time.name,
-                attrs=dict(standard_name="forecast_reference_time"),
-            ),
-            time=xr.DataArray(
-                data=da["time"].values,
-                dims=["time"],
-                name=da.time.name,
-                attrs=dict(standard_name="time"),
-            ),
-            latitude=xr.DataArray(
-                data=da["latitude"].values,
-                dims=["y", "x"],
-                attrs=dict(standard_name="latitude", units="degrees_north"),
-            ),
-            longitude=xr.DataArray(
-                data=da["longitude"].values,
-                dims=["y", "x"],
-                attrs=dict(standard_name="longitude", units="degrees_east"),
-            ),
-            y=xr.DataArray(
-                data=_da_grid_coords(da, proj, "latitude"),
-                dims=["y"],
-                attrs=dict(standard_name="projection_y_coordinate", units="m"),
-            ),
-            x=xr.DataArray(
-                data=_da_grid_coords(da, proj, "longitude"),
-                dims=["x"],
-                attrs=dict(standard_name="projection_x_coordinate", units="m"),
-            ),
+            forecast_reference_time=_da_to_forecast_reference_time(da),
             grid_mapping=_da_grid_mapping(proj),
+            latitude=_da_to_latitude(da),
+            longitude=_da_to_longitude(da),
+            time=_da_to_time(da),
+            x=_da_to_x(da, proj),
+            y=_da_to_y(da, proj),
         ),
         dims=["forecast_reference_time", "time", "y", "x"],
         name=da.name,
-        attrs=dict(
-            grid_mapping="grid_mapping", standard_name=meta.cf_standard_name, units=meta.units
-        ),
+        attrs=attrs,
     )
     # PM deal with level
     # if hasattr(d2, "level"):
@@ -320,6 +290,59 @@ def _da_grid_mapping(proj: Proj) -> xr.DataArray:
         "standard_parallel",
     ]
     return xr.DataArray(attrs={k: v for k, v in proj.crs.to_cf().items() if k in cf_keys})
+
+
+def _da_to_forecast_reference_time(da: xr.DataArray) -> xr.DataArray:
+    var = da.forecast_reference_time
+    return xr.DataArray(
+        data=var.values,
+        dims=["forecast_reference_time"],
+        name=var.name,
+        attrs=dict(standard_name="forecast_reference_time"),
+    )
+
+
+def _da_to_time(da: xr.DataArray) -> xr.DataArray:
+    var = da.time
+    return xr.DataArray(
+        data=var.values, dims=["time"], name=var.name, attrs=dict(standard_name="time")
+    )
+
+
+def _da_to_latitude(da: xr.DataArray) -> xr.DataArray:
+    var = da.latitude
+    return xr.DataArray(
+        data=var.values,
+        dims=["y", "x"],
+        name=var.name,
+        attrs=dict(standard_name="latitude", units="degrees_north"),
+    )
+
+
+def _da_to_longitude(da: xr.DataArray) -> xr.DataArray:
+    var = da.longitude
+    return xr.DataArray(
+        data=var.values,
+        dims=["y", "x"],
+        name=var.name,
+        attrs=dict(standard_name="longitude", units="degrees_east"),
+    )
+
+
+def _da_to_x(da: xr.DataArray, proj: Proj) -> xr.DataArray:
+    return xr.DataArray(
+        data=_da_grid_coords(da, proj, "longitude"),
+        dims=["x"],
+        attrs=dict(standard_name="projection_x_coordinate", units="m"),
+    )
+
+
+def _da_to_y(da: xr.DataArray, proj: Proj) -> xr.DataArray:
+    return xr.DataArray(
+        data=_da_grid_coords(da, proj, "latitude"),
+        dims=["y"],
+        attrs=dict(standard_name="projection_y_coordinate", units="m"),
+    )
 
 
 def _levelstr2num(levelstr: str) -> float | int:
