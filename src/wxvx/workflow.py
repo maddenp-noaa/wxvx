@@ -19,7 +19,7 @@ from wxvx.net import fetch, status
 from wxvx.times import TimeCoords, tcinfo, validtimes
 from wxvx.types import Source
 from wxvx.util import mpexec
-from wxvx.variables import HRRR, VARMETA, Var, da_construct, da_select, ds_from_da, metlevel
+from wxvx.variables import HRRR, VARMETA, Var, da_construct, da_select, ds_construct, metlevel
 
 if TYPE_CHECKING:  # pragma: no cover
     from collections.abc import Iterator, Sequence
@@ -154,7 +154,7 @@ def _grid_nc(c: Config, varname: str, tc: TimeCoords, var: Var):
     yield fd
     src = da_select(refs(fd), c, varname, tc, var)
     da = da_construct(src)
-    ds = ds_from_da(c, da, taskname)
+    ds = ds_construct(c, da, taskname)
     path.parent.mkdir(parents=True, exist_ok=True)
     ds.to_netcdf(path, encoding={varname: {"zlib": True, "complevel": 9}})
     logging.info("%s: Wrote %s", taskname, path)
@@ -183,7 +183,7 @@ def _grid_stat_config(
             c.baseline.name,
         ),
         Source.FORECAST: (
-            "(0,0,*,*)",
+            "(0,0,0,*,*)",
             varname,
             c.forecast.name,
         ),

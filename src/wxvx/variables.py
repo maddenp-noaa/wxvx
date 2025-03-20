@@ -234,20 +234,19 @@ proj = Proj(
 )
 
 
-def ds_from_da(c: Config, da: xr.DataArray, taskname: str) -> xr.Dataset:
+def ds_construct(c: Config, da: xr.DataArray, taskname: str) -> xr.Dataset:
     assert len(da.shape) == 4
-    dims = ["forecast_reference_time", "time", "y", "x"]
     meta = VARMETA[c.variables[da.name]["name"]]
+    data = da.values.reshape((1, 1, 1, 530, 900))
+    dims = ["forecast_reference_time", "time", "level", "y", "x"]
     attrs = dict(grid_mapping="CRS", standard_name=meta.cf_standard_name, units=meta.units)
     logging.info("%s: Creating CF-compliant %s dataset", taskname, da.name)
     return xr.Dataset(
-        data_vars={
-            da.name: xr.DataArray(data=da.values, dims=dims, attrs=attrs),
-            "CRS": _da_crs(proj),
-        },
+        data_vars={da.name: xr.DataArray(data=data, dims=dims, attrs=attrs), "CRS": _da_crs(proj)},
         coords=dict(
             forecast_reference_time=_da_to_forecast_reference_time(da),
             time=_da_to_time(da),
+            level=_da_to_level(da),
             y=_da_to_y(da, proj),
             x=_da_to_x(da, proj),
             latitude=_da_to_latitude(da),
@@ -271,6 +270,7 @@ def metlevel(level_type: str, level: float | None) -> str:
 def _da_crs(proj: Proj) -> xr.DataArray:
     cf = proj.crs.to_cf()
     return xr.DataArray(
+        data=0,
         attrs={
             k: cf[k]
             for k in [
@@ -281,7 +281,7 @@ def _da_crs(proj: Proj) -> xr.DataArray:
                 "longitude_of_central_meridian",
                 "standard_parallel",
             ]
-        }
+        },
     )
 
 

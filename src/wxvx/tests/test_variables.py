@@ -117,7 +117,7 @@ def test_variables_da_select(c, da, fail, name, tc, varname):
         assert new.lead_time.values == da.lead_time.values[0]
 
 
-def test_variables_ds_from_da(c, check_cf_metadata):
+def test_variables_ds_construct(c, check_cf_metadata):
     name = "HGT"
     one = np.array([1], dtype="float32")
     da = xr.DataArray(
@@ -133,7 +133,7 @@ def test_variables_ds_from_da(c, check_cf_metadata):
         name=name,
     )
     assert not check_cf_metadata(ds=da.to_dataset(), name=name)
-    ds = variables.ds_from_da(c=c, da=da, taskname="test")
+    ds = variables.ds_construct(c=c, da=da, taskname="test")
     assert check_cf_metadata(ds=ds, name=name)
 
 
