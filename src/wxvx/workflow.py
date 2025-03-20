@@ -154,7 +154,7 @@ def _grid_nc(c: Config, varname: str, tc: TimeCoords, var: Var):
     yield fd
     src = da_select(refs(fd), c, varname, tc, var)
     da = da_construct(src)
-    ds = ds_construct(c, da, taskname)
+    ds = ds_construct(c, da, HRRR.proj, taskname)
     path.parent.mkdir(parents=True, exist_ok=True)
     ds.to_netcdf(path, encoding={varname: {"zlib": True, "complevel": 9}})
     logging.info("%s: Wrote %s", taskname, path)

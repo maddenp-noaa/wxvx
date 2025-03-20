@@ -141,6 +141,18 @@ class HRRR(Var):
     A HRRR variable.
     """
 
+    proj = Proj(
+        {
+            "a": 6371229,
+            "b": 6371229,
+            "proj": "lcc",
+            "lon_0": 262.5,
+            "lat_0": 38.5,
+            "lat_1": 38.5,
+            "lat_2": 38.5,
+        }
+    )
+
     def __init__(self, name: str, levstr: str, firstbyte: int, lastbyte: int):
         level_type, level = self._levinfo(levstr=levstr)
         name = self._canonicalize(name=name, level_type=level_type)
@@ -221,20 +233,7 @@ def da_select(ds: xr.Dataset, c: Config, varname: str, tc: TimeCoords, var: Var)
     return da
 
 
-proj = Proj(
-    {
-        "a": 6371229,
-        "b": 6371229,
-        "proj": "lcc",
-        "lon_0": 262.5,
-        "lat_0": 38.5,
-        "lat_1": 38.5,
-        "lat_2": 38.5,
-    }
-)
-
-
-def ds_construct(c: Config, da: xr.DataArray, taskname: str) -> xr.Dataset:
+def ds_construct(c: Config, da: xr.DataArray, proj: Proj, taskname: str) -> xr.Dataset:
     assert len(da.shape) == 4
     crs = "CRS"
     meta = VARMETA[c.variables[da.name]["name"]]
@@ -243,7 +242,10 @@ def ds_construct(c: Config, da: xr.DataArray, taskname: str) -> xr.Dataset:
     attrs = dict(grid_mapping=crs, standard_name=meta.cf_standard_name, units=meta.units)
     logging.info("%s: Creating CF-compliant %s dataset", taskname, da.name)
     return xr.Dataset(
-        data_vars={da.name: xr.DataArray(data=data, dims=dims, attrs=attrs), crs: _da_crs(proj)},
+        data_vars={
+            da.name: xr.DataArray(data=data, dims=dims, attrs=attrs),
+            crs: _da_crs(proj),
+        },
         coords=dict(
             forecast_reference_time=_da_to_forecast_reference_time(da),
             time=_da_to_time(da),
