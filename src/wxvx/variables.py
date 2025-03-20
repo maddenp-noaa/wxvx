@@ -236,23 +236,26 @@ proj = Proj(
 
 def ds_construct(c: Config, da: xr.DataArray, taskname: str) -> xr.Dataset:
     assert len(da.shape) == 4
+    crs = "CRS"
     meta = VARMETA[c.variables[da.name]["name"]]
-    data = da.values.reshape((1, 1, 1, 530, 900))
-    dims = ["forecast_reference_time", "time", "level", "y", "x"]
-    attrs = dict(grid_mapping="CRS", standard_name=meta.cf_standard_name, units=meta.units)
+    data = da.values
+    dims = ["forecast_reference_time", "time", "y", "x"]
+    attrs = dict(grid_mapping=crs, standard_name=meta.cf_standard_name, units=meta.units)
     logging.info("%s: Creating CF-compliant %s dataset", taskname, da.name)
     return xr.Dataset(
-        data_vars={da.name: xr.DataArray(data=data, dims=dims, attrs=attrs), "CRS": _da_crs(proj)},
+        data_vars={da.name: xr.DataArray(data=data, dims=dims, attrs=attrs), crs: _da_crs(proj)},
         coords=dict(
             forecast_reference_time=_da_to_forecast_reference_time(da),
             time=_da_to_time(da),
-            level=_da_to_level(da),
             y=_da_to_y(da, proj),
             x=_da_to_x(da, proj),
             latitude=_da_to_latitude(da),
             longitude=_da_to_longitude(da),
         ),
-        attrs=dict(Conventions="CF-1.8"),
+        attrs=dict(
+            Conventions="CF-1.8",
+            level=da.level.values[0] if hasattr(da, "level") else np.nan,
+        ),
     )
 
 
@@ -315,14 +318,14 @@ def _da_to_latitude(da: xr.DataArray) -> xr.DataArray:
     )
 
 
-def _da_to_level(da: xr.DataArray) -> xr.DataArray:
-    name = "level"
-    return xr.DataArray(
-        data=da.level.values if hasattr(da, name) else [np.nan],
-        dims=[name],
-        name=name,
-        attrs=dict(standard_name="air_pressure", units="hPa"),
-    )
+# def _da_to_level(da: xr.DataArray) -> xr.DataArray:
+#     name = "level"
+#     return xr.DataArray(
+#         data=da.level.values if hasattr(da, name) else [np.nan],
+#         dims=[name],
+#         name=name,
+#         attrs=dict(standard_name="air_pressure", units="hPa"),
+#     )
 
 
 def _da_to_longitude(da: xr.DataArray) -> xr.DataArray:

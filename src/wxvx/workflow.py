@@ -183,7 +183,7 @@ def _grid_stat_config(
             c.baseline.name,
         ),
         Source.FORECAST: (
-            "(0,0,0,*,*)",
+            "(0,0,*,*)",
             varname,
             c.forecast.name,
         ),
