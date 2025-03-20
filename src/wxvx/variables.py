@@ -236,24 +236,22 @@ def ds_from_da(c: Config, da: xr.DataArray, taskname: str) -> xr.Dataset:
     )
     meta = VARMETA[c.variables[da.name]["name"]]
     attrs = dict(grid_mapping="grid_mapping", standard_name=meta.cf_standard_name, units=meta.units)
+    assert len(da.shape) == 4
     d2 = xr.DataArray(
-        data=da.values,
+        data=da.values, # np.expand_dims(da.values, 2),
         coords=dict(
             forecast_reference_time=_da_to_forecast_reference_time(da),
-            grid_mapping=_da_grid_mapping(proj),
+            time=_da_to_time(da),
+            y=_da_to_y(da, proj),
+            x=_da_to_x(da, proj),
             latitude=_da_to_latitude(da),
             longitude=_da_to_longitude(da),
-            time=_da_to_time(da),
-            x=_da_to_x(da, proj),
-            y=_da_to_y(da, proj),
+            grid_mapping=_da_grid_mapping(proj),
         ),
         dims=["forecast_reference_time", "time", "y", "x"],
         name=da.name,
         attrs=attrs,
     )
-    # PM deal with level
-    # if hasattr(d2, "level"):
-    #     d2["level"].attrs.update({"standard_name": "air_pressure", "units": "hPa"})
     ds = d2.to_dataset()
     ds.attrs["Conventions"] = "CF-1.8"
     return ds
@@ -316,6 +314,16 @@ def _da_to_latitude(da: xr.DataArray) -> xr.DataArray:
         dims=["y", "x"],
         name=var.name,
         attrs=dict(standard_name="latitude", units="degrees_north"),
+    )
+
+
+def _da_to_level(da: xr.DataArray) -> xr.DataArray:
+    name = "level"
+    return xr.DataArray(
+        data=da.level.values if hasattr(da, name) else np.array([np.nan]),
+        dims=[name],
+        name=name,
+        attrs=dict(standard_name="air_pressure", units="hPa"),
     )
 
 
