@@ -221,24 +221,30 @@ def da_select(ds: xr.Dataset, c: Config, varname: str, tc: TimeCoords, var: Var)
     return da
 
 
+proj = Proj(
+    {
+        "a": 6371229,
+        "b": 6371229,
+        "proj": "lcc",
+        "lon_0": 262.5,
+        "lat_0": 38.5,
+        "lat_1": 38.5,
+        "lat_2": 38.5,
+    }
+)
+
+
 def ds_from_da(c: Config, da: xr.DataArray, taskname: str) -> xr.Dataset:
-    logging.info("%s: Creating CF-compliant %s dataset", taskname, da.name)
-    proj = Proj(
-        {
-            "a": 6371229,
-            "b": 6371229,
-            "proj": "lcc",
-            "lon_0": 262.5,
-            "lat_0": 38.5,
-            "lat_1": 38.5,
-            "lat_2": 38.5,
-        }
-    )
-    meta = VARMETA[c.variables[da.name]["name"]]
-    attrs = dict(grid_mapping="grid_mapping", standard_name=meta.cf_standard_name, units=meta.units)
     assert len(da.shape) == 4
-    d2 = xr.DataArray(
-        data=da.values, # np.expand_dims(da.values, 2),
+    dims = ["forecast_reference_time", "time", "y", "x"]
+    meta = VARMETA[c.variables[da.name]["name"]]
+    attrs = dict(grid_mapping="CRS", standard_name=meta.cf_standard_name, units=meta.units)
+    logging.info("%s: Creating CF-compliant %s dataset", taskname, da.name)
+    return xr.Dataset(
+        data_vars={
+            da.name: xr.DataArray(data=da.values, dims=dims, attrs=attrs),
+            "CRS": _da_crs(proj),
+        },
         coords=dict(
             forecast_reference_time=_da_to_forecast_reference_time(da),
             time=_da_to_time(da),
@@ -246,15 +252,9 @@ def ds_from_da(c: Config, da: xr.DataArray, taskname: str) -> xr.Dataset:
             x=_da_to_x(da, proj),
             latitude=_da_to_latitude(da),
             longitude=_da_to_longitude(da),
-            grid_mapping=_da_grid_mapping(proj),
         ),
-        dims=["forecast_reference_time", "time", "y", "x"],
-        name=da.name,
-        attrs=attrs,
+        attrs=dict(Conventions="CF-1.8"),
     )
-    ds = d2.to_dataset()
-    ds.attrs["Conventions"] = "CF-1.8"
-    return ds
 
 
 def metlevel(level_type: str, level: float | None) -> str:
@@ -268,6 +268,23 @@ def metlevel(level_type: str, level: float | None) -> str:
 # Private
 
 
+def _da_crs(proj: Proj) -> xr.DataArray:
+    cf = proj.crs.to_cf()
+    return xr.DataArray(
+        attrs={
+            k: cf[k]
+            for k in [
+                "false_easting",
+                "false_northing",
+                "grid_mapping_name",
+                "latitude_of_projection_origin",
+                "longitude_of_central_meridian",
+                "standard_parallel",
+            ]
+        }
+    )
+
+
 def _da_grid_coords(
     da: xr.DataArray, proj: Proj, k: Literal["latitude", "longitude"]
 ) -> np.ndarray:
@@ -278,18 +295,6 @@ def _da_grid_coords(
     return np.array([proj(lons[i1(n)], lats[i1(n)])[i2] for n in range(da.latitude.sizes[k])])
 
 
-def _da_grid_mapping(proj: Proj) -> xr.DataArray:
-    cf_keys = [
-        "false_easting",
-        "false_northing",
-        "grid_mapping_name",
-        "latitude_of_projection_origin",
-        "longitude_of_central_meridian",
-        "standard_parallel",
-    ]
-    return xr.DataArray(attrs={k: v for k, v in proj.crs.to_cf().items() if k in cf_keys})
-
-
 def _da_to_forecast_reference_time(da: xr.DataArray) -> xr.DataArray:
     var = da.forecast_reference_time
     return xr.DataArray(
@@ -297,13 +302,6 @@ def _da_to_forecast_reference_time(da: xr.DataArray) -> xr.DataArray:
         dims=["forecast_reference_time"],
         name=var.name,
         attrs=dict(standard_name="forecast_reference_time"),
-    )
-
-
-def _da_to_time(da: xr.DataArray) -> xr.DataArray:
-    var = da.time
-    return xr.DataArray(
-        data=var.values, dims=["time"], name=var.name, attrs=dict(standard_name="time")
     )
 
 
@@ -334,6 +332,13 @@ def _da_to_longitude(da: xr.DataArray) -> xr.DataArray:
         dims=["y", "x"],
         name=var.name,
         attrs=dict(standard_name="longitude", units="degrees_east"),
+    )
+
+
+def _da_to_time(da: xr.DataArray) -> xr.DataArray:
+    var = da.time
+    return xr.DataArray(
+        data=var.values, dims=["time"], name=var.name, attrs=dict(standard_name="time")
     )
 
 
