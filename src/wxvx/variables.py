@@ -318,7 +318,7 @@ def _da_to_latitude(da: xr.DataArray) -> xr.DataArray:
 def _da_to_level(da: xr.DataArray) -> xr.DataArray:
     name = "level"
     return xr.DataArray(
-        data=da.level.values if hasattr(da, name) else np.array([np.nan]),
+        data=da.level.values if hasattr(da, name) else [np.nan],
         dims=[name],
         name=name,
         attrs=dict(standard_name="air_pressure", units="hPa"),
