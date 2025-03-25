@@ -28,7 +28,6 @@ def test_schema(logged, config_data, fs):
         "forecast",
         "leadtimes",
         "paths",
-        "plot",
         "variables",
     ]:
         assert not ok(with_del(config, key))
@@ -37,7 +36,7 @@ def test_schema(logged, config_data, fs):
     assert not ok(with_set(config, 42, "n"))
     assert logged("'n' was unexpected")
     # Some keys have object values:
-    for key in ["cycles", "leadtimes", "paths", "plot", "variables"]:
+    for key in ["cycles", "leadtimes", "paths", "variables"]:
         assert not ok(with_set(config, None, key))
         assert logged("None is not of type 'object'")
 
@@ -48,12 +47,16 @@ def test_schema_baseline(logged, config_data, fs):
     # Basic correctness:
     assert ok(config)
     # Certain top-level keys are required:
-    for key in ["name", "template"]:
+    for key in ["name", "plot", "template"]:
         assert not ok(with_del(config, key))
         assert logged(f"'{key}' is a required property")
     # Addional keys are not allowed:
     assert not ok(with_set(config, 42, "n"))
     assert logged("'n' was unexpected")
+    # Some keys have bool values:
+    for key in ["plot"]:
+        assert not ok(with_set(config, None, key))
+        assert logged("None is not of type 'boolean'")
     # Some keys have string values:
     for key in ["name", "template"]:
         assert not ok(with_set(config, None, key))
@@ -138,23 +141,6 @@ def test_schema_paths(config_data, fs, logged):
     for key in ["grids", "run"]:
         assert not ok(with_set(config, None, key))
         assert logged("None is not of type 'string'")
-
-
-def test_schema_plot(config_data, fs, logged):
-    ok = validator(fs, "properties", "plot")
-    config = config_data["plot"]
-    # Basic correctness:
-    assert ok(config)
-    # Certain top-level keys are required:
-    for key in ["baseline"]:
-        assert not ok(with_del(config, key))
-        assert logged(f"'{key}' is a required property")
-    # Addional keys are not allowed:
-    assert not ok(with_set(config, 42, "n"))
-    # Some keys have boolean values:
-    for key in ["baseline"]:
-        assert not ok(with_set(config, None, key))
-        assert logged("None is not of type 'boolean'")
 
 
 def test_schema_variables(logged, config_data, fs):

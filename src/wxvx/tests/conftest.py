@@ -52,6 +52,7 @@ def config_data():
     return {
         "baseline": {
             "name": "Baseline",
+            "plot": True,
             "template": "https://some.url/{yyyymmdd}/{hh}/{ff}/a.grib2",
         },
         "cycles": {
@@ -71,9 +72,6 @@ def config_data():
         "paths": {
             "grids": "/path/to/grids",
             "run": "/path/to/run",
-        },
-        "plot": {
-            "baseline": True,
         },
         "variables": {
             "HGT": {

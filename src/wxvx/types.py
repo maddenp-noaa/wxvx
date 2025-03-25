@@ -12,6 +12,7 @@ Source = Enum("Source", [("BASELINE", auto()), ("FORECAST", auto())])
 @dataclass(frozen=True)
 class Baseline:
     name: str
+    plot: bool
     template: str
 
 
@@ -22,10 +23,9 @@ class Config:
         self.forecast = Forecast(**config_data["forecast"])
         self.leadtimes = Leadtimes(**config_data["leadtimes"])
         self.paths = Paths(**config_data["paths"])
-        self.plot = Plot(**config_data["plot"])
         self.variables = config_data["variables"]
 
-    KEYS = ("baseline", "cycles", "forecast", "leadtimes", "paths", "plot", "variables")
+    KEYS = ("baseline", "cycles", "forecast", "leadtimes", "paths", "variables")
 
     def __eq__(self, other):
         return all(getattr(self, k) == getattr(other, k) for k in self.KEYS)
@@ -73,11 +73,6 @@ class Paths:
     def __post_init__(self):
         force(self, "grids", Path(self.grids))
         force(self, "run", Path(self.run))
-
-
-@dataclass(frozen=True)
-class Plot:
-    baseline: bool
 
 
 @dataclass(frozen=True)

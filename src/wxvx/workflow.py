@@ -40,7 +40,7 @@ def grids(c: Config):
             reqs.append(forecast_grid)
             baseline_grid = _grid_grib(c, TimeCoords(cycle=tc.validtime, leadtime=0), var)
             reqs.append(baseline_grid)
-            if c.plot.baseline:
+            if c.baseline.plot:
                 comp_grid = _grid_grib(c, tc, var)
                 reqs.append(comp_grid)
     yield reqs
@@ -283,7 +283,7 @@ def _plot_config(c: Config, rundir: Path, varname: str, var: Var, plot_fn: str, 
         yaxis_1=stat,
         ylab_offset=10,
     )
-    if c.plot.baseline:
+    if c.baseline.plot:
         update = dict(
             fcst_var_val_2={HRRR.varname(var.name): [stat]},
             list_stat_2=[stat],
@@ -425,7 +425,7 @@ def _statargs(c: Config, varname: str, level: float | None, source: Source) -> I
 def _statreqs(c: Config, varname: str, level: float | None) -> Sequence[Node]:
     genreqs = lambda source: [_stat(*args) for args in _statargs(c, varname, level, source)]
     reqs: Sequence[Node] = genreqs(Source.FORECAST)
-    if c.plot.baseline:
+    if c.baseline.plot:
         reqs = [*reqs, *genreqs(Source.BASELINE)]
     return reqs
 

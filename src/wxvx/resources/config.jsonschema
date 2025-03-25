@@ -21,12 +21,16 @@
         "name": {
           "type": "string"
         },
+        "plot": {
+          "type": "boolean"
+        },
         "template": {
           "type": "string"
         }
       },
       "required": [
         "name",
+        "plot",
         "template"
       ],
       "type": "object"
@@ -106,18 +110,6 @@
       ],
       "type": "object"
     },
-    "plot": {
-      "additionalProperties": false,
-      "properties": {
-        "baseline": {
-          "type": "boolean"
-        }
-      },
-      "required": [
-        "baseline"
-      ],
-      "type": "object"
-    },
     "variables": {
       "patternProperties": {
         "^.*$": {
@@ -183,7 +175,6 @@
     "forecast",
     "leadtimes",
     "paths",
-    "plot",
     "variables"
   ],
   "type": "object"
