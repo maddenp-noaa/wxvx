@@ -67,82 +67,54 @@
         "projection": {
           "anyOf": [
             {
-              "if": {
-                "properties": {
-                  "proj": {
-                    "const": "lcc"
-                  }
+              "additionalProperties": false,
+              "properties": {
+                "proj": {
+                  "const": "latlon"
                 }
               },
-              "then": {
-                "additionalProperties": false,
-                "properties": {
-                  "a": {
-                    "type": "number"
-                  },
-                  "b": {
-                    "type": "number"
-                  },
-                  "lat_0": {
-                    "type": "number"
-                  },
-                  "lat_1": {
-                    "type": "number"
-                  },
-                  "lat_2": {
-                    "type": "number"
-                  },
-                  "lon_0": {
-                    "type": "number"
-                  },
-                  "proj": {
-                    "const": "lcc"
-                  }
-                },
-                "required": [
-                  "a",
-                  "b",
-                  "lat_0",
-                  "lat_1",
-                  "lat_2",
-                  "lon_0",
-                  "proj"
-                ]
-              }
+              "required": [
+                "proj"
+              ],
+              "type": "object"
             },
             {
-              "if": {
-                "properties": {
-                  "proj": {
-                    "const": "latlon"
-                  }
+              "additionalProperties": false,
+              "properties": {
+                "a": {
+                  "type": "number"
+                },
+                "b": {
+                  "type": "number"
+                },
+                "lat_0": {
+                  "type": "number"
+                },
+                "lat_1": {
+                  "type": "number"
+                },
+                "lat_2": {
+                  "type": "number"
+                },
+                "lon_0": {
+                  "type": "number"
+                },
+                "proj": {
+                  "const": "lcc"
                 }
               },
-              "then": {
-                "additionalProperties": false,
-                "properties": {
-                  "proj": {
-                    "const": "latlon"
-                  }
-                },
-                "required": [
-                  "proj"
-                ]
-              }
+              "required": [
+                "a",
+                "b",
+                "lat_0",
+                "lat_1",
+                "lat_2",
+                "lon_0",
+                "proj"
+              ],
+              "type": "object"
             }
-          ],
-          "properties": {
-            "proj": {
-              "enum": [
-                "latlon",
-                "lcc"
-              ]
-            }
-          },
-          "required": [
-            "proj"
-          ],
-          "type": "object"
+          ]
         }
       },
       "required": [
