@@ -234,27 +234,34 @@ def da_select(ds: xr.Dataset, c: Config, varname: str, tc: TimeCoords, var: Var)
 
 
 def ds_construct(c: Config, da: xr.DataArray, taskname: str) -> xr.Dataset:
+    logging.info("%s: Creating CF-compliant %s dataset", taskname, da.name)
     assert len(da.shape) == 4
     proj = Proj(c.forecast.projection)
+    latlon = proj.name == "longlat"
+    dims = ["forecast_reference_time", "time"]
+    dims.extend(["latitude", "longitude"] if latlon else ["y", "x"])
     crs = "CRS"
     meta = VARMETA[c.variables[da.name]["name"]]
-    data = da.values
-    dims = ["forecast_reference_time", "time", "y", "x"]
     attrs = dict(grid_mapping=crs, standard_name=meta.cf_standard_name, units=meta.units)
-    logging.info("%s: Creating CF-compliant %s dataset", taskname, da.name)
+    coords = dict(
+        forecast_reference_time=_da_to_forecast_reference_time(da),
+        time=_da_to_time(da),
+        latitude=_da_to_latitude(da, dims=["latitude"] if latlon else ["y", "x"]),
+        longitude=_da_to_longitude(da, dims=["longitude"] if latlon else ["y", "x"]),
+    )
+    if not latlon:
+        coords.update(
+            dict(
+                y=_da_to_y(da, proj),
+                x=_da_to_x(da, proj),
+            )
+        )
     return xr.Dataset(
         data_vars={
-            da.name: xr.DataArray(data=data, dims=dims, attrs=attrs),
+            da.name: xr.DataArray(data=da.values, dims=dims, attrs=attrs),
             crs: _da_crs(proj),
         },
-        coords=dict(
-            forecast_reference_time=_da_to_forecast_reference_time(da),
-            time=_da_to_time(da),
-            y=_da_to_y(da, proj),
-            x=_da_to_x(da, proj),
-            latitude=_da_to_latitude(da),
-            longitude=_da_to_longitude(da),
-        ),
+        coords=coords,
         attrs=dict(
             Conventions="CF-1.8",
             level=da.level.values[0] if hasattr(da, "level") else np.nan,
@@ -287,6 +294,7 @@ def _da_crs(proj: Proj) -> xr.DataArray:
                 "longitude_of_central_meridian",
                 "standard_parallel",
             ]
+            if k in cf
         },
     )
 
@@ -311,21 +319,21 @@ def _da_to_forecast_reference_time(da: xr.DataArray) -> xr.DataArray:
     )
 
 
-def _da_to_latitude(da: xr.DataArray) -> xr.DataArray:
+def _da_to_latitude(da: xr.DataArray, dims: list[str]) -> xr.DataArray:
     var = da.latitude
     return xr.DataArray(
         data=var.values,
-        dims=["y", "x"],
+        dims=dims,
         name=var.name,
         attrs=dict(standard_name="latitude", units="degrees_north"),
     )
 
 
-def _da_to_longitude(da: xr.DataArray) -> xr.DataArray:
+def _da_to_longitude(da: xr.DataArray, dims=list[str]) -> xr.DataArray:
     var = da.longitude
     return xr.DataArray(
         data=var.values,
-        dims=["y", "x"],
+        dims=dims,
         name=var.name,
         attrs=dict(standard_name="longitude", units="degrees_east"),
     )
