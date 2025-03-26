@@ -243,22 +243,15 @@ def ds_construct(c: Config, da: xr.DataArray, taskname: str) -> xr.Dataset:
     crs = "CRS"
     meta = VARMETA[c.variables[da.name]["name"]]
     attrs = dict(grid_mapping=crs, standard_name=meta.cf_standard_name, units=meta.units)
-    if latlon:
-        coords = {
-            "forecast_reference_time": _da_to_forecast_reference_time(da),
-            "time": _da_to_time(da),
-            "latitude": _da_to_latitude(da, ["latitude"]),
-            "longitude": _da_to_longitude(da, ["longitude"]),
-        }
-    else:
-        coords = {
-            "forecast_reference_time": _da_to_forecast_reference_time(da),
-            "time": _da_to_time(da),
-            "y": _da_to_y(da, proj),
-            "x": _da_to_x(da, proj),
-            "latitude": _da_to_latitude(da, ["y", "x"]),
-            "longitude": _da_to_longitude(da, ["y", "x"]),
-        }
+    dims_lat, dims_lon = ([k] if latlon else ["y", "x"] for k in ["latitude", "longitude"])
+    coords = {
+        "forecast_reference_time": _da_to_forecast_reference_time(da),
+        "time": _da_to_time(da),
+        "latitude": _da_to_latitude(da, dims_lat),
+        "longitude": _da_to_longitude(da, dims_lon),
+    }
+    if not latlon:
+        coords = {**coords, "y": _da_to_y(da, proj), "x": _da_to_x(da, proj)}
     return xr.Dataset(
         data_vars={
             da.name: xr.DataArray(data=da.values, dims=dims, attrs=attrs),
