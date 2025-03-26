@@ -65,7 +65,6 @@
           "type": "string"
         },
         "projection": {
-          "additionalProperties": false,
           "allOf": [
             {
               "if": {
@@ -77,12 +76,24 @@
               },
               "then": {
                 "properties": {
-                  "a": "number",
-                  "b": "number",
-                  "lat_0": "number",
-                  "lat_1": "number",
-                  "lat_2": "number",
-                  "lon_0": "number"
+                  "a": {
+                    "type": "number"
+                  },
+                  "b": {
+                    "type": "number"
+                  },
+                  "lat_0": {
+                    "type": "number"
+                  },
+                  "lat_1": {
+                    "type": "number"
+                  },
+                  "lat_2": {
+                    "type": "number"
+                  },
+                  "lon_0": {
+                    "type": "number"
+                  }
                 },
                 "required": [
                   "a",
