@@ -233,8 +233,9 @@ def da_select(ds: xr.Dataset, c: Config, varname: str, tc: TimeCoords, var: Var)
     return da
 
 
-def ds_construct(c: Config, da: xr.DataArray, proj: Proj, taskname: str) -> xr.Dataset:
+def ds_construct(c: Config, da: xr.DataArray, taskname: str) -> xr.Dataset:
     assert len(da.shape) == 4
+    proj = Proj(c.forecast.projection)
     crs = "CRS"
     meta = VARMETA[c.variables[da.name]["name"]]
     data = da.values
