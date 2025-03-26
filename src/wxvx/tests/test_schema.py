@@ -28,7 +28,6 @@ def test_schema(logged, config_data, fs):
         "forecast",
         "leadtimes",
         "paths",
-        "plot",
         "variables",
     ]:
         assert not ok(with_del(config, key))
@@ -37,7 +36,7 @@ def test_schema(logged, config_data, fs):
     assert not ok(with_set(config, 42, "n"))
     assert logged("'n' was unexpected")
     # Some keys have object values:
-    for key in ["cycles", "leadtimes", "paths", "plot", "variables"]:
+    for key in ["cycles", "leadtimes", "paths", "variables"]:
         assert not ok(with_set(config, None, key))
         assert logged("None is not of type 'object'")
 
@@ -48,12 +47,16 @@ def test_schema_baseline(logged, config_data, fs):
     # Basic correctness:
     assert ok(config)
     # Certain top-level keys are required:
-    for key in ["name", "template"]:
+    for key in ["name", "plot", "template"]:
         assert not ok(with_del(config, key))
         assert logged(f"'{key}' is a required property")
     # Addional keys are not allowed:
     assert not ok(with_set(config, 42, "n"))
     assert logged("'n' was unexpected")
+    # Some keys have bool values:
+    for key in ["plot"]:
+        assert not ok(with_set(config, None, key))
+        assert logged("None is not of type 'boolean'")
     # Some keys have string values:
     for key in ["name", "template"]:
         assert not ok(with_set(config, None, key))
@@ -84,16 +87,50 @@ def test_schema_forecast(logged, config_data, fs):
     # Basic correctness:
     assert ok(config)
     # Certain top-level keys are required:
-    for key in ["name", "path"]:
+    for key in ["name", "path", "projection"]:
         assert not ok(with_del(config, key))
         assert logged(f"'{key}' is a required property")
     # Addional keys are not allowed:
     assert not ok(with_set(config, 42, "n"))
     assert logged("'n' was unexpected")
+    # Some keys have object values:
+    for key in ["projection"]:
+        assert not ok(with_set(config, None, key))
+        assert logged("None is not of type 'object'")
     # Some keys have string values:
     for key in ["name", "path"]:
         assert not ok(with_set(config, None, key))
         assert logged("None is not of type 'string'")
+
+
+def test_schema_forecast_projection(logged, config_data, fs):
+    ok = validator(fs, "properties", "forecast", "properties", "projection")
+    config = config_data["forecast"]["projection"]
+    # Basic correctness:
+    assert ok(config)
+    # Certain top-level keys are required:
+    for key in ["proj"]:
+        assert not ok(with_del(config, key))
+        assert logged("'proj' is a required property")
+    # Addional keys are not allowed:
+    assert not ok(with_set(config, 42, "foo"))
+    assert logged("'foo' was unexpected")
+    # Some keys have enum values:
+    for key in ["proj"]:
+        assert not ok(with_set(config, "foo", key))
+        assert logged(r"'foo' is not one of \['latlon', 'lcc'\]")
+    # For proj latlon:
+    config_latlon = {"proj": "latlon"}
+    assert ok(config_latlon)
+    assert not ok(with_set(config_latlon, 42, "foo"))
+    assert logged("'foo' was unexpected")
+    # For proj lcc (default in fixture):
+    assert config["proj"] == "lcc"
+    for key in ["a", "b", "lat_0", "lat_1", "lat_2", "lon_0"]:
+        assert not ok(with_del(config, key))
+        assert logged(f"'{key}' is a required property")
+        assert not ok(with_set(config, None, key))
+        assert logged("None is not of type 'number'")
 
 
 def test_schema_leadtimes(logged, config_data, fs):
@@ -138,23 +175,6 @@ def test_schema_paths(config_data, fs, logged):
     for key in ["grids", "run"]:
         assert not ok(with_set(config, None, key))
         assert logged("None is not of type 'string'")
-
-
-def test_schema_plot(config_data, fs, logged):
-    ok = validator(fs, "properties", "plot")
-    config = config_data["plot"]
-    # Basic correctness:
-    assert ok(config)
-    # Certain top-level keys are required:
-    for key in ["baseline"]:
-        assert not ok(with_del(config, key))
-        assert logged(f"'{key}' is a required property")
-    # Addional keys are not allowed:
-    assert not ok(with_set(config, 42, "n"))
-    # Some keys have boolean values:
-    for key in ["baseline"]:
-        assert not ok(with_set(config, None, key))
-        assert logged("None is not of type 'boolean'")
 
 
 def test_schema_variables(logged, config_data, fs):

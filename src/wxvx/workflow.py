@@ -19,7 +19,7 @@ from wxvx.net import fetch, status
 from wxvx.times import TimeCoords, tcinfo, validtimes
 from wxvx.types import Source
 from wxvx.util import mpexec
-from wxvx.variables import HRRR, VARMETA, Var, da_construct, da_select, ds_from_da, metlevel
+from wxvx.variables import HRRR, VARMETA, Var, da_construct, da_select, ds_construct, metlevel
 
 if TYPE_CHECKING:  # pragma: no cover
     from collections.abc import Iterator, Sequence
@@ -40,7 +40,7 @@ def grids(c: Config):
             reqs.append(forecast_grid)
             baseline_grid = _grid_grib(c, TimeCoords(cycle=tc.validtime, leadtime=0), var)
             reqs.append(baseline_grid)
-            if c.plot.baseline:
+            if c.baseline.plot:
                 comp_grid = _grid_grib(c, tc, var)
                 reqs.append(comp_grid)
     yield reqs
@@ -154,9 +154,9 @@ def _grid_nc(c: Config, varname: str, tc: TimeCoords, var: Var):
     yield fd
     src = da_select(refs(fd), c, varname, tc, var)
     da = da_construct(src)
-    ds = ds_from_da(c, da, taskname)
+    ds = ds_construct(c, da, taskname)
     path.parent.mkdir(parents=True, exist_ok=True)
-    ds.to_netcdf(path)
+    ds.to_netcdf(path, encoding={varname: {"zlib": True, "complevel": 9}})
     logging.info("%s: Wrote %s", taskname, path)
 
 
@@ -283,7 +283,7 @@ def _plot_config(c: Config, rundir: Path, varname: str, var: Var, plot_fn: str, 
         yaxis_1=stat,
         ylab_offset=10,
     )
-    if c.plot.baseline:
+    if c.baseline.plot:
         update = dict(
             fcst_var_val_2={HRRR.varname(var.name): [stat]},
             list_stat_2=[stat],
@@ -363,30 +363,27 @@ def _runscript(basepath: Path, content: str):
 @task
 def _stat(c: Config, varname: str, tc: TimeCoords, var: Var, prefix: str, source: Source):
     yyyymmdd, hh, leadtime = tcinfo(tc)
-    srcname = {Source.BASELINE: "baseline", Source.FORECAST: "forecast"}[source]
-    taskname = "MET stats for %s %s at %s %sZ %s" % (srcname, var, yyyymmdd, hh, leadtime)
+    source_name = {Source.BASELINE: "baseline", Source.FORECAST: "forecast"}[source]
+    taskname = "MET stats for %s %s at %s %sZ %s" % (source_name, var, yyyymmdd, hh, leadtime)
     yield taskname
     rundir = c.paths.run / "stats" / yyyymmdd / hh / leadtime
     yyyymmdd_valid, hh_valid, _ = tcinfo(TimeCoords(tc.validtime))
     template = "grid_stat_%s_%02d0000L_%s_%s0000V.stat"
-    fn = template % (prefix, int(leadtime), yyyymmdd_valid, hh_valid)
-    path = rundir / fn
+    path = rundir / (template % (prefix, int(leadtime), yyyymmdd_valid, hh_valid))
     yield asset(path, path.is_file)
     baseline = _grid_grib(c, TimeCoords(cycle=tc.validtime, leadtime=0), var)
-    forecast_forecast = _grid_nc(c, varname, tc, var)
-    vx_forecast = _grid_grib(c, tc, var) if source == Source.BASELINE else forecast_forecast
-    cfgfile = _grid_stat_config(
-        c, refs(forecast_forecast), path, varname, rundir, var, prefix, source
-    )
+    forecast = _grid_nc(c, varname, tc, var)
+    toverify = _grid_grib(c, tc, var) if source == Source.BASELINE else forecast
+    cfgfile = _grid_stat_config(c, refs(forecast), path, varname, rundir, var, prefix, source)
     log = f"{path.stem}.log"
     content = f"""
     export OMP_NUM_THREADS=1
-    grid_stat -v 4 {refs(vx_forecast)} {refs(baseline)} {refs(cfgfile).name} >{log} 2>&1
+    grid_stat -v 4 {refs(toverify)} {refs(baseline)} {refs(cfgfile).name} >{log} 2>&1
     """
     script = _runscript(basepath=path, content=content)
-    reqs = [vx_forecast, baseline, cfgfile, script]
+    reqs = [toverify, baseline, cfgfile, script]
     if source == Source.BASELINE:
-        reqs.append(forecast_forecast)
+        reqs.append(forecast)
     yield reqs
     mpexec(str(refs(script)), rundir, taskname)
 
@@ -428,7 +425,7 @@ def _statargs(c: Config, varname: str, level: float | None, source: Source) -> I
 def _statreqs(c: Config, varname: str, level: float | None) -> Sequence[Node]:
     genreqs = lambda source: [_stat(*args) for args in _statargs(c, varname, level, source)]
     reqs: Sequence[Node] = genreqs(Source.FORECAST)
-    if c.plot.baseline:
+    if c.baseline.plot:
         reqs = [*reqs, *genreqs(Source.BASELINE)]
     return reqs
 

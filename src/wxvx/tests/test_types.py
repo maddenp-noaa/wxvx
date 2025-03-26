@@ -27,11 +27,6 @@ def leadtimes(config_data):
     return types.Leadtimes(**config_data["leadtimes"])
 
 
-@fixture
-def plot(config_data):
-    return types.Plot(**config_data["plot"])
-
-
 # Tests
 
 
@@ -78,16 +73,7 @@ def test_Leadtimes(config_data, leadtimes):
     assert obj != other2
 
 
-def test_Plot(config_data, plot):
-    obj = plot
-    assert obj.baseline is True
-    other1 = types.Plot(**config_data["plot"])
-    assert obj == other1
-    other2 = types.Plot(**{**config_data["plot"], "baseline": False})
-    assert obj != other2
-
-
-def test_Config(baseline, config_data, cycles, forecast, leadtimes, plot):
+def test_Config(baseline, config_data, cycles, forecast, leadtimes):
     obj = types.Config(config_data=config_data)
     assert hash(obj)
     assert obj.baseline == baseline
@@ -96,7 +82,6 @@ def test_Config(baseline, config_data, cycles, forecast, leadtimes, plot):
     assert obj.leadtimes == leadtimes
     assert obj.paths.grids == Path(config_data["paths"]["grids"])
     assert obj.paths.run == Path(config_data["paths"]["run"])
-    assert obj.plot == plot
     assert obj.variables == config_data["variables"]
     other = types.Config(config_data=config_data)
     assert obj == other

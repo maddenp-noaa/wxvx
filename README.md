@@ -63,6 +63,7 @@ The content of the YAML configuration file supplied via `-c` / `--config` is des
 ├────────────────────┼──────────────────────────────────────────────┤
 │ baseline:          │ Description of the baseline dataset          │
 │   name:            │   Dataset descriptive name                   │
+│   plot:            │   Plot baseline forecast?                    │
 │   url:             │   Template for baseline GRIB file URLs       │
 │ cycles:            │ Cycles to verify                             │
 │   start:           │   First cycle as ISO8601 timestamp           │
@@ -71,6 +72,7 @@ The content of the YAML configuration file supplied via `-c` / `--config` is des
 │ forecast:          │ Description of the forecast dataset          │
 │   name:            │   Dataset descriptive name                   │
 │   path:            │   Filesystem path to Zarr/netCDF dataset     │
+│   projection:      │   Projection name and attributes (see below) │
 │ leadtimes:         │ Leadtimes to verify                          │
 │   start:           │   First leadtime as hh[:mm[:ss]]             │
 │   step:            │   Interval between leadtimes as hh[:mm[:ss]] │
@@ -79,8 +81,6 @@ The content of the YAML configuration file supplied via `-c` / `--config` is des
 │ paths:             │ Paths                                        │
 │   grids:           │   Where to store netCDF/GRIB grids           │
 │   run:             │   Where to store run data                    │
-│ plot:              │ Plotting options                             │
-│   baseline         │   Plot baseline-model forecast               │
 │ variables:         │ Mapping describing variables to verify       │
 │   VAR:             │   Forecast-dataset variable name             │
 │     level_type:    │     Generic level type                       │
@@ -98,6 +98,9 @@ Use the `-s` / `--show` CLI switch to show a pro-forma config with realistic val
 - Currently supported level types are: `atmosphere`, `heightAboveGround`, `isobaricInhPa`, `surface`.
 - A `levels:` value should only be specified if a level type supports it. Currently, these are: `heightAboveGround`, `isobaricInhPa`.
 - [CF Metadata](https://cfconventions.org/) are added to the copies made of forecast variables that are provided to MET, which requires them. See [this database](https://cfconventions.org/Data/cf-standard-names/current/build/cf-standard-name-table.html) for CF standard names and units.
+- The `forecast.projection` value should be a mapping with at least a `proj` key identifying the ID of the [projection](https://proj.org/en/stable/operations/projections/index.html), and potentially additional projection attributes depending on the `proj` value:
+  - When `proj` is [`latlon`](https://proj.org/en/stable/operations/conversions/latlon.html), specify no additional attributes.
+  - When `proj` is [`lcc`](https://proj.org/en/stable/operations/projections/lcc.html), specify attributes `a`, `b`, `lat_0`, `lat_1`, `lat_2`, and `lon_0`.
 
 ## Development
 
@@ -117,7 +120,8 @@ This will create and activate a conda virtual environment named `DEV-wxvx`, wher
 
 When you are finished, type `exit` to return to your previous shell. The `DEV-wxvx` environment will still exist, and a future `make devshell` command will more-or-less instantly activate it again.
 
-## TODO
+## Extract Grid Projection from GRIB
 
-- Generalize for more baseline dataset types.
-- Support loading Zarr data remotely.
+``` python
+python -c "import pygrib; print(pygrib.open('a.grib2').message(1).projparams)"
+```

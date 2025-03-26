@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 import netCDF4  # noqa: F401 # import before xarray cf. https://github.com/pydata/xarray/issues/7259
 import numpy as np
 import xarray as xr
+from pyproj import Proj
 
 from wxvx.types import VarMeta
 from wxvx.util import WXVXError
@@ -15,7 +16,88 @@ if TYPE_CHECKING:  # pragma: no cover
     from wxvx.times import TimeCoords
     from wxvx.types import Config
 
+# Public
+
 UNKNOWN = "unknown"
+
+
+VARMETA = {
+    x.name: x
+    for x in [
+        VarMeta(
+            cf_standard_name="air_temperature",
+            description="2m Temperature",
+            level_type="heightAboveGround",
+            met_linetype="cnt",
+            met_stat="RMSE",
+            name="2t",
+            units="K",
+        ),
+        VarMeta(
+            cf_standard_name="geopotential_height",
+            description="Geopotential Height at {level} mb",
+            level_type="isobaricInhPa",
+            met_linetype="cnt",
+            met_stat="RMSE",
+            name="gh",
+            units="m",
+        ),
+        VarMeta(
+            cf_standard_name="specific_humidity",
+            description="Specific Humidity at {level} mb",
+            level_type="isobaricInhPa",
+            met_linetype="cnt",
+            met_stat="RMSE",
+            name="q",
+            units="1",
+        ),
+        VarMeta(
+            cf_standard_name="unknown",
+            description="Composite Reflectivity",
+            level_type="atmosphere",
+            met_linetype="cts",
+            met_stat="PODY",
+            name="refc",
+            units="dBZ",
+        ),
+        VarMeta(
+            cf_standard_name="air_temperature",
+            description="Temperature at {level} mb",
+            level_type="isobaricInhPa",
+            met_linetype="cnt",
+            met_stat="RMSE",
+            name="t",
+            units="K",
+        ),
+        VarMeta(
+            cf_standard_name="eastward_wind",
+            description="U-Component of Wind at {level} mb",
+            level_type="isobaricInhPa",
+            met_linetype="cnt",
+            met_stat="RMSE",
+            name="u",
+            units="m s-1",
+        ),
+        VarMeta(
+            cf_standard_name="northward_wind",
+            description="V-Component of Wind at {level} mb",
+            level_type="isobaricInhPa",
+            met_linetype="cnt",
+            met_stat="RMSE",
+            name="v",
+            units="m s-1",
+        ),
+        VarMeta(
+            cf_standard_name="lagrangian_tendency_of_air_pressure",
+            description="Vertical Velocity at {level} mb",
+            level_type="isobaricInhPa",
+            met_linetype="cnt",
+            met_stat="RMSE",
+            name="w",
+            units="Pa s-1",
+        ),
+    ]
+}
 
 
 class Var:
@@ -58,6 +140,18 @@ class HRRR(Var):
     """
     A HRRR variable.
     """
+
+    proj = Proj(
+        {
+            "a": 6371229,
+            "b": 6371229,
+            "lat_0": 38.5,
+            "lat_1": 38.5,
+            "lat_2": 38.5,
+            "lon_0": 262.5,
+            "proj": "lcc",
+        }
+    )
 
     def __init__(self, name: str, levstr: str, firstbyte: int, lastbyte: int):
         level_type, level = self._levinfo(levstr=levstr)
@@ -139,40 +233,129 @@ def da_select(ds: xr.Dataset, c: Config, varname: str, tc: TimeCoords, var: Var)
     return da
 
 
-def ds_from_da(c: Config, da: xr.DataArray, taskname: str) -> xr.Dataset:
-    logging.info("%s: Setting CF metadata on %s", taskname, da.name)
-    da["forecast_reference_time"].attrs["standard_name"] = "forecast_reference_time"
-    da["time"].attrs["standard_name"] = "time"
-    for name, standard_name, units in (
-        ["latitude", "latitude", "degrees_north"],
-        ["longitude", "longitude", "degrees_east"],
-        ["level", "air_pressure", "hPa"],
-    ):
-        if hasattr(da, name):
-            updates = {"standard_name": standard_name, "units": units}
-            da[name].attrs.update(updates)
+def ds_construct(c: Config, da: xr.DataArray, taskname: str) -> xr.Dataset:
+    logging.info("%s: Creating CF-compliant %s dataset", taskname, da.name)
+    assert len(da.shape) == 4
+    proj = Proj(c.forecast.projection)
+    latlon = proj.name == "longlat"  # yes, "longlat"
+    dims = ["forecast_reference_time", "time"]
+    dims.extend(["latitude", "longitude"] if latlon else ["y", "x"])
+    crs = "CRS"
     meta = VARMETA[c.variables[da.name]["name"]]
-    updates = {
-        "grid_mapping_name": "latitude_longitude",
-        "standard_name": meta.cf_standard_name,
-        "units": meta.units,
+    attrs = dict(grid_mapping=crs, standard_name=meta.cf_standard_name, units=meta.units)
+    dims_lat, dims_lon = ([k] if latlon else ["y", "x"] for k in ["latitude", "longitude"])
+    coords = {
+        "forecast_reference_time": _da_to_forecast_reference_time(da),
+        "time": _da_to_time(da),
+        "latitude": _da_to_latitude(da, dims_lat),
+        "longitude": _da_to_longitude(da, dims_lon),
     }
-    da.attrs.update(updates)
-    ds = da.to_dataset()
-    ds.attrs["Conventions"] = "CF-1.8"
-    return ds
+    if not latlon:
+        coords = {**coords, "y": _da_to_y(da, proj), "x": _da_to_x(da, proj)}
+    return xr.Dataset(
+        data_vars={
+            da.name: xr.DataArray(data=da.values, dims=dims, attrs=attrs),
+            crs: _da_crs(proj),
+        },
+        coords=coords,
+        attrs=dict(
+            Conventions="CF-1.8",
+            level=da.level.values[0] if hasattr(da, "level") else np.nan,
+        ),
+    )
 
 
 def metlevel(level_type: str, level: float | None) -> str:
     try:
-        prefix = {
-            "atmosphere": "L",
-            "heightAboveGround": "Z",
-            "isobaricInhPa": "P",
-        }[level_type]
+        prefix = {"atmosphere": "L", "heightAboveGround": "Z", "isobaricInhPa": "P"}[level_type]
     except KeyError as e:
         raise WXVXError("No MET level defined for level type %s" % level_type) from e
     return f"{prefix}%03d" % int(level or 0)
+
+
+# Private
+
+
+def _da_crs(proj: Proj) -> xr.DataArray:
+    cf = proj.crs.to_cf()
+    return xr.DataArray(
+        data=0,
+        attrs={
+            k: cf[k]
+            for k in [
+                "false_easting",
+                "false_northing",
+                "grid_mapping_name",
+                "latitude_of_projection_origin",
+                "longitude_of_central_meridian",
+                "standard_parallel",
+            ]
+            if k in cf
+        },
+    )
+
+
+def _da_grid_coords(
+    da: xr.DataArray, proj: Proj, k: Literal["latitude", "longitude"]
+) -> np.ndarray:
+    ks = ("latitude", "longitude")
+    assert k in ks
+    lats, lons = [da[k].values for k in ks]
+    i1, i2 = {"latitude": (lambda n: (n, 0), 1), "longitude": (lambda n: (0, n), 0)}[k]
+    return np.array([proj(lons[i1(n)], lats[i1(n)])[i2] for n in range(da.latitude.sizes[k])])
+
+
+def _da_to_forecast_reference_time(da: xr.DataArray) -> xr.DataArray:
+    var = da.forecast_reference_time
+    return xr.DataArray(
+        data=var.values,
+        dims=["forecast_reference_time"],
+        name=var.name,
+        attrs=dict(standard_name="forecast_reference_time"),
+    )
+
+
+def _da_to_latitude(da: xr.DataArray, dims: list[str]) -> xr.DataArray:
+    var = da.latitude
+    return xr.DataArray(
+        data=var.values,
+        dims=dims,
+        name=var.name,
+        attrs=dict(standard_name="latitude", units="degrees_north"),
+    )
+
+
+def _da_to_longitude(da: xr.DataArray, dims=list[str]) -> xr.DataArray:
+    var = da.longitude
+    return xr.DataArray(
+        data=var.values,
+        dims=dims,
+        name=var.name,
+        attrs=dict(standard_name="longitude", units="degrees_east"),
+    )
+
+
+def _da_to_time(da: xr.DataArray) -> xr.DataArray:
+    var = da.time
+    return xr.DataArray(
+        data=var.values, dims=["time"], name=var.name, attrs=dict(standard_name="time")
+    )
+
+
+def _da_to_x(da: xr.DataArray, proj: Proj) -> xr.DataArray:
+    return xr.DataArray(
+        data=_da_grid_coords(da, proj, "longitude"),
+        dims=["x"],
+        attrs=dict(standard_name="projection_x_coordinate", units="m"),
+    )
+
+
+def _da_to_y(da: xr.DataArray, proj: Proj) -> xr.DataArray:
+    return xr.DataArray(
+        data=_da_grid_coords(da, proj, "latitude"),
+        dims=["y"],
+        attrs=dict(standard_name="projection_y_coordinate", units="m"),
+    )
 
 
 def _levelstr2num(levelstr: str) -> float | int:
@@ -180,82 +363,3 @@ def _levelstr2num(levelstr: str) -> float | int:
         return int(levelstr)
     except ValueError:
         return float(levelstr)
-
-
-VARMETA = {
-    x.name: x
-    for x in [
-        VarMeta(
-            cf_standard_name="air_temperature",
-            description="2m Temperature",
-            level_type="heightAboveGround",
-            met_linetype="cnt",
-            met_stat="RMSE",
-            name="2t",
-            units="K",
-        ),
-        VarMeta(
-            cf_standard_name="geopotential_height",
-            description="Geopotential Height at {level} mb",
-            level_type="isobaricInhPa",
-            met_linetype="cnt",
-            met_stat="RMSE",
-            name="gh",
-            units="m",
-        ),
-        VarMeta(
-            cf_standard_name="specific_humidity",
-            description="Specific Humidity at {level} mb",
-            level_type="isobaricInhPa",
-            met_linetype="cnt",
-            met_stat="RMSE",
-            name="q",
-            units="1",
-        ),
-        VarMeta(
-            cf_standard_name="unknown",
-            description="Composite Reflectivity",
-            level_type="atmosphere",
-            met_linetype="cts",
-            met_stat="PODY",
-            name="refc",
-            units="dBZ",
-        ),
-        VarMeta(
-            cf_standard_name="air_temperature",
-            description="Temperature at {level} mb",
-            level_type="isobaricInhPa",
-            met_linetype="cnt",
-            met_stat="RMSE",
-            name="t",
-            units="K",
-        ),
-        VarMeta(
-            cf_standard_name="eastward_wind",
-            description="U-Component of Wind at {level} mb",
-            level_type="isobaricInhPa",
-            met_linetype="cnt",
-            met_stat="RMSE",
-            name="u",
-            units="m s-1",
-        ),
-        VarMeta(
-            cf_standard_name="northward_wind",
-            description="V-Component of Wind at {level} mb",
-            level_type="isobaricInhPa",
-            met_linetype="cnt",
-            met_stat="RMSE",
-            name="v",
-            units="m s-1",
-        ),
-        VarMeta(
-            cf_standard_name="lagrangian_tendency_of_air_pressure",
-            description="Vertical Velocity at {level} mb",
-            level_type="isobaricInhPa",
-            met_linetype="cnt",
-            met_stat="RMSE",
-            name="w",
-            units="Pa s-1",
-        ),
-    ]
-}

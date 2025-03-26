@@ -52,6 +52,7 @@ def config_data():
     return {
         "baseline": {
             "name": "Baseline",
+            "plot": True,
             "template": "https://some.url/{yyyymmdd}/{hh}/{ff}/a.grib2",
         },
         "cycles": {
@@ -62,6 +63,15 @@ def config_data():
         "forecast": {
             "name": "Forecast",
             "path": "/path/to/forecast",
+            "projection": {
+                "a": 6371229,
+                "b": 6371229,
+                "lat_0": 38.5,
+                "lat_1": 38.5,
+                "lat_2": 38.5,
+                "lon_0": 262.5,
+                "proj": "lcc",
+            },
         },
         "leadtimes": {
             "start": "00:00:00",
@@ -71,9 +81,6 @@ def config_data():
         "paths": {
             "grids": "/path/to/grids",
             "run": "/path/to/run",
-        },
-        "plot": {
-            "baseline": True,
         },
         "variables": {
             "HGT": {
