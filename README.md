@@ -123,5 +123,6 @@ When you are finished, type `exit` to return to your previous shell. The `DEV-wx
 ## Extract Grid Projection from GRIB
 
 ``` python
+conda install -y pygrib
 python -c "import pygrib; print(pygrib.open('a.grib2').message(1).projparams)"
 ```
