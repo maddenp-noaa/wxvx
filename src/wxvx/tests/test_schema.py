@@ -119,11 +119,18 @@ def test_schema_forecast_projection(logged, config_data, fs):
     for key in ["proj"]:
         assert not ok(with_set(config, "foo", key))
         assert logged(r"'foo' is not one of \['latlon', 'lcc'\]")
-    # For proj lcc, certain top-level keys are required, with values of certain types:
-    assert config["proj"] == "lcc"  # default in fixture
+    # For proj latlon:
+    config_latlon = {"proj": "latlon"}
+    assert ok(config_latlon)
+    assert not ok(with_set(config_latlon, 42, "foo"))
+    assert logged("'foo' was unexpected")
+    # For proj lcc (default in fixture):
+    assert config["proj"] == "lcc"
     for key in ["a", "b", "lat_0", "lat_1", "lat_2", "lon_0"]:
         assert not ok(with_del(config, key))
         assert logged(f"'{key}' is a required property")
+        assert not ok(with_set(config, None, key))
+        assert logged("None is not of type 'number'")
 
 
 def test_schema_leadtimes(logged, config_data, fs):
