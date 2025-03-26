@@ -67,19 +67,6 @@
         "projection": {
           "allOf": [
             {
-              "properties": {
-                "proj": {
-                  "enum": [
-                    "latlon",
-                    "lcc"
-                  ]
-                }
-              },
-              "required": [
-                "proj"
-              ]
-            },
-            {
               "if": {
                 "properties": {
                   "proj": {
@@ -142,6 +129,17 @@
                 ]
               }
             }
+          ],
+          "properties": {
+            "proj": {
+              "enum": [
+                "latlon",
+                "lcc"
+              ]
+            }
+          },
+          "required": [
+            "proj"
           ],
           "type": "object"
         }
