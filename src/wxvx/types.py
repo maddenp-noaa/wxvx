@@ -31,15 +31,7 @@ class Config:
         return all(getattr(self, k) == getattr(other, k) for k in self.KEYS)
 
     def __hash__(self):
-        h = None
-        for k in self.KEYS:
-            obj = getattr(self, k)
-            try:
-                h = hash((h, hash(obj)))
-            except TypeError:
-                h = hash((h, json.dumps(obj, sort_keys=True)))
-        assert h is not None
-        return h
+        return _hash(self)
 
 
 @dataclass(frozen=True)
@@ -53,9 +45,15 @@ class Cycles:
 class Forecast:
     name: str
     path: Path
+    projection: dict
+
+    KEYS = ("name", "path", "projection")
+
+    def __hash__(self):
+        return _hash(self)
 
     def __post_init__(self):
-        force(self, "path", Path(self.path))
+        _force(self, "path", Path(self.path))
 
 
 @dataclass(frozen=True)
@@ -71,8 +69,8 @@ class Paths:
     run: Path
 
     def __post_init__(self):
-        force(self, "grids", Path(self.grids))
-        force(self, "run", Path(self.run))
+        _force(self, "grids", Path(self.grids))
+        _force(self, "run", Path(self.run))
 
 
 @dataclass(frozen=True)
@@ -96,5 +94,17 @@ class VarMeta:
 # Helpers
 
 
-def force(obj: Any, name: str, val: Any) -> None:
+def _force(obj: Any, name: str, val: Any) -> None:
     object.__setattr__(obj, name, val)
+
+
+def _hash(obj: Any) -> int:
+    h = None
+    for k in obj.KEYS:
+        x = getattr(obj, k)
+        try:
+            h = hash((h, hash(x)))
+        except TypeError:
+            h = hash((h, json.dumps(x, sort_keys=True)))
+    assert h is not None
+    return h

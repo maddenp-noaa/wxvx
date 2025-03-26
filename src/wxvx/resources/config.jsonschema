@@ -63,11 +63,52 @@
         },
         "path": {
           "type": "string"
+        },
+        "projection": {
+          "additionalProperties": false,
+          "if": {
+            "properties": {
+              "proj": {
+                "const": "lcc"
+              }
+            }
+          },
+          "properties": {
+            "proj": {
+              "enum": [
+                "latlon",
+                "lcc"
+              ]
+            }
+          },
+          "required": [
+            "proj"
+          ],
+          "then": {
+            "properties": {
+              "a": "number",
+              "b": "number",
+              "lat_0": "number",
+              "lat_1": "number",
+              "lat_2": "number",
+              "lon_0": "number"
+            },
+            "required": [
+              "a",
+              "b",
+              "lat_0",
+              "lat_1",
+              "lat_2",
+              "lon_0"
+            ]
+          },
+          "type": "object"
         }
       },
       "required": [
         "name",
-        "path"
+        "path",
+        "projection"
       ],
       "type": "object"
     },

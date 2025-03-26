@@ -63,6 +63,7 @@ def config_data():
         "forecast": {
             "name": "Forecast",
             "path": "/path/to/forecast",
+            "projection": {"proj": "latlon"},
         },
         "leadtimes": {
             "start": "00:00:00",
