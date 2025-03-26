@@ -96,7 +96,7 @@ def test_schema_forecast(logged, config_data, fs):
     # Some keys have object values:
     for key in ["projection"]:
         assert not ok(with_set(config, None, key))
-        assert logged("is not valid")
+        assert logged("None is not of type 'object'")
     # Some keys have string values:
     for key in ["name", "path"]:
         assert not ok(with_set(config, None, key))
@@ -111,16 +111,19 @@ def test_schema_forecast_projection(logged, config_data, fs):
     # Certain top-level keys are required:
     for key in ["proj"]:
         assert not ok(with_del(config, key))
-        assert logged("is not valid")
+        assert logged("'proj' is a required property")
+    # Addional keys are not allowed:
+    assert not ok(with_set(config, 42, "foo"))
+    assert logged("'foo' was unexpected")
     # Some keys have enum values:
     for key in ["proj"]:
         assert not ok(with_set(config, "foo", key))
-        assert logged("is not valid")
+        assert logged(r"'foo' is not one of \['latlon', 'lcc'\]")
     # For proj lcc, certain top-level keys are required, with values of certain types:
     assert config["proj"] == "lcc"  # default in fixture
     for key in ["a"]:  # , "b", "lat_0", "lat_1", "lat_2", "lon_0"]:
         assert not ok(with_del(config, key))
-        assert logged("is not valid")
+        assert logged(f"'{key}' is a required property")
 
 
 def test_schema_leadtimes(logged, config_data, fs):
