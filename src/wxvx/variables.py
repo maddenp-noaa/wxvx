@@ -237,7 +237,7 @@ def ds_construct(c: Config, da: xr.DataArray, taskname: str) -> xr.Dataset:
     logging.info("%s: Creating CF-compliant %s dataset", taskname, da.name)
     assert len(da.shape) == 4
     proj = Proj(c.forecast.projection)
-    latlon = proj.name == "longlat"
+    latlon = proj.name == "longlat"  # yes, "longlat"
     dims = ["forecast_reference_time", "time"]
     dims.extend(["latitude", "longitude"] if latlon else ["y", "x"])
     crs = "CRS"
