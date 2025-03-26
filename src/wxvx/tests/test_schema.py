@@ -121,7 +121,7 @@ def test_schema_forecast_projection(logged, config_data, fs):
         assert logged(r"'foo' is not one of \['latlon', 'lcc'\]")
     # For proj lcc, certain top-level keys are required, with values of certain types:
     assert config["proj"] == "lcc"  # default in fixture
-    for key in ["a"]:  # , "b", "lat_0", "lat_1", "lat_2", "lon_0"]:
+    for key in ["a", "b", "lat_0", "lat_1", "lat_2", "lon_0"]:
         assert not ok(with_del(config, key))
         assert logged(f"'{key}' is a required property")
 
