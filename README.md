@@ -63,7 +63,7 @@ The content of the YAML configuration file supplied via `-c` / `--config` is des
 ├────────────────────┼──────────────────────────────────────────────┤
 │ baseline:          │ Description of the baseline dataset          │
 │   name:            │   Dataset descriptive name                   │
-│   plot:            │   Plot baseline-model forecast?              │
+│   plot:            │   Plot baseline forecast?                    │
 │   url:             │   Template for baseline GRIB file URLs       │
 │ cycles:            │ Cycles to verify                             │
 │   start:           │   First cycle as ISO8601 timestamp           │
@@ -72,6 +72,7 @@ The content of the YAML configuration file supplied via `-c` / `--config` is des
 │ forecast:          │ Description of the forecast dataset          │
 │   name:            │   Dataset descriptive name                   │
 │   path:            │   Filesystem path to Zarr/netCDF dataset     │
+│   projection:      │   Projection name and attributes (see below) │
 │ leadtimes:         │ Leadtimes to verify                          │
 │   start:           │   First leadtime as hh[:mm[:ss]]             │
 │   step:            │   Interval between leadtimes as hh[:mm[:ss]] │
@@ -97,6 +98,9 @@ Use the `-s` / `--show` CLI switch to show a pro-forma config with realistic val
 - Currently supported level types are: `atmosphere`, `heightAboveGround`, `isobaricInhPa`, `surface`.
 - A `levels:` value should only be specified if a level type supports it. Currently, these are: `heightAboveGround`, `isobaricInhPa`.
 - [CF Metadata](https://cfconventions.org/) are added to the copies made of forecast variables that are provided to MET, which requires them. See [this database](https://cfconventions.org/Data/cf-standard-names/current/build/cf-standard-name-table.html) for CF standard names and units.
+- The `forecast.projection` value should be a mapping with at least a `proj` key identifying the ID of the [projection](https://proj.org/en/stable/operations/projections/index.html), and potentially additional projection attributes depending on the `proj` value:
+  - When `proj` is [`latlon`](https://proj.org/en/stable/operations/conversions/latlon.html), specify no additional attributes.
+  - When `proj` is [`lcc`](https://proj.org/en/stable/operations/projections/lcc.html), specify attributes `a`, `b`, `lat_0`, `lat_1`, `lat_2`, and `lon_0`.
 
 ## Development
 
