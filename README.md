@@ -24,35 +24,6 @@ wxvx --version
 
 The activated virtual environment includes the [`metkit`](https://github.com/maddenp-noaa/metkit) package, which provides [MET](https://github.com/dtcenter/MET) and select [METplus](https://github.com/dtcenter/METplus) executables and data files. See the `metkit` [docs](https://github.com/maddenp-noaa/metkit/blob/main/README.md) for more information.
 
-## Use
-
-```
-$ wxvx --help
-usage: wxvx -c FILE [-t [TASK]] [-d] [-h] [-k] [-n N] [-s] [-v]
-
-wxvx
-
-Required arguments:
-  -c FILE, --config FILE
-      Configuration file
-  -t [TASK], --task [TASK]
-      Execute task (no argument => list available tasks)
-
-Optional arguments:
-  -d, --debug
-      Log all messages
-  -h, --help
-      Show help and exit
-  -k, --check
-      Check config and exit
-  -n N, --threads N
-      Threads
-  -s, --show
-      Show a pro-forma config and exit
-  -v, --version
-      Show version and exit
-```
-
 ## Configuration
 
 The content of the YAML configuration file supplied via `-c` / `--config` is described in the table below.
@@ -101,6 +72,81 @@ Use the `-s` / `--show` CLI switch to show a pro-forma config with realistic val
 - The `forecast.projection` value should be a mapping with at least a `proj` key identifying the ID of the [projection](https://proj.org/en/stable/operations/projections/index.html), and potentially additional projection attributes depending on the `proj` value:
   - When `proj` is [`latlon`](https://proj.org/en/stable/operations/conversions/latlon.html), specify no additional attributes.
   - When `proj` is [`lcc`](https://proj.org/en/stable/operations/projections/lcc.html), specify attributes `a`, `b`, `lat_0`, `lat_1`, `lat_2`, and `lon_0`.
+
+## Use
+
+```
+$ wxvx --help
+usage: wxvx -c FILE [-t [TASK]] [-d] [-h] [-k] [-n N] [-s] [-v]
+
+wxvx
+
+Required arguments:
+  -c FILE, --config FILE
+      Configuration file
+  -t [TASK], --task [TASK]
+      Execute task (no argument => list available tasks)
+
+Optional arguments:
+  -d, --debug
+      Log all messages
+  -h, --help
+      Show help and exit
+  -k, --check
+      Check config and exit
+  -n N, --threads N
+      Threads
+  -s, --show
+      Show a pro-forma config and exit
+  -v, --version
+      Show version and exit
+```
+
+### Example
+
+Consider a `config.yaml`
+
+``` yaml
+baseline:
+  name: HRRR
+  plot: true
+  template: https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.{yyyymmdd}/conus/hrrr.t{hh}z.wrfprsf{ff}.grib2
+cycles:
+  start: "2025-03-01T00:00:00"
+  step: "01:00:00"
+  stop: "2025-03-01T23:00:00"
+forecast:
+  name: ML
+  path: /path/to/forecast.zarr
+  projection:
+    proj: latlon
+leadtimes:
+  start: "03:00:00"
+  step: "03:00:00"
+  stop: "09:00:00"
+meta:
+  levels: &levels [800, 1000]
+  workdir: /path/to/workdir
+paths:
+  grids: "{{ meta.workdir }}/grids"
+  run: "{{ meta.workdir }}/run"
+variables:
+  HGT:
+    level_type: isobaricInhPa
+    levels: *levels
+    name: gh
+  REFC:
+    level_type: atmosphere
+    name: refc
+  T2M:
+    level_type: heightAboveGround
+    levels: [2]
+    name: 2t
+```
+
+This config directs `wxvx` to find forecast data, in Zarr format and on a regular lat/lon grid, under `/path/to/forecast.zarr`. The forecast will be called `ML` in MET `.stat` files and in plots. It will be verified against `HRRR` analysis, which can be found in GRIB files in an AWS bucket at URLs given as the `baseline.template` value, where `yyyymmdd`, `hh`, and `ff` will be filled in by `wxvx`. 24 hourly cycles starting at 2025-03-01 00Z, each with forecast leadtimes 3, 6, and 9, will be verified. Variable grids extracted from forecast and baseline datasets will be written to `/path/to/workdir/grids`, and run output will be created in `/path/to/workdir/run`: The [Jinja2](https://jinja.palletsprojects.com/en/stable/) expressions inside `{{ }}` markers will be processed by [`uwtools`](https://uwtools.readthedocs.io/en/stable/) and may use any features it supports. Three variables -- geopotential height, composite reflectivity, and 2-meter temperature, will be verified. The keys under `variables` map the names of the variables as they appear in the forecast dataset to a canonical description of the variable using ECMWF variable names and level-type descriptions (see the notes in the _Configuration_ section for links). Note that some variables do not support a "level" concept. So, the full verification task-graph will comprise: cycles x leadtimes x variables x levels.
+
+Invoking `wxvx -c config.yaml -t grids` would stage the forecast and baseline grids on disk, only; `-t stats` would produce statistics via MET tools, but also stage grids if they are not already available; and `-t plots` would plot statistics, but also _produce_ statistics (and stage grids) if they are not already available.
 
 ## Development
 
