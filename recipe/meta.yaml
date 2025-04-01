@@ -16,14 +16,14 @@ requirements:
     - python {{ pymin }}
     - setuptools
   run:
-    - iotaa >=1.1.2
+    - iotaa >=1.2.0
     - metkit 11.0.*
     - netcdf4 >=1.7,<2
     - pyproj 3.7.*
     - python >={{ pymin }}
     - pyyaml 6.*
     - requests >=2.32,<3
-    - uwtools 2.6.*
+    - uwtools 2.7.*
     - xarray >=2023.12
     - zarr >=2.17,<3
 test:
