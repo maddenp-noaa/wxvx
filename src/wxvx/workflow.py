@@ -21,7 +21,7 @@ from wxvx.types import Source
 from wxvx.util import mpexec
 from wxvx.variables import HRRR, VARMETA, Var, da_construct, da_select, ds_construct, metlevel
 
-if TYPE_CHECKING:  # pragma: no cover
+if TYPE_CHECKING:
     from collections.abc import Iterator, Sequence
 
     from wxvx.types import Config, VarMeta

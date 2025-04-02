@@ -12,7 +12,7 @@ from pyproj import Proj
 from wxvx.types import VarMeta
 from wxvx.util import WXVXError
 
-if TYPE_CHECKING:  # pragma: no cover
+if TYPE_CHECKING:
     from wxvx.times import TimeCoords
     from wxvx.types import Config
 
