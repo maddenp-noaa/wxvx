@@ -72,6 +72,8 @@ def _field_mapping_kvpairs(k: str, v: Any, level: int) -> list[str]:
             return _sequence(k, v, _quoted, level)
         case "name":
             return _kvpair(k, _quoted(v), level)
+        case "set_attr_level":
+            return _kvpair(k, _quoted(v), level)
     _fail(k)
 
 
