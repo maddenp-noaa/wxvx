@@ -184,7 +184,7 @@ def _grid_stat_config(
     config = render(
         {
             "fcst": {"field": [field_fcst]},
-            "mask": {"grid": ['"FULL"'], "poly": []},
+            "mask": {"grid": ["FULL"], "poly": []},
             "model": model,
             "nc_pairs_flag": "FALSE",
             "obs": {"field": [field_obs]},
