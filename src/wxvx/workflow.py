@@ -162,45 +162,29 @@ def _grid_nc(c: Config, varname: str, tc: TimeCoords, var: Var):
 
 @task
 def _grid_stat_config(
-    c: Config,
-    poly_path: Path,
-    basepath: Path,
-    varname: str,
-    rundir: Path,
-    var: Var,
-    prefix: str,
-    source: Source,
+    c: Config, basepath: Path, varname: str, rundir: Path, var: Var, prefix: str, source: Source
 ):
     path = (basepath.parent / basepath.stem).with_suffix(".config")
     taskname = "Verification config %s" % path
     yield taskname
     yield asset(path, path.is_file)
     yield None
+    level_obs = metlevel(var.level_type, var.level)
     attrs = {
-        Source.BASELINE: (
-            metlevel(var.level_type, var.level),
-            HRRR.varname(var.name),
-            c.baseline.name,
-        ),
-        Source.FORECAST: (
-            "(0,0,*,*)",
-            varname,
-            c.forecast.name,
-        ),
+        Source.BASELINE: (level_obs, HRRR.varname(var.name), c.baseline.name),
+        Source.FORECAST: ("(0,0,*,*)", varname, c.forecast.name),
     }
     forecast_level, forecast_name, model = attrs[source]
-    field_fcst = {"level": [forecast_level], "name": forecast_name}
-    field_obs = {"level": [metlevel(var.level_type, var.level)], "name": HRRR.varname(var.name)}
+    field_fcst = {"level": [forecast_level], "name": forecast_name, "set_attr_level": level_obs}
+    field_obs = {"level": [level_obs], "name": HRRR.varname(var.name)}
     meta = _meta(c, varname)
     if meta.met_linetype == "cts":
         field_fcst["cat_thresh"] = [">0"]
         field_obs["cat_thresh"] = [">0"]
-    poly_level, poly_name, _ = attrs[Source.FORECAST]
-    poly = r"%s {name = \"%s\"; level = \"%s\";}" % (poly_path, poly_name, poly_level)
     config = render(
         {
             "fcst": {"field": [field_fcst]},
-            "mask": {"grid": [], "poly": [poly]},
+            "mask": {"grid": ["FULL"], "poly": []},
             "model": model,
             "nc_pairs_flag": "FALSE",
             "obs": {"field": [field_obs]},
@@ -374,7 +358,7 @@ def _stat(c: Config, varname: str, tc: TimeCoords, var: Var, prefix: str, source
     baseline = _grid_grib(c, TimeCoords(cycle=tc.validtime, leadtime=0), var)
     forecast = _grid_nc(c, varname, tc, var)
     toverify = _grid_grib(c, tc, var) if source == Source.BASELINE else forecast
-    cfgfile = _grid_stat_config(c, forecast.refs, path, varname, rundir, var, prefix, source)
+    cfgfile = _grid_stat_config(c, path, varname, rundir, var, prefix, source)
     log = f"{path.stem}.log"
     content = f"""
     export OMP_NUM_THREADS=1
