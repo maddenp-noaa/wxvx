@@ -219,93 +219,112 @@ def _grid_stat_config(
 def _plot(c: Config, varname: str, level: float | None):
     var = _var(c, varname, level)
     rundir = c.paths.run / "plot" / str(var)
-    path = rundir / "plot.png"
-    taskname = "Plot %s" % path
+    cycles = _cycles(start=c.cycles.start, step=c.cycles.step, stop=c.cycles.stop)
+    leadtimes = ["%03d" % (td.total_seconds() // 3600) for td in _leadtimes(start=c.leadtimes.start, step=c.leadtimes.step, stop=c.leadtimes.stop)]
+    taskname = "Plot %s %s" % (varname, level)
+    plot_fn = lambda cycle: rundir / str(cycle) / "plot.png"
     yield taskname
-    yield asset(path, path.is_file)
+    yield [asset(plot_fn(cycle), plot_fn(cycle).is_file) for cycle in cycles]
     reformatted = _reformat(c, varname, level, rundir)
+    yield reformatted
     stat_fn = refs(reformatted).name
-    cfgfile = _plot_config(c, rundir, varname, var, plot_fn=path.name, stat_fn=stat_fn)
-    content = "line.py %s >%s 2>&1" % (refs(cfgfile).name, "plot.log")
-    script = _runscript(basepath=path, content=content)
-    yield [cfgfile, reformatted, script]
-    mpexec(str(refs(script)), rundir, taskname)
+    dfo = pd.read_csv(rundir/stat_fn, sep='\t')
+    for cycle in cycles:
+        cyc = cycle.strftime("%Y-%m-%d %H:%M:%S")
+        df = dfo.loc[dfo['fcst_init_beg'] == cyc]
+        df = df[['fcst_lead', 'model', 'stat_name', 'stat_value']]
+        df['fcst_lead'] = df['fcst_lead'].apply(lambda x: str(int(x // 10000)).zfill(3))
+        stat = c.variables[varname]['stat']
+        df_forecast = df[(df['model'] == c.forecast.name) & (df['stat_name'] == stat)]
+        df_baseline = df[(df['model'] == c.baseline.name) & (df['stat_name'] == stat)]
+        df_combined = pd.concat([df_forecast, df_baseline])
+        df_combined['fcst_lead'] = pd.Categorical(df_combined['fcst_lead'], categories=leadtimes, ordered=True)
+        plt.figure()
+        sns.set(style="whitegrid")
+        sns.scatterplot(data=df_combined, x='fcst_lead', y='stat_value', hue='model')
+        plt.title(f"{varname} {stat}, {c.forecast.name} v {c.baseline.name}: {cyc}")
+        plt.xlabel('Leadtime')
+        plt.ylabel(stat)
+        plt.xticks(ticks=np.arange(len(leadtimes)), labels=leadtimes)
+        plt.legend(title='Model')
+        plot_fn(cycle).parent.mkdir(exist_ok=True)
+        plt.savefig(plot_fn(cycle))
 
 
-@task
-def _plot_config(c: Config, rundir: Path, varname: str, var: Var, plot_fn: str, stat_fn: str):
-    path = rundir / "plot.yaml"
-    taskname = "Plot config %s" % path
-    yield taskname
-    yield asset(path, path.is_file)
-    yield None
-    meta = _meta(c, varname)
-    stat = meta.met_stat
-    vts = validtimes(c.cycles, c.leadtimes)
-    x_axis_labels = [
-        vt.validtime.strftime("%Y%m%d %HZ") if i % 10 == 0 else "" for i, vt in enumerate(vts)
-    ]
-    title = "%s %s vs %s" % (
-        meta.description.format(level=var.level),
-        stat,
-        c.baseline.name,
-    )
-    config = dict(
-        colors=["#CC6677"],
-        con_series=[1],
-        fcst_var_val_1={varname: [stat]},
-        grid_col="#cccccc",
-        indy_label=x_axis_labels,
-        indy_vals=[vt.validtime.strftime("%Y-%m-%d %H:%M:%S") for vt in vts],
-        indy_var="fcst_init_beg",
-        legend_box="n",
-        list_stat_1=[stat],
-        log_level="DEBUG",
-        met_linetype=meta.met_linetype,
-        plot_caption="",
-        plot_ci=["none"],
-        plot_disp=[True],
-        plot_filename=plot_fn,
-        plot_height=10,
-        plot_width=13,
-        series_line_style=["-"],
-        series_line_width=[1],
-        series_order=[1],
-        series_symbols=["."],
-        series_type=["b"],
-        series_val_1={"model": [c.forecast.name]},
-        show_legend=[True],
-        stat_input=stat_fn,
-        title=title,
-        xaxis="Cycle",
-        xlab_offset=20,
-        xtlab_orient=270,
-        yaxis_1=stat,
-        ylab_offset=10,
-    )
-    if c.baseline.plot:
-        update = dict(
-            fcst_var_val_2={HRRR.varname(var.name): [stat]},
-            list_stat_2=[stat],
-            series_val_2={"model": [c.baseline.name]},
-        )
-        config.update(update)
-        for k, v in [
-            ("colors", "#44AA99"),
-            ("con_series", 1),
-            ("plot_ci", "none"),
-            ("plot_disp", True),
-            ("series_line_style", "-"),
-            ("series_line_width", 1),
-            ("series_order", 2),
-            ("series_symbols", "."),
-            ("series_type", "b"),
-            ("show_legend", True),
-        ]:
-            config[k].append(v)  # type: ignore[attr-defined]
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w") as f:
-        yaml.dump(config, f)
+# @task
+# def _plot_config(c: Config, rundir: Path, varname: str, var: Var, plot_fn: str, stat_fn: str):
+#     path = rundir / "plot.yaml"
+#     taskname = "Plot config %s" % path
+#     yield taskname
+#     yield asset(path, path.is_file)
+#     yield None
+#     meta = _meta(c, varname)
+#     stat = meta.met_stat
+#     vts = validtimes(c.cycles, c.leadtimes)
+#     x_axis_labels = [
+#         vt.validtime.strftime("%Y%m%d %HZ") if i % 10 == 0 else "" for i, vt in enumerate(vts)
+#     ]
+#     title = "%s %s vs %s" % (
+#         meta.description.format(level=var.level),
+#         stat,
+#         c.baseline.name,
+#     )
+#     config = dict(
+#         colors=["#CC6677"],
+#         con_series=[1],
+#         fcst_var_val_1={varname: [stat]},
+#         grid_col="#cccccc",
+#         indy_label=x_axis_labels,
+#         indy_vals=[vt.validtime.strftime("%Y-%m-%d %H:%M:%S") for vt in vts],
+#         indy_var="fcst_init_beg",
+#         legend_box="n",
+#         list_stat_1=[stat],
+#         log_level="DEBUG",
+#         met_linetype=meta.met_linetype,
+#         plot_caption="",
+#         plot_ci=["none"],
+#         plot_disp=[True],
+#         plot_filename=plot_fn,
+#         plot_height=10,
+#         plot_width=13,
+#         series_line_style=["-"],
+#         series_line_width=[1],
+#         series_order=[1],
+#         series_symbols=["."],
+#         series_type=["b"],
+#         series_val_1={"model": [c.forecast.name]},
+#         show_legend=[True],
+#         stat_input=stat_fn,
+#         title=title,
+#         xaxis="Cycle",
+#         xlab_offset=20,
+#         xtlab_orient=270,
+#         yaxis_1=stat,
+#         ylab_offset=10,
+#     )
+#     if c.baseline.plot:
+#         update = dict(
+#             fcst_var_val_2={HRRR.varname(var.name): [stat]},
+#             list_stat_2=[stat],
+#             series_val_2={"model": [c.baseline.name]},
+#         )
+#         config.update(update)
+#         for k, v in [
+#             ("colors", "#44AA99"),
+#             ("con_series", 1),
+#             ("plot_ci", "none"),
+#             ("plot_disp", True),
+#             ("series_line_style", "-"),
+#             ("series_line_width", 1),
+#             ("series_order", 2),
+#             ("series_symbols", "."),
+#             ("series_type", "b"),
+#             ("show_legend", True),
+#         ]:
+#             config[k].append(v)  # type: ignore[attr-defined]
+#     path.parent.mkdir(parents=True, exist_ok=True)
+#     with path.open("w") as f:
+#         yaml.dump(config, f)
 
 
 @task
