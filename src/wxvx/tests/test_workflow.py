@@ -154,7 +154,6 @@ def test_workflow__grid_stat_config(c, fakefs):
     basepath = fakefs / "refc.stat"
     kwargs = dict(
         c=c,
-        poly_path="/path/to/forecast.nc",
         basepath=basepath,
         varname="REFC",
         rundir=fakefs,

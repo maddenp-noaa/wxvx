@@ -5,10 +5,10 @@
   "packages": {
     "dev": [
       "docformatter ==1.7.*",
-      "iotaa >=1.1.2",
+      "iotaa >=1.2.0",
       "jq ==1.7.*",
       "make ==4.4.*",
-      "metkit ==11.0.*",
+      "met2go ==11.0.*",
       "mypy ==1.14.*",
       "netcdf4 >=1.7,<2",
       "pip",
@@ -22,19 +22,19 @@
       "requests >=2.32,<3",
       "ruff ==0.9.*",
       "setuptools",
-      "uwtools ==2.6.*",
+      "uwtools ==2.7.*",
       "xarray >=2023.12",
       "zarr >=2.17,<3"
     ],
     "run": [
-      "iotaa >=1.1.2",
-      "metkit ==11.0.*",
+      "iotaa >=1.2.0",
+      "met2go ==11.0.*",
       "netcdf4 >=1.7,<2",
       "pyproj ==3.7.*",
       "python >=3.10",
       "pyyaml ==6.*",
       "requests >=2.32,<3",
-      "uwtools ==2.6.*",
+      "uwtools ==2.7.*",
       "xarray >=2023.12",
       "zarr >=2.17,<3"
     ]
