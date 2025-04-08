@@ -45,10 +45,10 @@ class Cycles:
 
 @dataclass(frozen=True)
 class Forecast:
-    mask: tuple[tuple[float, float]] | None
     name: str
     path: Path
     projection: dict
+    mask: tuple[tuple[float, float]] | None = None
 
     KEYS = ("mask", "name", "path", "projection")
 
