@@ -169,11 +169,10 @@ def _grid_stat_config(
     taskname = "Verification config %s" % path
     yield taskname
     yield asset(path, path.is_file)
+    polyfile = None
     if mask := c.forecast.mask:
         polyfile = _polyfile(base.with_suffix(".poly"), mask)
-        yield polyfile
-    else:
-        yield None
+    yield polyfile
     level_obs = metlevel(var.level_type, var.level)
     attrs = {
         Source.BASELINE: (level_obs, HRRR.varname(var.name), c.baseline.name),
@@ -187,8 +186,8 @@ def _grid_stat_config(
         thresholds = ">=20, >=30, >=40"
         field_fcst["cat_thresh"] = [thresholds]
         field_obs["cat_thresh"] = [thresholds]
-    mask_grid = [] if mask else ["FULL"]
-    mask_poly = [polyfile.refs] if mask else []
+    mask_grid = [] if polyfile else ["FULL"]
+    mask_poly = [polyfile.refs] if polyfile else []
     config = render(
         {
             "fcst": {"field": [field_fcst]},
