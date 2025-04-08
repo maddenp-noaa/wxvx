@@ -11,8 +11,8 @@ Source = Enum("Source", [("BASELINE", auto()), ("FORECAST", auto())])
 
 @dataclass(frozen=True)
 class Baseline:
+    compare: bool
     name: str
-    plot: bool
     template: str
 
 

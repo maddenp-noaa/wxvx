@@ -33,9 +33,9 @@ The content of the YAML configuration file supplied via `-c` / `--config` is des
 │ Key                │ Description                                  │
 ├────────────────────┼──────────────────────────────────────────────┤
 │ baseline:          │ Description of the baseline dataset          │
+│   compare:         │   Verify and/or plot forecast?               │
 │   name:            │   Dataset descriptive name                   │
-│   plot:            │   Plot baseline forecast?                    │
-│   url:             │   Template for baseline GRIB file URLs       │
+│   template:        │   Template for baseline GRIB file URLs       │
 │ cycles:            │ Cycles to verify                             │
 │   start:           │   First cycle as ISO8601 timestamp           │
 │   step:            │   Interval between cycles as hh[:mm[:ss]]    │
@@ -108,8 +108,8 @@ Consider a `config.yaml`
 
 ``` yaml
 baseline:
+  compare: true
   name: HRRR
-  plot: true
   template: https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.{yyyymmdd}/conus/hrrr.t{hh}z.wrfprsf{ff}.grib2
 cycles:
   start: "2025-03-01T00:00:00"

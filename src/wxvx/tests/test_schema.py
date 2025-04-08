@@ -47,14 +47,14 @@ def test_schema_baseline(logged, config_data, fs):
     # Basic correctness:
     assert ok(config)
     # Certain top-level keys are required:
-    for key in ["name", "plot", "template"]:
+    for key in ["compare", "name", "template"]:
         assert not ok(with_del(config, key))
         assert logged(f"'{key}' is a required property")
     # Addional keys are not allowed:
     assert not ok(with_set(config, 42, "n"))
     assert logged("'n' was unexpected")
     # Some keys have bool values:
-    for key in ["plot"]:
+    for key in ["compare"]:
         assert not ok(with_set(config, None, key))
         assert logged("None is not of type 'boolean'")
     # Some keys have string values:

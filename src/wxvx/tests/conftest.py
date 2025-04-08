@@ -51,8 +51,8 @@ def c_real_fs(config_data, tmp_path):
 def config_data():
     return {
         "baseline": {
+            "compare": True,
             "name": "Baseline",
-            "plot": True,
             "template": "https://some.url/{yyyymmdd}/{hh}/{ff}/a.grib2",
         },
         "cycles": {
