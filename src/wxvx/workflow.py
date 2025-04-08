@@ -182,10 +182,12 @@ def _grid_stat_config(
         thresholds = ">=20, >=30, >=40"
         field_fcst["cat_thresh"] = [thresholds]
         field_obs["cat_thresh"] = [thresholds]
+    mask_grid = [] if c.forecast.mask else ["FULL"]
+    mask_poly = [list(lat_lon_pair) for lat_lon_pair in c.forecast.mask] if c.forecast.mask else []
     config = render(
         {
             "fcst": {"field": [field_fcst]},
-            "mask": {"grid": ["FULL"], "poly": []},
+            "mask": {"grid": mask_grid, "poly": mask_poly},
             "model": model,
             "nc_pairs_flag": "FALSE",
             "obs": {"field": [field_obs]},
