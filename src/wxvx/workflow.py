@@ -10,13 +10,17 @@ from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 from warnings import catch_warnings, simplefilter
 
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
 import xarray as xr
 import yaml
 from iotaa import Node, asset, external, refs, task, tasks
 
 from wxvx.metconf import render
 from wxvx.net import fetch, status
-from wxvx.times import TimeCoords, tcinfo, validtimes
+from wxvx.times import TimeCoords, tcinfo, validtimes, _cycles, _leadtimes
 from wxvx.types import Source
 from wxvx.util import mpexec
 from wxvx.variables import HRRR, VARMETA, Var, da_construct, da_select, ds_construct, metlevel
@@ -48,9 +52,14 @@ def grids(c: Config):
 
 @tasks
 def plots(c: Config):
+    cycles = _cycles(start=c.cycles.start, step=c.cycles.step, stop=c.cycles.stop)
     taskname = "Plots for %s" % c.forecast.path
     yield taskname
-    yield [_plot(c, varname, level) for varname, level in _varnames_and_levels(c)]
+    yield [
+    _plot(c, cycle, varname, level) 
+    for cycle in cycles 
+    for varname, level in _varnames_and_levels(c)
+    ]
 
 
 @tasks
@@ -216,39 +225,38 @@ def _grid_stat_config(
 
 
 @task
-def _plot(c: Config, varname: str, level: float | None):
+def _plot(c: Config, cycle: str, varname: str, level: float | None):
     var = _var(c, varname, level)
     rundir = c.paths.run / "plot" / str(var)
-    cycles = _cycles(start=c.cycles.start, step=c.cycles.step, stop=c.cycles.stop)
     leadtimes = ["%03d" % (td.total_seconds() // 3600) for td in _leadtimes(start=c.leadtimes.start, step=c.leadtimes.step, stop=c.leadtimes.stop)]
-    taskname = "Plot %s %s" % (varname, level)
-    plot_fn = lambda cycle: rundir / str(cycle) / "plot.png"
+    taskname = "Plot %s %s %s" % (varname, level, cycle)
+    plot_fn = rundir / str(cycle) / "plot.png"
     yield taskname
-    yield [asset(plot_fn(cycle), plot_fn(cycle).is_file) for cycle in cycles]
+    yield asset(plot_fn, plot_fn.is_file)
     reformatted = _reformat(c, varname, level, rundir)
     yield reformatted
     stat_fn = refs(reformatted).name
+    breakpoint()
     dfo = pd.read_csv(rundir/stat_fn, sep='\t')
-    for cycle in cycles:
-        cyc = cycle.strftime("%Y-%m-%d %H:%M:%S")
-        df = dfo.loc[dfo['fcst_init_beg'] == cyc]
-        df = df[['fcst_lead', 'model', 'stat_name', 'stat_value']]
-        df['fcst_lead'] = df['fcst_lead'].apply(lambda x: str(int(x // 10000)).zfill(3))
-        stat = c.variables[varname]['stat']
-        df_forecast = df[(df['model'] == c.forecast.name) & (df['stat_name'] == stat)]
-        df_baseline = df[(df['model'] == c.baseline.name) & (df['stat_name'] == stat)]
-        df_combined = pd.concat([df_forecast, df_baseline])
-        df_combined['fcst_lead'] = pd.Categorical(df_combined['fcst_lead'], categories=leadtimes, ordered=True)
-        plt.figure()
-        sns.set(style="whitegrid")
-        sns.scatterplot(data=df_combined, x='fcst_lead', y='stat_value', hue='model')
-        plt.title(f"{varname} {stat}, {c.forecast.name} v {c.baseline.name}: {cyc}")
-        plt.xlabel('Leadtime')
-        plt.ylabel(stat)
-        plt.xticks(ticks=np.arange(len(leadtimes)), labels=leadtimes)
-        plt.legend(title='Model')
-        plot_fn(cycle).parent.mkdir(exist_ok=True)
-        plt.savefig(plot_fn(cycle))
+    cyc = cycle.strftime("%Y-%m-%d %H:%M:%S")
+    df = dfo.loc[dfo['fcst_init_beg'] == cyc]
+    df = df[['fcst_lead', 'model', 'stat_name', 'stat_value']]
+    df['fcst_lead'] = df['fcst_lead'].apply(lambda x: str(int(x // 10000)).zfill(3))
+    stat = c.variables[varname]['stat']
+    df_forecast = df[(df['model'] == c.forecast.name) & (df['stat_name'] == stat)]
+    df_baseline = df[(df['model'] == c.baseline.name) & (df['stat_name'] == stat)]
+    df_combined = pd.concat([df_forecast, df_baseline])
+    df_combined['fcst_lead'] = pd.Categorical(df_combined['fcst_lead'], categories=leadtimes, ordered=True)
+    plt.figure()
+    sns.set(style="whitegrid")
+    sns.scatterplot(data=df_combined, x='fcst_lead', y='stat_value', hue='model')
+    plt.title(f"{varname} {stat}, {c.forecast.name} v {c.baseline.name}: {cyc}")
+    plt.xlabel('Leadtime')
+    plt.ylabel(stat)
+    plt.xticks(ticks=np.arange(len(leadtimes)), labels=leadtimes)
+    plt.legend(title='Model')
+    plot_fn.parent.mkdir(exist_ok=True)
+    plt.savefig(plot_fn)
 
 
 # @task
