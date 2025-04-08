@@ -179,8 +179,9 @@ def _grid_stat_config(
     field_obs = {"level": [level_obs], "name": HRRR.varname(var.name)}
     meta = _meta(c, varname)
     if meta.met_linetype == "cts":
-        field_fcst["cat_thresh"] = [">0"]
-        field_obs["cat_thresh"] = [">0"]
+        thresholds = ">=20, >=30, >=40"
+        field_fcst["cat_thresh"] = [thresholds]
+        field_obs["cat_thresh"] = [thresholds]
     config = render(
         {
             "fcst": {"field": [field_fcst]},
