@@ -164,11 +164,16 @@ def _grid_nc(c: Config, varname: str, tc: TimeCoords, var: Var):
 def _grid_stat_config(
     c: Config, basepath: Path, varname: str, rundir: Path, var: Var, prefix: str, source: Source
 ):
-    path = (basepath.parent / basepath.stem).with_suffix(".config")
+    base = basepath.parent / basepath.stem
+    path = base.with_suffix(".config")
     taskname = "Verification config %s" % path
     yield taskname
     yield asset(path, path.is_file)
-    yield None
+    if mask := c.forecast.mask:
+        polyfile = _polyfile(base.with_suffix(".poly"), mask)
+        yield polyfile
+    else:
+        yield None
     level_obs = metlevel(var.level_type, var.level)
     attrs = {
         Source.BASELINE: (level_obs, HRRR.varname(var.name), c.baseline.name),
@@ -182,8 +187,8 @@ def _grid_stat_config(
         thresholds = ">=20, >=30, >=40"
         field_fcst["cat_thresh"] = [thresholds]
         field_obs["cat_thresh"] = [thresholds]
-    mask_grid = [] if c.forecast.mask else ["FULL"]
-    mask_poly = [list(lat_lon_pair) for lat_lon_pair in c.forecast.mask] if c.forecast.mask else []
+    mask_grid = [] if mask else ["FULL"]
+    mask_poly = [polyfile.refs] if mask else []
     config = render(
         {
             "fcst": {"field": [field_fcst]},
@@ -200,6 +205,16 @@ def _grid_stat_config(
     )
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(f"{config}\n")
+
+
+@task
+def _polyfile(path: Path, mask: tuple[tuple[float, float]]):
+    yield "Poly file %s" % path
+    yield asset(path, path.is_file)
+    yield None
+    path.parent.mkdir(parents=True, exist_ok=True)
+    content = "MASK\n%s\n" % "\n".join(f"{lat} {lon}" for lat, lon in mask)
+    path.write_text(content)
 
 
 @task
