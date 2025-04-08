@@ -230,7 +230,8 @@ def _plot(c: Config, cycle: str, varname: str, level: float | None):
     rundir = c.paths.run / "plot" / str(var)
     leadtimes = ["%03d" % (td.total_seconds() // 3600) for td in _leadtimes(start=c.leadtimes.start, step=c.leadtimes.step, stop=c.leadtimes.stop)]
     taskname = "Plot %s %s %s" % (varname, level, cycle)
-    plot_fn = rundir / str(cycle) / "plot.png"
+    cycledir = cycle.strftime('%Y%m%dT%H')
+    plot_fn = rundir / cycledir / "plot.png"
     yield taskname
     yield asset(plot_fn, plot_fn.is_file)
     reformatted = _reformat(c, varname, level, rundir)
