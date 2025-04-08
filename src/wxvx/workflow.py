@@ -236,7 +236,6 @@ def _plot(c: Config, cycle: str, varname: str, level: float | None):
     reformatted = _reformat(c, varname, level, rundir)
     yield reformatted
     stat_fn = refs(reformatted).name
-    breakpoint()
     dfo = pd.read_csv(rundir/stat_fn, sep='\t')
     cyc = cycle.strftime("%Y-%m-%d %H:%M:%S")
     df = dfo.loc[dfo['fcst_init_beg'] == cyc]
