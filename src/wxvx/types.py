@@ -1,5 +1,7 @@
 # noqa: A005
 
+from __future__ import annotations
+
 import json
 from dataclasses import dataclass
 from enum import Enum, auto
@@ -43,16 +45,19 @@ class Cycles:
 
 @dataclass(frozen=True)
 class Forecast:
+    mask: tuple[tuple[float, float]] | None
     name: str
     path: Path
     projection: dict
 
-    KEYS = ("name", "path", "projection")
+    KEYS = ("mask", "name", "path", "projection")
 
     def __hash__(self):
         return _hash(self)
 
     def __post_init__(self):
+        if self.mask:
+            _force(self, "mask", tuple(tuple(x) for x in self.mask))
         _force(self, "path", Path(self.path))
 
 

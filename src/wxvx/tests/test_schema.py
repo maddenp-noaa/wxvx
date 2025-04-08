@@ -101,6 +101,13 @@ def test_schema_forecast(logged, config_data, fs):
     for key in ["name", "path"]:
         assert not ok(with_set(config, None, key))
         assert logged("None is not of type 'string'")
+    # Optional 'mask' key must match its schema:
+    assert ok(with_set(config, [[1.1, 2], [3.3, 4], [5.5, 6], [7.7, 8]], "mask"))
+    assert ok(with_del(config, "mask"))
+    assert not ok(with_set(config, "string", "mask"))
+    assert logged("'string' is not of type 'array'")
+    assert not ok(with_set(config, ["foo"], "mask"))
+    assert logged("'foo' is not of type 'array'")
 
 
 def test_schema_forecast_projection(logged, config_data, fs):

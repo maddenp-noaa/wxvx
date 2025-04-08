@@ -58,6 +58,15 @@
     "forecast": {
       "additionalProperties": false,
       "properties": {
+        "mask": {
+          "items": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "type": "array"
+        },
         "name": {
           "type": "string"
         },
