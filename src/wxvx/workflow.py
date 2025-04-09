@@ -39,12 +39,12 @@ def grids(c: Config, baseline: bool = True, forecast: bool = True):
             if forecast:
                 forecast_grid = _grid_nc(c, varname, tc, var)
                 reqs.append(forecast_grid)
-                if c.baseline.compare:
-                    comp_grid = _grid_grib(c, tc, var)
-                    reqs.append(comp_grid)
             if baseline:
                 baseline_grid = _grid_grib(c, TimeCoords(cycle=tc.validtime, leadtime=0), var)
                 reqs.append(baseline_grid)
+                if c.baseline.compare:
+                    comp_grid = _grid_grib(c, tc, var)
+                    reqs.append(comp_grid)
     yield reqs
 
 

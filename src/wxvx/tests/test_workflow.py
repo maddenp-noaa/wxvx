@@ -21,16 +21,23 @@ from wxvx.variables import Var
 # Task Tests
 
 
-def test_workflow_grids(c, noop):
-    n_validtimes = len(list(validtimes(c.cycles, c.leadtimes)))
-    n_var_level_pairs = len(list(workflow._varnames_and_levels(c)))
-    n = n_validtimes * n_var_level_pairs
+def test_workflow_grids(c, n_grids, noop):
     with patch.object(workflow, "_grid_grib", noop), patch.object(workflow, "_grid_nc", noop):
-        assert len(refs(workflow.grids(c=c))) == n * 3  # forecast, baseline, and comp grids
-        assert len(refs(workflow.grids(c=c, baseline=True, forecast=True))) == n * 3
-        assert len(refs(workflow.grids(c=c, baseline=True, forecast=False))) == n * 1
-        assert len(refs(workflow.grids(c=c, baseline=False, forecast=True))) == n * 2
+        assert len(refs(workflow.grids(c=c))) == n_grids * 3  # forecast, baseline, and comp grids
+        assert len(refs(workflow.grids(c=c, baseline=True, forecast=True))) == n_grids * 3
+        assert len(refs(workflow.grids(c=c, baseline=True, forecast=False))) == n_grids * 2
+        assert len(refs(workflow.grids(c=c, baseline=False, forecast=True))) == n_grids
         assert len(refs(workflow.grids(c=c, baseline=False, forecast=False))) == 0
+
+
+def test_workflow_grids_baseline(c, n_grids, noop):
+    with patch.object(workflow, "_grid_grib", noop), patch.object(workflow, "_grid_nc", noop):
+        assert len(refs(workflow.grids_baseline(c=c))) == n_grids * 2
+
+
+def test_workflow_grids_forecast(c, n_grids, noop):
+    with patch.object(workflow, "_grid_grib", noop), patch.object(workflow, "_grid_nc", noop):
+        assert len(refs(workflow.grids_forecast(c=c))) == n_grids
 
 
 def test_workflow_plots(c, noop):
@@ -371,6 +378,13 @@ def test__vxvars(c):
 
 
 # Fixtures
+
+
+@fixture
+def n_grids(c):
+    n_validtimes = len(list(validtimes(c.cycles, c.leadtimes)))
+    n_var_level_pairs = len(list(workflow._varnames_and_levels(c)))
+    return n_validtimes * n_var_level_pairs
 
 
 @fixture
