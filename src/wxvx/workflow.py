@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from functools import cache
+from http import HTTPStatus
 from itertools import pairwise, product
 from pathlib import Path
 from stat import S_IEXEC
@@ -123,7 +124,7 @@ def _grib_index_file(outdir: Path, url: str):
 def _grib_index_remote(url: str):
     taskname = "GRIB index remote %s" % url
     yield taskname
-    yield asset(url, lambda: status(url) == 200)
+    yield asset(url, lambda: status(url) == HTTPStatus.OK)
 
 
 @task
