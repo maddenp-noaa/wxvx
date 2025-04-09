@@ -2,7 +2,6 @@
 Tests for wxvx.workflow.
 """
 
-from http import HTTPStatus
 from pathlib import Path
 from textwrap import dedent
 from threading import Event
@@ -12,7 +11,7 @@ from unittest.mock import ANY, patch
 import xarray as xr
 import yaml
 from iotaa import asset, external, ready, refs
-from pytest import fixture, mark
+from pytest import fixture
 
 from wxvx import variables, workflow
 from wxvx.times import TimeCoords, validtimes
@@ -85,24 +84,15 @@ def test_workflow__grib_index_data(c, tc):
 
 def test_workflow__grib_index_file(c):
     url = f"{c.baseline.template}.idx"
-    with patch.object(workflow, "_grib_index_remote"):
-        val = workflow._grib_index_file(outdir=c.paths.grids, url=url)
-        path: Path = refs(val)
-        assert not path.exists()
-        path.parent.mkdir(parents=True, exist_ok=True)
-        with patch.object(workflow, "fetch") as fetch:
-            fetch.side_effect = lambda taskname, url, path: path.touch()  # noqa: ARG005
-            workflow._grib_index_file(outdir=c.paths.grids, url=url)
-        fetch.assert_called_once_with(ANY, url, path)
+    val = workflow._grib_index_file(outdir=c.paths.grids, url=url)
+    path: Path = refs(val)
+    assert not path.exists()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with patch.object(workflow, "fetch") as fetch:
+        fetch.side_effect = lambda taskname, url, path: path.touch()  # noqa: ARG005
+        workflow._grib_index_file(outdir=c.paths.grids, url=url)
+    fetch.assert_called_once_with(ANY, url, path)
     assert path.exists()
-
-
-@mark.parametrize("code", [HTTPStatus.OK, HTTPStatus.NOT_FOUND])
-def test_workflow__grib_index_remote(c, code):
-    url = c.baseline.template
-    with patch.object(workflow, "status", return_value=code) as status:
-        assert ready(workflow._grib_index_remote(url=url)) is (code == HTTPStatus.OK)
-    status.assert_called_with(url)
 
 
 def test_workflow__grid_grib(c, tc):

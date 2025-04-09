@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 from functools import cache
-from http import HTTPStatus
 from itertools import pairwise, product
 from pathlib import Path
 from stat import S_IEXEC
@@ -16,7 +15,7 @@ import yaml
 from iotaa import Node, asset, external, task, tasks
 
 from wxvx.metconf import render
-from wxvx.net import fetch, status
+from wxvx.net import fetch
 from wxvx.times import TimeCoords, tcinfo, validtimes
 from wxvx.types import Source
 from wxvx.util import mpexec
@@ -116,15 +115,8 @@ def _grib_index_file(outdir: Path, url: str):
     taskname = "GRIB index file %s" % path
     yield taskname
     yield asset(path, path.is_file)
-    yield _grib_index_remote(url)
+    yield None
     fetch(taskname, url, path)
-
-
-@external
-def _grib_index_remote(url: str):
-    taskname = "GRIB index remote %s" % url
-    yield taskname
-    yield asset(url, lambda: status(url) == HTTPStatus.OK)
 
 
 @task
