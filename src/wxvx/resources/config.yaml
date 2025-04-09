@@ -21,10 +21,13 @@ leadtimes:
   step: "01:00:00"
   stop: "01:00:00"
 meta:
+  grids: "{{ workdir }}/grids"
   levels: &levels [200, 300, 475, 800, 825, 850, 875, 900, 925, 950, 975, 1000]
   workdir: /path/to/workdir
 paths:
-  grids: "{{ meta.workdir }}/grids"
+  grids:
+    baseline: "{{ meta.grids }}/baseline"
+    forecast: "{{ meta.grids }}/forecast"
   run: "{{ meta.workdir }}/run"
 variables:
   HGT:

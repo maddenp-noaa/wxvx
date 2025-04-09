@@ -20,11 +20,13 @@ class Baseline:
 
 class Config:
     def __init__(self, config_data: dict):
+        paths = config_data["paths"]
+        grids = paths["grids"]
         self.baseline = Baseline(**config_data["baseline"])
         self.cycles = Cycles(**config_data["cycles"])
         self.forecast = Forecast(**config_data["forecast"])
         self.leadtimes = Leadtimes(**config_data["leadtimes"])
-        self.paths = Paths(**config_data["paths"])
+        self.paths = Paths(grids["baseline"], grids["forecast"], paths["run"])
         self.variables = config_data["variables"]
 
     KEYS = ("baseline", "cycles", "forecast", "leadtimes", "paths", "variables")
@@ -70,11 +72,13 @@ class Leadtimes:
 
 @dataclass(frozen=True)
 class Paths:
-    grids: Path
+    grids_baseline: Path
+    grids_forecast: Path
     run: Path
 
     def __post_init__(self):
-        _force(self, "grids", Path(self.grids))
+        _force(self, "grids_baseline", Path(self.grids_baseline))
+        _force(self, "grids_forecast", Path(self.grids_forecast))
         _force(self, "run", Path(self.run))
 
 

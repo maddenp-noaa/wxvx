@@ -122,7 +122,7 @@ def _grib_index_file(outdir: Path, url: str):
 @task
 def _grid_grib(c: Config, tc: TimeCoords, var: Var):
     yyyymmdd, hh, leadtime = tcinfo(tc)
-    outdir = c.paths.grids / yyyymmdd / hh / leadtime
+    outdir = c.paths.grids_baseline / yyyymmdd / hh / leadtime
     path = outdir / f"{var}.grib2"
     taskname = "Baseline grid %s" % path
     yield taskname
@@ -139,7 +139,7 @@ def _grid_grib(c: Config, tc: TimeCoords, var: Var):
 @task
 def _grid_nc(c: Config, varname: str, tc: TimeCoords, var: Var):
     yyyymmdd, hh, leadtime = tcinfo(tc)
-    path = c.paths.grids / yyyymmdd / hh / leadtime / f"{var}.nc"
+    path = c.paths.grids_forecast / yyyymmdd / hh / leadtime / f"{var}.nc"
     taskname = "Forecast grid %s" % path
     yield taskname
     yield asset(path, path.is_file)

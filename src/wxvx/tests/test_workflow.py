@@ -65,7 +65,7 @@ def test_workflow__grib_index_data(c, tc):
     2:1:d=2024040103:FOO:900 mb:anl:
     3:2:d=2024040103:TMP:900 mb:anl:
     """
-    idxfile = c.paths.grids / "hrrr.idx"
+    idxfile = c.paths.grids_baseline / "hrrr.idx"
     idxfile.write_text(dedent(gribidx).strip())
 
     @external
@@ -74,7 +74,9 @@ def test_workflow__grib_index_data(c, tc):
         yield asset(idxfile, idxfile.exists)
 
     with patch.object(workflow, "_grib_index_file", mock):
-        val = workflow._grib_index_data(c=c, outdir=c.paths.grids, tc=tc, url=c.baseline.template)
+        val = workflow._grib_index_data(
+            c=c, outdir=c.paths.grids_baseline, tc=tc, url=c.baseline.template
+        )
     assert refs(val) == {
         "gh-isobaricInhPa-0900": variables.HRRR(
             name="HGT", levstr="900 mb", firstbyte=0, lastbyte=0
@@ -84,13 +86,13 @@ def test_workflow__grib_index_data(c, tc):
 
 def test_workflow__grib_index_file(c):
     url = f"{c.baseline.template}.idx"
-    val = workflow._grib_index_file(outdir=c.paths.grids, url=url)
+    val = workflow._grib_index_file(outdir=c.paths.grids_baseline, url=url)
     path: Path = refs(val)
     assert not path.exists()
     path.parent.mkdir(parents=True, exist_ok=True)
     with patch.object(workflow, "fetch") as fetch:
         fetch.side_effect = lambda taskname, url, path: path.touch()  # noqa: ARG005
-        workflow._grib_index_file(outdir=c.paths.grids, url=url)
+        workflow._grib_index_file(outdir=c.paths.grids_baseline, url=url)
     fetch.assert_called_once_with(ANY, url, path)
     assert path.exists()
 
@@ -125,14 +127,14 @@ def test_workflow__grid_grib(c, tc):
     yyyymmdd = tc.yyyymmdd
     hh = tc.hh
     fh = int(tc.leadtime.total_seconds() // 3600)
-    outdir = c.paths.grids / tc.yyyymmdd / tc.hh / f"{fh:03d}"
+    outdir = c.paths.grids_baseline / tc.yyyymmdd / tc.hh / f"{fh:03d}"
     url = f"https://some.url/{yyyymmdd}/{hh}/{fh:02d}/a.grib2.idx"
     _grib_index_data.assert_called_with(c, outdir, tc, url=url)
 
 
 def test_workflow__grid_nc(c_real_fs, check_cf_metadata, da, tc):
     var = variables.Var(name="gh", level_type="isobaricInhPa", level=900)
-    path = Path(c_real_fs.paths.grids, "a.nc")
+    path = Path(c_real_fs.paths.grids_forecast, "a.nc")
     da.to_netcdf(path)
     object.__setattr__(c_real_fs.forecast, "path", path)
     val = workflow._grid_nc(c=c_real_fs, varname="HGT", tc=tc, var=var)
