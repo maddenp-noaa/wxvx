@@ -140,7 +140,7 @@ leadtimes:
   step: "03:00:00"
   stop: "09:00:00"
 meta:
-  grids: "{{ workdir }}/grids"
+  grids: "{{ meta.workdir }}/grids"
   levels: &levels [800, 1000]
   workdir: /path/to/workdir
 paths:

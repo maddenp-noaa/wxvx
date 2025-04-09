@@ -24,7 +24,7 @@ from wxvx.variables import Var
 def test_workflow_grids(c, noop):
     with patch.object(workflow, "_grid_grib", noop), patch.object(workflow, "_grid_nc", noop):
         val = workflow.grids(c=c)
-    n_validtimes = len(validtimes(c.cycles, c.leadtimes))
+    n_validtimes = len(list(validtimes(c.cycles, c.leadtimes)))
     n_var_level_pairs = len(list(workflow._varnames_and_levels(c)))
     n_grids_per_pair = 3  # forecast grid, baseline grid, comparision grid
     assert len(refs(val)) == n_var_level_pairs * n_validtimes * n_grids_per_pair
