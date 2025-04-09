@@ -1,5 +1,7 @@
 # noqa: A005
 
+from __future__ import annotations
+
 import json
 from dataclasses import dataclass
 from enum import Enum, auto
@@ -11,8 +13,8 @@ Source = Enum("Source", [("BASELINE", auto()), ("FORECAST", auto())])
 
 @dataclass(frozen=True)
 class Baseline:
+    compare: bool
     name: str
-    plot: bool
     template: str
 
 
@@ -46,13 +48,16 @@ class Forecast:
     name: str
     path: Path
     projection: dict
+    mask: tuple[tuple[float, float]] | None = None
 
-    KEYS = ("name", "path", "projection")
+    KEYS = ("mask", "name", "path", "projection")
 
     def __hash__(self):
         return _hash(self)
 
     def __post_init__(self):
+        if self.mask:
+            _force(self, "mask", tuple(tuple(x) for x in self.mask))
         _force(self, "path", Path(self.path))
 
 

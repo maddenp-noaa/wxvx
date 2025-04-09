@@ -51,8 +51,8 @@ def c_real_fs(config_data, tmp_path):
 def config_data():
     return {
         "baseline": {
+            "compare": True,
             "name": "Baseline",
-            "plot": True,
             "template": "https://some.url/{yyyymmdd}/{hh}/{ff}/a.grib2",
         },
         "cycles": {
@@ -61,6 +61,12 @@ def config_data():
             "stop": "2024-12-20T06:00:00",
         },
         "forecast": {
+            "mask": [
+                [52.61564933, 225.90452027],
+                [52.61564933, 275.0],
+                [21.138123, 275.0],
+                [21.138123, 225.90452027],
+            ],
             "name": "Forecast",
             "path": "/path/to/forecast",
             "projection": {

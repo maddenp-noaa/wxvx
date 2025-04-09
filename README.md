@@ -22,7 +22,7 @@ conda activate wxvx
 wxvx --version
 ```
 
-The activated virtual environment includes the [`metkit`](https://github.com/maddenp-noaa/metkit) package, which provides [MET](https://github.com/dtcenter/MET) and select [METplus](https://github.com/dtcenter/METplus) executables and data files. See the `metkit` [docs](https://github.com/maddenp-noaa/metkit/blob/main/README.md) for more information.
+The activated virtual environment includes the [`met2go`](https://github.com/maddenp-noaa/met2go) package, which provides [MET](https://github.com/dtcenter/MET) and select [METplus](https://github.com/dtcenter/METplus) executables and data files. See the `met2go` [docs](https://github.com/maddenp-noaa/met2go/blob/main/README.md) for more information.
 
 ## Configuration
 
@@ -33,14 +33,15 @@ The content of the YAML configuration file supplied via `-c` / `--config` is des
 │ Key                │ Description                                  │
 ├────────────────────┼──────────────────────────────────────────────┤
 │ baseline:          │ Description of the baseline dataset          │
+│   compare:         │   Verify and/or plot forecast?               │
 │   name:            │   Dataset descriptive name                   │
-│   plot:            │   Plot baseline forecast?                    │
-│   url:             │   Template for baseline GRIB file URLs       │
+│   template:        │   Template for baseline GRIB file URLs       │
 │ cycles:            │ Cycles to verify                             │
 │   start:           │   First cycle as ISO8601 timestamp           │
 │   step:            │   Interval between cycles as hh[:mm[:ss]]    │
 │   stop:            │   Last cycle as ISO8601 timestamp            │
 │ forecast:          │ Description of the forecast dataset          │
+│   mask:            │   Sequence of [lat, lon] pairs (optional)    │
 │   name:            │   Dataset descriptive name                   │
 │   path:            │   Filesystem path to Zarr/netCDF dataset     │
 │   projection:      │   Projection name and attributes (see below) │
@@ -69,6 +70,7 @@ Use the `-s` / `--show` CLI switch to show a pro-forma config with realistic val
 - Currently supported level types are: `atmosphere`, `heightAboveGround`, `isobaricInhPa`, `surface`.
 - A `levels:` value should only be specified if a level type supports it. Currently, these are: `heightAboveGround`, `isobaricInhPa`.
 - [CF Metadata](https://cfconventions.org/) are added to the copies made of forecast variables that are provided to MET, which requires them. See [this database](https://cfconventions.org/Data/cf-standard-names/current/build/cf-standard-name-table.html) for CF standard names and units.
+- The `forecast.mask` value may be omitted, or set to the YAML value `null`, in which case no masking will be applied.
 - The `forecast.projection` value should be a mapping with at least a `proj` key identifying the ID of the [projection](https://proj.org/en/stable/operations/projections/index.html), and potentially additional projection attributes depending on the `proj` value:
   - When `proj` is [`latlon`](https://proj.org/en/stable/operations/conversions/latlon.html), specify no additional attributes.
   - When `proj` is [`lcc`](https://proj.org/en/stable/operations/projections/lcc.html), specify attributes `a`, `b`, `lat_0`, `lat_1`, `lat_2`, and `lon_0`.
@@ -108,18 +110,29 @@ Consider a `config.yaml`
 
 ``` yaml
 baseline:
+  compare: true
   name: HRRR
-  plot: true
   template: https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.{yyyymmdd}/conus/hrrr.t{hh}z.wrfprsf{ff}.grib2
 cycles:
   start: "2025-03-01T00:00:00"
   step: "01:00:00"
   stop: "2025-03-01T23:00:00"
 forecast:
+  mask:
+    - [52.61564933, 225.90452027]
+    - [52.61564933, 299.08280723]
+    - [21.138123,   299.08280723]
+    - [21.138123,   225.90452027]
   name: ML
   path: /path/to/forecast.zarr
   projection:
-    proj: latlon
+    a: 6371229
+    b: 6371229
+    lat_0: 38.5
+    lat_1: 38.5
+    lat_2: 38.5
+    lon_0: 262.5
+    proj: lcc
 leadtimes:
   start: "03:00:00"
   step: "03:00:00"
@@ -144,7 +157,7 @@ variables:
     name: 2t
 ```
 
-This config directs `wxvx` to find forecast data, in Zarr format and on a regular lat/lon grid, under `/path/to/forecast.zarr`. The forecast will be called `ML` in MET `.stat` files and in plots. It will be verified against `HRRR` analysis, which can be found in GRIB files in an AWS bucket at URLs given as the `baseline.template` value, where `yyyymmdd`, `hh`, and `ff` will be filled in by `wxvx`. 24 hourly cycles starting at 2025-03-01 00Z, each with forecast leadtimes 3, 6, and 9, will be verified. Variable grids extracted from forecast and baseline datasets will be written to `/path/to/workdir/grids`, and run output will be created in `/path/to/workdir/run`: The [Jinja2](https://jinja.palletsprojects.com/en/stable/) expressions inside `{{ }}` markers will be processed by [`uwtools`](https://uwtools.readthedocs.io/en/stable/) and may use any features it supports. Three variables -- geopotential height, composite reflectivity, and 2-meter temperature, will be verified. The keys under `variables` map the names of the variables as they appear in the forecast dataset to a canonical description of the variable using ECMWF variable names and level-type descriptions (see the notes in the _Configuration_ section for links). Note that some variables do not support a "level" concept. So, the full verification task-graph will comprise: cycles x leadtimes x variables x levels.
+This config directs `wxvx` to find forecast data, in Zarr format and on a Lambert Conformal grid with the given specification, under `/path/to/forecast.zarr`. Verification will be limited to points within the bounding box given by `mask`. The forecast will be called `ML` in MET `.stat` files and in plots. It will be verified against `HRRR` analysis, which can be found in GRIB files in an AWS bucket at URLs given as the `baseline.template` value, where `yyyymmdd`, `hh`, and `ff` will be filled in by `wxvx`. 24 hourly cycles starting at 2025-03-01 00Z, each with forecast leadtimes 3, 6, and 9, will be verified. Variable grids extracted from forecast and baseline datasets will be written to `/path/to/workdir/grids`, and run output will be created in `/path/to/workdir/run`: The [Jinja2](https://jinja.palletsprojects.com/en/stable/) expressions inside `{{ }}` markers will be processed by [`uwtools`](https://uwtools.readthedocs.io/en/stable/) and may use any features it supports. Three variables -- geopotential height, composite reflectivity, and 2-meter temperature, will be verified. The keys under `variables` map the names of the variables as they appear in the forecast dataset to a canonical description of the variable using ECMWF variable names and level-type descriptions (see the notes in the _Configuration_ section for links). Note that some variables do not support a "level" concept. So, the full verification task-graph will comprise: cycles x leadtimes x variables x levels.
 
 Invoking `wxvx -c config.yaml -t grids` would stage the forecast and baseline grids on disk, only; `-t stats` would produce statistics via MET tools, but also stage grids if they are not already available; and `-t plots` would plot statistics, but also _produce_ statistics (and stage grids) if they are not already available.
 

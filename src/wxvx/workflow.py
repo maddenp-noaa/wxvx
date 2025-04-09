@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from functools import cache
+from http import HTTPStatus
 from itertools import pairwise, product
 from pathlib import Path
 from stat import S_IEXEC
@@ -40,7 +41,7 @@ def grids(c: Config):
             reqs.append(forecast_grid)
             baseline_grid = _grid_grib(c, TimeCoords(cycle=tc.validtime, leadtime=0), var)
             reqs.append(baseline_grid)
-            if c.baseline.plot:
+            if c.baseline.compare:
                 comp_grid = _grid_grib(c, tc, var)
                 reqs.append(comp_grid)
     yield reqs
@@ -123,7 +124,7 @@ def _grib_index_file(outdir: Path, url: str):
 def _grib_index_remote(url: str):
     taskname = "GRIB index remote %s" % url
     yield taskname
-    yield asset(url, lambda: status(url) == 200)
+    yield asset(url, lambda: status(url) == HTTPStatus.OK)
 
 
 @task
@@ -164,11 +165,15 @@ def _grid_nc(c: Config, varname: str, tc: TimeCoords, var: Var):
 def _grid_stat_config(
     c: Config, basepath: Path, varname: str, rundir: Path, var: Var, prefix: str, source: Source
 ):
-    path = (basepath.parent / basepath.stem).with_suffix(".config")
+    base = basepath.parent / basepath.stem
+    path = base.with_suffix(".config")
     taskname = "Verification config %s" % path
     yield taskname
     yield asset(path, path.is_file)
-    yield None
+    polyfile = None
+    if mask := c.forecast.mask:
+        polyfile = _polyfile(base.with_suffix(".poly"), mask)
+    yield polyfile
     level_obs = metlevel(var.level_type, var.level)
     attrs = {
         Source.BASELINE: (level_obs, HRRR.varname(var.name), c.baseline.name),
@@ -179,12 +184,15 @@ def _grid_stat_config(
     field_obs = {"level": [level_obs], "name": HRRR.varname(var.name)}
     meta = _meta(c, varname)
     if meta.met_linetype == "cts":
-        field_fcst["cat_thresh"] = [">0"]
-        field_obs["cat_thresh"] = [">0"]
+        thresholds = ">=20, >=30, >=40"
+        field_fcst["cat_thresh"] = [thresholds]
+        field_obs["cat_thresh"] = [thresholds]
+    mask_grid = [] if polyfile else ["FULL"]
+    mask_poly = [polyfile.refs] if polyfile else []
     config = render(
         {
             "fcst": {"field": [field_fcst]},
-            "mask": {"grid": ["FULL"], "poly": []},
+            "mask": {"grid": mask_grid, "poly": mask_poly},
             "model": model,
             "nc_pairs_flag": "FALSE",
             "obs": {"field": [field_obs]},
@@ -197,6 +205,16 @@ def _grid_stat_config(
     )
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(f"{config}\n")
+
+
+@task
+def _polyfile(path: Path, mask: tuple[tuple[float, float]]):
+    yield "Poly file %s" % path
+    yield asset(path, path.is_file)
+    yield None
+    path.parent.mkdir(parents=True, exist_ok=True)
+    content = "MASK\n%s\n" % "\n".join(f"{lat} {lon}" for lat, lon in mask)
+    path.write_text(content)
 
 
 @task
@@ -267,7 +285,7 @@ def _plot_config(c: Config, rundir: Path, varname: str, var: Var, plot_fn: str, 
         yaxis_1=stat,
         ylab_offset=10,
     )
-    if c.baseline.plot:
+    if c.baseline.compare:
         update = dict(
             fcst_var_val_2={HRRR.varname(var.name): [stat]},
             list_stat_2=[stat],
@@ -409,7 +427,7 @@ def _statargs(c: Config, varname: str, level: float | None, source: Source) -> I
 def _statreqs(c: Config, varname: str, level: float | None) -> Sequence[Node]:
     genreqs = lambda source: [_stat(*args) for args in _statargs(c, varname, level, source)]
     reqs: Sequence[Node] = genreqs(Source.FORECAST)
-    if c.baseline.plot:
+    if c.baseline.compare:
         reqs = [*reqs, *genreqs(Source.BASELINE)]
     return reqs
 

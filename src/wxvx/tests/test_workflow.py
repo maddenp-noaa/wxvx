@@ -2,6 +2,7 @@
 Tests for wxvx.workflow.
 """
 
+from http import HTTPStatus
 from pathlib import Path
 from textwrap import dedent
 from threading import Event
@@ -96,11 +97,11 @@ def test_workflow__grib_index_file(c):
     assert path.exists()
 
 
-@mark.parametrize("code", [200, 404])
+@mark.parametrize("code", [HTTPStatus.OK, HTTPStatus.NOT_FOUND])
 def test_workflow__grib_index_remote(c, code):
     url = c.baseline.template
     with patch.object(workflow, "status", return_value=code) as status:
-        assert ready(workflow._grib_index_remote(url=url)) is (code == 200)
+        assert ready(workflow._grib_index_remote(url=url)) is (code == HTTPStatus.OK)
     status.assert_called_with(url)
 
 
@@ -165,6 +166,22 @@ def test_workflow__grid_stat_config(c, fakefs):
     assert not refs(val).is_file()
     assert ready(val := workflow._grid_stat_config(**kwargs))
     assert refs(val).is_file()
+
+
+def test_workflow__polyfile(fakefs):
+    path = fakefs / "a.poly"
+    assert not path.is_file()
+    mask = ((52.6, 225.9), (52.6, 255.0), (21.1, 255.0), (21.1, 225.9))
+    polyfile = workflow._polyfile(path=path, mask=mask)
+    assert polyfile.ready
+    expected = """
+    MASK
+    52.6 225.9
+    52.6 255.0
+    21.1 255.0
+    21.1 225.9
+    """
+    assert path.read_text().strip() == dedent(expected).strip()
 
 
 def test_workflow__plot(c, fakefs):

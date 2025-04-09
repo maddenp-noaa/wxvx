@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from http import HTTPStatus
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -13,7 +14,7 @@ def fetch(taskname: str, url: str, path: Path, headers: dict[str, str] | None = 
     suffix = " %s" % headers.get("Range", "") if headers else ""
     logging.info("%s: Fetching %s%s", taskname, url, suffix)
     response = requests.get(url, allow_redirects=True, timeout=3, headers=headers or {})
-    expected = 206 if headers and "Range" in headers else 200
+    expected = HTTPStatus.PARTIAL_CONTENT if headers and "Range" in headers else HTTPStatus.OK
     if response.status_code == expected:
         path.parent.mkdir(parents=True, exist_ok=True)
         with path.open("wb") as f:
