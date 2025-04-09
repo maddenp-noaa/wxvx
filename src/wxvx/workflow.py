@@ -18,7 +18,7 @@ from wxvx.metconf import render
 from wxvx.net import fetch
 from wxvx.times import TimeCoords, tcinfo, validtimes
 from wxvx.types import Source
-from wxvx.util import mpexec
+from wxvx.util import atomic, mpexec
 from wxvx.variables import HRRR, VARMETA, Var, da_construct, da_select, ds_construct, metlevel
 
 if TYPE_CHECKING:
@@ -116,7 +116,8 @@ def _grib_index_file(outdir: Path, url: str):
     yield taskname
     yield asset(path, path.is_file)
     yield None
-    fetch(taskname, url, path)
+    with atomic(path) as tmp:
+        fetch(taskname, url, tmp)
 
 
 @task
@@ -133,7 +134,8 @@ def _grid_grib(c: Config, tc: TimeCoords, var: Var):
     var_idxdata = idxdata.refs[str(var)]
     fb, lb = var_idxdata.firstbyte, var_idxdata.lastbyte
     headers = {"Range": "bytes=%s" % (f"{fb}-{lb}" if lb else fb)}
-    fetch(taskname, url, path, headers)
+    with atomic(path) as tmp:
+        fetch(taskname, url, tmp, headers)
 
 
 @task
@@ -149,7 +151,8 @@ def _grid_nc(c: Config, varname: str, tc: TimeCoords, var: Var):
     da = da_construct(src)
     ds = ds_construct(c, da, taskname)
     path.parent.mkdir(parents=True, exist_ok=True)
-    ds.to_netcdf(path, encoding={varname: {"zlib": True, "complevel": 9}})
+    with atomic(path) as tmp:
+        ds.to_netcdf(tmp, encoding={varname: {"zlib": True, "complevel": 9}})
     logging.info("%s: Wrote %s", taskname, path)
 
 
@@ -196,7 +199,8 @@ def _grid_stat_config(
         }
     )
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(f"{config}\n")
+    with atomic(path) as tmp:
+        tmp.write_text(f"{config}\n")
 
 
 @task
@@ -206,7 +210,8 @@ def _polyfile(path: Path, mask: tuple[tuple[float, float]]):
     yield None
     path.parent.mkdir(parents=True, exist_ok=True)
     content = "MASK\n%s\n" % "\n".join(f"{lat} {lon}" for lat, lon in mask)
-    path.write_text(content)
+    with atomic(path) as tmp:
+        tmp.write_text(content)
 
 
 @task
@@ -349,8 +354,8 @@ def _runscript(basepath: Path, content: str):
     yield None
     content = dedent(content).strip()
     path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w") as f:
-        print(f"#!/usr/bin/env bash\n\n{content}", file=f)
+    with atomic(path) as tmp:
+        tmp.write_text(f"#!/usr/bin/env bash\n\n{content}\n")
     path.chmod(path.stat().st_mode | S_IEXEC)
 
 

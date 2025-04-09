@@ -21,7 +21,7 @@ class WXVXError(Exception): ...
 
 @contextmanager
 def atomic(path: Path) -> Iterator[Path]:
-    tmp = Path(mkstemp(prefix=path.name, dir=path.parent)[1])
+    tmp = Path(mkstemp(prefix=f".{path.name}", dir=path.parent)[1])
     yield tmp
     tmp.rename(path)
 

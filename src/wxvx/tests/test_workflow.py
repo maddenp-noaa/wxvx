@@ -93,7 +93,7 @@ def test_workflow__grib_index_file(c):
     with patch.object(workflow, "fetch") as fetch:
         fetch.side_effect = lambda taskname, url, path: path.touch()  # noqa: ARG005
         workflow._grib_index_file(outdir=c.paths.grids_baseline, url=url)
-    fetch.assert_called_once_with(ANY, url, path)
+    fetch.assert_called_once_with(ANY, url, ANY)
     assert path.exists()
 
 
