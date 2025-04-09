@@ -22,7 +22,7 @@ conda activate wxvx
 wxvx --version
 ```
 
-The activated virtual environment includes the [`metkit`](https://github.com/maddenp-noaa/metkit) package, which provides [MET](https://github.com/dtcenter/MET) and select [METplus](https://github.com/dtcenter/METplus) executables and data files. See the `metkit` [docs](https://github.com/maddenp-noaa/metkit/blob/main/README.md) for more information.
+The activated virtual environment includes the [`met2go`](https://github.com/maddenp-noaa/met2go) package, which provides [MET](https://github.com/dtcenter/MET) and select [METplus](https://github.com/dtcenter/METplus) executables and data files. See the `met2go` [docs](https://github.com/maddenp-noaa/met2go/blob/main/README.md) for more information.
 
 ## Configuration
 
