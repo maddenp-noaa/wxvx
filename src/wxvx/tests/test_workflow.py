@@ -22,12 +22,15 @@ from wxvx.variables import Var
 
 
 def test_workflow_grids(c, noop):
-    with patch.object(workflow, "_grid_grib", noop), patch.object(workflow, "_grid_nc", noop):
-        val = workflow.grids(c=c)
     n_validtimes = len(list(validtimes(c.cycles, c.leadtimes)))
     n_var_level_pairs = len(list(workflow._varnames_and_levels(c)))
-    n_grids_per_pair = 3  # forecast grid, baseline grid, comparision grid
-    assert len(refs(val)) == n_var_level_pairs * n_validtimes * n_grids_per_pair
+    n = n_validtimes * n_var_level_pairs
+    with patch.object(workflow, "_grid_grib", noop), patch.object(workflow, "_grid_nc", noop):
+        assert len(refs(workflow.grids(c=c))) == n * 3  # forecast, baseline, and comp grids
+        assert len(refs(workflow.grids(c=c, baseline=True, forecast=True))) == n * 3
+        assert len(refs(workflow.grids(c=c, baseline=True, forecast=False))) == n * 1
+        assert len(refs(workflow.grids(c=c, baseline=False, forecast=True))) == n * 2
+        assert len(refs(workflow.grids(c=c, baseline=False, forecast=False))) == 0
 
 
 def test_workflow_plots(c, noop):

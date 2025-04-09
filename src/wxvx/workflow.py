@@ -30,20 +30,36 @@ if TYPE_CHECKING:
 
 
 @tasks
-def grids(c: Config):
+def grids(c: Config, baseline: bool = True, forecast: bool = True):
     taskname = "Grids for %s" % c.forecast.path
     yield taskname
     reqs: list[Node] = []
     for var, varname in _vxvars(c).items():
         for tc in validtimes(c.cycles, c.leadtimes):
-            forecast_grid = _grid_nc(c, varname, tc, var)
-            reqs.append(forecast_grid)
-            baseline_grid = _grid_grib(c, TimeCoords(cycle=tc.validtime, leadtime=0), var)
-            reqs.append(baseline_grid)
-            if c.baseline.compare:
-                comp_grid = _grid_grib(c, tc, var)
-                reqs.append(comp_grid)
+            if forecast:
+                forecast_grid = _grid_nc(c, varname, tc, var)
+                reqs.append(forecast_grid)
+                if c.baseline.compare:
+                    comp_grid = _grid_grib(c, tc, var)
+                    reqs.append(comp_grid)
+            if baseline:
+                baseline_grid = _grid_grib(c, TimeCoords(cycle=tc.validtime, leadtime=0), var)
+                reqs.append(baseline_grid)
     yield reqs
+
+
+@tasks
+def grids_baseline(c: Config):
+    taskname = "Baseline grids for %s" % c.forecast.path
+    yield taskname
+    yield grids(c, baseline=True, forecast=False)
+
+
+@tasks
+def grids_forecast(c: Config):
+    taskname = "Forecast grids for %s" % c.forecast.path
+    yield taskname
+    yield grids(c, baseline=False, forecast=True)
 
 
 @tasks
