@@ -76,7 +76,10 @@ def test_cli_main_task_list(caplog):
         assert e.value.code == 0
         expected = """
         Available tasks:
-          plots
+          grids
+          grids_baseline
+          grids_forecast
+          stats
         """
         for line in dedent(expected).strip().split("\n"):
             assert line in caplog.messages
