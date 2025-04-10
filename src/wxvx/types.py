@@ -97,7 +97,7 @@ class VarMeta:
             assert val  # i.e. no empty strings
         assert self.level_type in ["atmosphere", "heightAboveGround", "isobaricInhPa", "surface"]
         for met_linetype in self.met_linetypes:
-            assert met_linetype in ["cnt", "cts", "nbrcts"]
+            assert met_linetype in ["cnt", "cts", "nbrcnt"]
         assert self.met_stat in ["RMSE", "PODY"]
 
 
