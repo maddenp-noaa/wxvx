@@ -21,6 +21,7 @@ class WXVXError(Exception): ...
 
 @contextmanager
 def atomic(path: Path) -> Iterator[Path]:
+    path.parent.mkdir(parents=True, exist_ok=True)
     tmp = Path(mkstemp(prefix=f".{path.name}", dir=path.parent)[1])
     yield tmp
     tmp.rename(path)
