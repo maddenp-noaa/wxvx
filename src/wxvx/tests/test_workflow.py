@@ -30,12 +30,12 @@ def test_workflow_grids(c, n_grids, noop):
 
 
 def test_workflow_grids_baseline(c, n_grids, noop):
-    with patch.object(workflow, "_grid_grib", noop), patch.object(workflow, "_grid_nc", noop):
+    with patch.object(workflow, "_grid_grib", noop):
         assert len(refs(workflow.grids_baseline(c=c))) == n_grids * 2
 
 
 def test_workflow_grids_forecast(c, n_grids, noop):
-    with patch.object(workflow, "_grid_grib", noop), patch.object(workflow, "_grid_nc", noop):
+    with patch.object(workflow, "_grid_nc", noop):
         assert len(refs(workflow.grids_forecast(c=c))) == n_grids
 
 
