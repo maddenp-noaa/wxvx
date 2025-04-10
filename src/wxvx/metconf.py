@@ -91,7 +91,7 @@ def _mask(k: str, v: list, level: int) -> list[str]:
 
 def _output_flag(k: str, v: str, level: int) -> list[str]:
     match k:
-        case "cnt" | "cts":
+        case "cnt" | "cts" | "nbrcts":
             return _kvpair(k, _bare(v), level)
     _fail(k)
 
