@@ -39,16 +39,6 @@ def test_workflow_grids_forecast(c, n_grids, noop):
         assert len(refs(workflow.grids_forecast(c=c))) == n_grids
 
 
-def test_workflow_grids_baseline(c, n_grids, noop):
-    with patch.object(workflow, "_grid_grib", noop), patch.object(workflow, "_grid_nc", noop):
-        assert len(refs(workflow.grids_baseline(c=c))) == n_grids * 2
-
-
-def test_workflow_grids_forecast(c, n_grids, noop):
-    with patch.object(workflow, "_grid_grib", noop), patch.object(workflow, "_grid_nc", noop):
-        assert len(refs(workflow.grids_forecast(c=c))) == n_grids
-
-
 # def test_workflow_plots(c, noop):
 #     with patch.object(workflow, "_plot", noop):
 #         val = workflow.plots(c=c)
