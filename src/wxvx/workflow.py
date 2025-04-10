@@ -61,6 +61,20 @@ def grids_forecast(c: Config):
     yield grids(c, baseline=False, forecast=True)
 
 
+@tasks
+def plots(c: Config):
+    taskname = "Plots for %s" % c.forecast.path
+    yield taskname
+    yield grids(c, baseline=True, forecast=False)
+
+
+@tasks
+def grids_forecast(c: Config):
+    taskname = "Forecast grids for %s" % c.forecast.path
+    yield taskname
+    yield grids(c, baseline=False, forecast=True)
+
+
 # @tasks
 # def plots(c: Config):
 #     taskname = "Plots for %s" % c.forecast.path
