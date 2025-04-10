@@ -80,7 +80,8 @@ def test_Config(baseline, config_data, cycles, forecast, leadtimes):
     assert obj.cycles == cycles
     assert obj.forecast == forecast
     assert obj.leadtimes == leadtimes
-    assert obj.paths.grids == Path(config_data["paths"]["grids"])
+    assert obj.paths.grids_baseline == Path(config_data["paths"]["grids"]["baseline"])
+    assert obj.paths.grids_forecast == Path(config_data["paths"]["grids"]["forecast"])
     assert obj.paths.run == Path(config_data["paths"]["run"])
     assert obj.variables == config_data["variables"]
     other = types.Config(config_data=config_data)

@@ -187,7 +187,20 @@
       "additionalProperties": false,
       "properties": {
         "grids": {
-          "type": "string"
+          "additionalProperties": false,
+          "properties": {
+            "baseline": {
+              "type": "string"
+            },
+            "forecast": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "baseline",
+            "forecast"
+          ],
+          "type": "object"
         },
         "run": {
           "type": "string"

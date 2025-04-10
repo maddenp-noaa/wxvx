@@ -178,8 +178,29 @@ def test_schema_paths(config_data, fs, logged):
         assert logged(f"'{key}' is a required property")
     # Additional keys are not allowed:
     assert not ok(with_set(config, 42, "n"))
+    # Some keys have object values:
+    for key in ["grids"]:
+        assert not ok(with_set(config, None, key))
+        assert logged("None is not of type 'object'")
     # Some keys have string values:
-    for key in ["grids", "run"]:
+    for key in ["run"]:
+        assert not ok(with_set(config, None, key))
+        assert logged("None is not of type 'string'")
+
+
+def test_schema_paths_grids(config_data, fs, logged):
+    ok = validator(fs, "properties", "paths", "properties", "grids")
+    config = config_data["paths"]["grids"]
+    # Basic correctness:
+    assert ok(config)
+    # Certain top-level keys are required:
+    for key in ["baseline", "forecast"]:
+        assert not ok(with_del(config, key))
+        assert logged(f"'{key}' is a required property")
+    # Additional keys are not allowed:
+    assert not ok(with_set(config, 42, "n"))
+    # Some keys have string values:
+    for key in ["baseline", "forecast"]:
         assert not ok(with_set(config, None, key))
         assert logged("None is not of type 'string'")
 

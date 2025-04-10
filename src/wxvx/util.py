@@ -2,16 +2,29 @@ from __future__ import annotations
 
 import logging
 import sys
+from contextlib import contextmanager
 from importlib import resources
 from multiprocessing import Process
 from pathlib import Path
 from subprocess import run
-from typing import NoReturn, cast
+from tempfile import mkstemp
+from typing import TYPE_CHECKING, NoReturn, cast
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
 
 pkgname = __name__.split(".", maxsplit=1)[0]
 
 
 class WXVXError(Exception): ...
+
+
+@contextmanager
+def atomic(path: Path) -> Iterator[Path]:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = Path(mkstemp(prefix=f".{path.name}", dir=path.parent)[1])
+    yield tmp
+    tmp.rename(path)
 
 
 def fail(msg: str | None = None, *args) -> NoReturn:

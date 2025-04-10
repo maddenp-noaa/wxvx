@@ -2,7 +2,6 @@
 Tests for wxvx.workflow.
 """
 
-from http import HTTPStatus
 from pathlib import Path
 from textwrap import dedent
 from threading import Event
@@ -12,7 +11,7 @@ from unittest.mock import ANY, patch
 import xarray as xr
 import yaml
 from iotaa import asset, external, ready, refs
-from pytest import fixture, mark
+from pytest import fixture
 
 from wxvx import variables, workflow
 from wxvx.times import TimeCoords, validtimes
@@ -22,13 +21,23 @@ from wxvx.variables import Var
 # Task Tests
 
 
-def test_workflow_grids(c, noop):
+def test_workflow_grids(c, n_grids, noop):
     with patch.object(workflow, "_grid_grib", noop), patch.object(workflow, "_grid_nc", noop):
-        val = workflow.grids(c=c)
-    n_validtimes = len(validtimes(c.cycles, c.leadtimes))
-    n_var_level_pairs = len(list(workflow._varnames_and_levels(c)))
-    n_grids_per_pair = 3  # forecast grid, baseline grid, comparision grid
-    assert len(refs(val)) == n_var_level_pairs * n_validtimes * n_grids_per_pair
+        assert len(refs(workflow.grids(c=c))) == n_grids * 3  # forecast, baseline, and comp grids
+        assert len(refs(workflow.grids(c=c, baseline=True, forecast=True))) == n_grids * 3
+        assert len(refs(workflow.grids(c=c, baseline=True, forecast=False))) == n_grids * 2
+        assert len(refs(workflow.grids(c=c, baseline=False, forecast=True))) == n_grids
+        assert len(refs(workflow.grids(c=c, baseline=False, forecast=False))) == 0
+
+
+def test_workflow_grids_baseline(c, n_grids, noop):
+    with patch.object(workflow, "_grid_grib", noop), patch.object(workflow, "_grid_nc", noop):
+        assert len(refs(workflow.grids_baseline(c=c))) == n_grids * 2
+
+
+def test_workflow_grids_forecast(c, n_grids, noop):
+    with patch.object(workflow, "_grid_grib", noop), patch.object(workflow, "_grid_nc", noop):
+        assert len(refs(workflow.grids_forecast(c=c))) == n_grids
 
 
 def test_workflow_plots(c, noop):
@@ -66,7 +75,7 @@ def test_workflow__grib_index_data(c, tc):
     2:1:d=2024040103:FOO:900 mb:anl:
     3:2:d=2024040103:TMP:900 mb:anl:
     """
-    idxfile = c.paths.grids / "hrrr.idx"
+    idxfile = c.paths.grids_baseline / "hrrr.idx"
     idxfile.write_text(dedent(gribidx).strip())
 
     @external
@@ -75,7 +84,9 @@ def test_workflow__grib_index_data(c, tc):
         yield asset(idxfile, idxfile.exists)
 
     with patch.object(workflow, "_grib_index_file", mock):
-        val = workflow._grib_index_data(c=c, outdir=c.paths.grids, tc=tc, url=c.baseline.template)
+        val = workflow._grib_index_data(
+            c=c, outdir=c.paths.grids_baseline, tc=tc, url=c.baseline.template
+        )
     assert refs(val) == {
         "gh-isobaricInhPa-0900": variables.HRRR(
             name="HGT", levstr="900 mb", firstbyte=0, lastbyte=0
@@ -85,24 +96,15 @@ def test_workflow__grib_index_data(c, tc):
 
 def test_workflow__grib_index_file(c):
     url = f"{c.baseline.template}.idx"
-    with patch.object(workflow, "_grib_index_remote"):
-        val = workflow._grib_index_file(outdir=c.paths.grids, url=url)
-        path: Path = refs(val)
-        assert not path.exists()
-        path.parent.mkdir(parents=True, exist_ok=True)
-        with patch.object(workflow, "fetch") as fetch:
-            fetch.side_effect = lambda taskname, url, path: path.touch()  # noqa: ARG005
-            workflow._grib_index_file(outdir=c.paths.grids, url=url)
-        fetch.assert_called_once_with(ANY, url, path)
+    val = workflow._grib_index_file(outdir=c.paths.grids_baseline, url=url)
+    path: Path = refs(val)
+    assert not path.exists()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with patch.object(workflow, "fetch") as fetch:
+        fetch.side_effect = lambda taskname, url, path: path.touch()  # noqa: ARG005
+        workflow._grib_index_file(outdir=c.paths.grids_baseline, url=url)
+    fetch.assert_called_once_with(ANY, url, ANY)
     assert path.exists()
-
-
-@mark.parametrize("code", [HTTPStatus.OK, HTTPStatus.NOT_FOUND])
-def test_workflow__grib_index_remote(c, code):
-    url = c.baseline.template
-    with patch.object(workflow, "status", return_value=code) as status:
-        assert ready(workflow._grib_index_remote(url=url)) is (code == HTTPStatus.OK)
-    status.assert_called_with(url)
 
 
 def test_workflow__grid_grib(c, tc):
@@ -135,14 +137,14 @@ def test_workflow__grid_grib(c, tc):
     yyyymmdd = tc.yyyymmdd
     hh = tc.hh
     fh = int(tc.leadtime.total_seconds() // 3600)
-    outdir = c.paths.grids / tc.yyyymmdd / tc.hh / f"{fh:03d}"
+    outdir = c.paths.grids_baseline / tc.yyyymmdd / tc.hh / f"{fh:03d}"
     url = f"https://some.url/{yyyymmdd}/{hh}/{fh:02d}/a.grib2.idx"
     _grib_index_data.assert_called_with(c, outdir, tc, url=url)
 
 
 def test_workflow__grid_nc(c_real_fs, check_cf_metadata, da, tc):
     var = variables.Var(name="gh", level_type="isobaricInhPa", level=900)
-    path = Path(c_real_fs.paths.grids, "a.nc")
+    path = Path(c_real_fs.paths.grids_forecast, "a.nc")
     da.to_netcdf(path)
     object.__setattr__(c_real_fs.forecast, "path", path)
     val = workflow._grid_nc(c=c_real_fs, varname="HGT", tc=tc, var=var)
@@ -376,6 +378,13 @@ def test__vxvars(c):
 
 
 # Fixtures
+
+
+@fixture
+def n_grids(c):
+    n_validtimes = len(list(validtimes(c.cycles, c.leadtimes)))
+    n_var_level_pairs = len(list(workflow._varnames_and_levels(c)))
+    return n_validtimes * n_var_level_pairs
 
 
 @fixture
