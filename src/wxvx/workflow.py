@@ -166,7 +166,6 @@ def _grid_nc(c: Config, varname: str, tc: TimeCoords, var: Var):
     src = da_select(fd.refs, c, varname, tc, var)
     da = da_construct(src)
     ds = ds_construct(c, da, taskname)
-    path.parent.mkdir(parents=True, exist_ok=True)
     with atomic(path) as tmp:
         ds.to_netcdf(tmp, encoding={varname: {"zlib": True, "complevel": 9}})
     logging.info("%s: Wrote %s", taskname, path)
@@ -214,7 +213,6 @@ def _grid_stat_config(
             "tmp_dir": rundir,
         }
     )
-    path.parent.mkdir(parents=True, exist_ok=True)
     with atomic(path) as tmp:
         tmp.write_text(f"{config}\n")
 
@@ -224,7 +222,6 @@ def _polyfile(path: Path, mask: tuple[tuple[float, float]]):
     yield "Poly file %s" % path
     yield asset(path, path.is_file)
     yield None
-    path.parent.mkdir(parents=True, exist_ok=True)
     content = "MASK\n%s\n" % "\n".join(f"{lat} {lon}" for lat, lon in mask)
     with atomic(path) as tmp:
         tmp.write_text(content)
@@ -369,7 +366,6 @@ def _runscript(basepath: Path, content: str):
     yield asset(path, path.is_file)
     yield None
     content = dedent(content).strip()
-    path.parent.mkdir(parents=True, exist_ok=True)
     with atomic(path) as tmp:
         tmp.write_text(f"#!/usr/bin/env bash\n\n{content}\n")
     path.chmod(path.stat().st_mode | S_IEXEC)
