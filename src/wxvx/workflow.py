@@ -188,11 +188,11 @@ def _grid_stat_config(
         Source.BASELINE: (level_obs, HRRR.varname(var.name), c.baseline.name),
         Source.FORECAST: ("(0,0,*,*)", varname, c.forecast.name),
     }
-    forecast_level, forecast_name, model = attrs[source]
-    field_fcst = {"level": [forecast_level], "name": forecast_name, "set_attr_level": level_obs}
+    level_fcst, name_fcst, model = attrs[source]
+    field_fcst = {"level": [level_fcst], "name": name_fcst, "set_attr_level": level_obs}
     field_obs = {"level": [level_obs], "name": HRRR.varname(var.name)}
     meta = _meta(c, varname)
-    if meta.met_linetype == "cts":
+    if "cts" in meta.met_linetypes:
         thresholds = ">=20, >=30, >=40"
         field_fcst["cat_thresh"] = [thresholds]
         field_obs["cat_thresh"] = [thresholds]
@@ -206,7 +206,7 @@ def _grid_stat_config(
             "nc_pairs_flag": "FALSE",
             "obs": {"field": [field_obs]},
             "obtype": c.baseline.name,
-            "output_flag": {meta.met_linetype: "BOTH"},
+            "output_flag": {x: "BOTH" for x in meta.met_linetypes},
             "output_prefix": f"{prefix}",
             "regrid": {"to_grid": "FCST"},
             "tmp_dir": rundir,

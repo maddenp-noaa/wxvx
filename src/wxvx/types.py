@@ -87,7 +87,7 @@ class VarMeta:
     cf_standard_name: str
     description: str
     level_type: str
-    met_linetype: str
+    met_linetypes: list[str]
     met_stat: str
     name: str
     units: str
@@ -96,7 +96,8 @@ class VarMeta:
         for val in vars(self):
             assert val  # i.e. no empty strings
         assert self.level_type in ["atmosphere", "heightAboveGround", "isobaricInhPa", "surface"]
-        assert self.met_linetype in ["cnt", "cts"]
+        for met_linetype in self.met_linetypes:
+            assert met_linetype in ["cnt", "cts", "nbrcts"]
         assert self.met_stat in ["RMSE", "PODY"]
 
 
