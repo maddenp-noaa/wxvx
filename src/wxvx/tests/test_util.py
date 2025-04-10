@@ -13,6 +13,17 @@ from wxvx import util
 # Tests
 
 
+def test_atomic(fakefs):
+    path = fakefs / "greeting"
+    assert not path.is_file()
+    msg = "hello"
+    with util.atomic(path) as tmp:
+        assert tmp.is_file()
+        tmp.write_text(msg)
+    assert not tmp.is_file()
+    assert path.read_text() == msg
+
+
 def test_fail(caplog):
     caplog.set_level(logging.INFO)
     with raises(SystemExit) as e:

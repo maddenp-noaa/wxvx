@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 from functools import cache
-from http import HTTPStatus
 from itertools import pairwise, product
 from pathlib import Path
 from stat import S_IEXEC
@@ -16,10 +15,10 @@ import yaml
 from iotaa import Node, asset, external, task, tasks
 
 from wxvx.metconf import render
-from wxvx.net import fetch, status
+from wxvx.net import fetch
 from wxvx.times import TimeCoords, tcinfo, validtimes
 from wxvx.types import Source
-from wxvx.util import mpexec
+from wxvx.util import atomic, mpexec
 from wxvx.variables import HRRR, VARMETA, Var, da_construct, da_select, ds_construct, metlevel
 
 if TYPE_CHECKING:
@@ -31,20 +30,36 @@ if TYPE_CHECKING:
 
 
 @tasks
-def grids(c: Config):
+def grids(c: Config, baseline: bool = True, forecast: bool = True):
     taskname = "Grids for %s" % c.forecast.path
     yield taskname
     reqs: list[Node] = []
     for var, varname in _vxvars(c).items():
         for tc in validtimes(c.cycles, c.leadtimes):
-            forecast_grid = _grid_nc(c, varname, tc, var)
-            reqs.append(forecast_grid)
-            baseline_grid = _grid_grib(c, TimeCoords(cycle=tc.validtime, leadtime=0), var)
-            reqs.append(baseline_grid)
-            if c.baseline.compare:
-                comp_grid = _grid_grib(c, tc, var)
-                reqs.append(comp_grid)
+            if forecast:
+                forecast_grid = _grid_nc(c, varname, tc, var)
+                reqs.append(forecast_grid)
+            if baseline:
+                baseline_grid = _grid_grib(c, TimeCoords(cycle=tc.validtime, leadtime=0), var)
+                reqs.append(baseline_grid)
+                if c.baseline.compare:
+                    comp_grid = _grid_grib(c, tc, var)
+                    reqs.append(comp_grid)
     yield reqs
+
+
+@tasks
+def grids_baseline(c: Config):
+    taskname = "Baseline grids for %s" % c.forecast.path
+    yield taskname
+    yield grids(c, baseline=True, forecast=False)
+
+
+@tasks
+def grids_forecast(c: Config):
+    taskname = "Forecast grids for %s" % c.forecast.path
+    yield taskname
+    yield grids(c, baseline=False, forecast=True)
 
 
 @tasks
@@ -116,21 +131,15 @@ def _grib_index_file(outdir: Path, url: str):
     taskname = "GRIB index file %s" % path
     yield taskname
     yield asset(path, path.is_file)
-    yield _grib_index_remote(url)
-    fetch(taskname, url, path)
-
-
-@external
-def _grib_index_remote(url: str):
-    taskname = "GRIB index remote %s" % url
-    yield taskname
-    yield asset(url, lambda: status(url) == HTTPStatus.OK)
+    yield None
+    with atomic(path) as tmp:
+        fetch(taskname, url, tmp)
 
 
 @task
 def _grid_grib(c: Config, tc: TimeCoords, var: Var):
     yyyymmdd, hh, leadtime = tcinfo(tc)
-    outdir = c.paths.grids / yyyymmdd / hh / leadtime
+    outdir = c.paths.grids_baseline / yyyymmdd / hh / leadtime
     path = outdir / f"{var}.grib2"
     taskname = "Baseline grid %s" % path
     yield taskname
@@ -141,13 +150,14 @@ def _grid_grib(c: Config, tc: TimeCoords, var: Var):
     var_idxdata = idxdata.refs[str(var)]
     fb, lb = var_idxdata.firstbyte, var_idxdata.lastbyte
     headers = {"Range": "bytes=%s" % (f"{fb}-{lb}" if lb else fb)}
-    fetch(taskname, url, path, headers)
+    with atomic(path) as tmp:
+        fetch(taskname, url, tmp, headers)
 
 
 @task
 def _grid_nc(c: Config, varname: str, tc: TimeCoords, var: Var):
     yyyymmdd, hh, leadtime = tcinfo(tc)
-    path = c.paths.grids / yyyymmdd / hh / leadtime / f"{var}.nc"
+    path = c.paths.grids_forecast / yyyymmdd / hh / leadtime / f"{var}.nc"
     taskname = "Forecast grid %s" % path
     yield taskname
     yield asset(path, path.is_file)
@@ -156,8 +166,8 @@ def _grid_nc(c: Config, varname: str, tc: TimeCoords, var: Var):
     src = da_select(fd.refs, c, varname, tc, var)
     da = da_construct(src)
     ds = ds_construct(c, da, taskname)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    ds.to_netcdf(path, encoding={varname: {"zlib": True, "complevel": 9}})
+    with atomic(path) as tmp:
+        ds.to_netcdf(tmp, encoding={varname: {"zlib": True, "complevel": 9}})
     logging.info("%s: Wrote %s", taskname, path)
 
 
@@ -203,8 +213,8 @@ def _grid_stat_config(
             "tmp_dir": rundir,
         }
     )
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(f"{config}\n")
+    with atomic(path) as tmp:
+        tmp.write_text(f"{config}\n")
 
 
 @task
@@ -212,9 +222,9 @@ def _polyfile(path: Path, mask: tuple[tuple[float, float]]):
     yield "Poly file %s" % path
     yield asset(path, path.is_file)
     yield None
-    path.parent.mkdir(parents=True, exist_ok=True)
     content = "MASK\n%s\n" % "\n".join(f"{lat} {lon}" for lat, lon in mask)
-    path.write_text(content)
+    with atomic(path) as tmp:
+        tmp.write_text(content)
 
 
 @task
@@ -356,9 +366,8 @@ def _runscript(basepath: Path, content: str):
     yield asset(path, path.is_file)
     yield None
     content = dedent(content).strip()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w") as f:
-        print(f"#!/usr/bin/env bash\n\n{content}", file=f)
+    with atomic(path) as tmp:
+        tmp.write_text(f"#!/usr/bin/env bash\n\n{content}\n")
     path.chmod(path.stat().st_mode | S_IEXEC)
 
 

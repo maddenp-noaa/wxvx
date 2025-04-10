@@ -1,19 +1,22 @@
 from __future__ import annotations
 
 import logging
+from functools import cache
 from http import HTTPStatus
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-import requests
+from requests import Session
+
+TIMEOUT = 30
 
 
 def fetch(taskname: str, url: str, path: Path, headers: dict[str, str] | None = None) -> bool:
     suffix = " %s" % headers.get("Range", "") if headers else ""
     logging.info("%s: Fetching %s%s", taskname, url, suffix)
-    response = requests.get(url, allow_redirects=True, timeout=3, headers=headers or {})
+    response = session().get(url, allow_redirects=True, timeout=TIMEOUT, headers=headers or {})
     expected = HTTPStatus.PARTIAL_CONTENT if headers and "Range" in headers else HTTPStatus.OK
     if response.status_code == expected:
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -24,5 +27,10 @@ def fetch(taskname: str, url: str, path: Path, headers: dict[str, str] | None = 
     return False
 
 
+@cache
+def session() -> Session:
+    return Session()
+
+
 def status(url: str) -> int:
-    return requests.head(url, timeout=3).status_code
+    return session().head(url, timeout=TIMEOUT).status_code
