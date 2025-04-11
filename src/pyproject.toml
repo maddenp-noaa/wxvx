@@ -55,6 +55,7 @@ ignore = [
   "N813",    # camelcase-imported-as-lowercase
   "PLR0913", # too-many-arguments
   "S101",    # assert
+  "S603",    # subprocess-without-shell-equals-true
   "T201",    # print
   "UP031",   # printf-string-formatting
 ]

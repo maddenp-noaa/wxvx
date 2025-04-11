@@ -2,6 +2,7 @@
 Tests for wxvx.workflow.
 """
 
+import subprocess
 from pathlib import Path
 from textwrap import dedent
 from threading import Event
@@ -254,13 +255,21 @@ def test_workflow__polyfile(fakefs):
 #     assert refs(val).is_file()
 
 
-def test_workflow__runscript(fakefs):
-    expected = fakefs / "foo.sh"
-    assert not expected.is_file()
-    val = workflow._runscript(basepath=fakefs / "foo.png", content="commands")
+def test_workflow__runscript(tmp_path):
+    script = tmp_path / "foo.sh"
+    outfile = tmp_path / "foo.out"
+    content = f"""
+    #!/usr/bin/env bash
+    echo hello >{outfile}
+    """
+    assert not script.is_file()
+    assert not outfile.is_file()
+    val = workflow._runscript(basepath=outfile, content=dedent(content).lstrip())
     assert ready(val)
-    assert refs(val) == expected
-    assert expected.is_file()
+    assert script.is_file()
+    subprocess.check_call([str(script)])
+    assert outfile.is_file()
+    assert outfile.read_text().strip() == "hello"
 
 
 def test_workflow__stat(c, fakefs, tc):
