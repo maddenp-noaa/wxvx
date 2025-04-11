@@ -102,15 +102,15 @@ class VarMeta:
             match k:
                 case "cat_thresh":
                     assert v is None or v
-                case "cnt_thresh":
-                    assert v is None or v
                 case "cf_standard_name":
                     assert v
+                case "cnt_thresh":
+                    assert v is None or v
                 case "description":
                     assert v
                 case "level_type":
                     assert v in ("atmosphere", "heightAboveGround", "isobaricInhPa", "surface")
-                case "met_line_type":
+                case "met_linetypes":
                     assert v
                     for x in v:
                         assert x in ("cnt", "cts", "nbrcnt")
