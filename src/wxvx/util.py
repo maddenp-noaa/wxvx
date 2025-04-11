@@ -7,7 +7,6 @@ from importlib import resources
 from multiprocessing import Process
 from pathlib import Path
 from subprocess import run
-from tempfile import mkstemp
 from typing import TYPE_CHECKING, NoReturn, cast
 
 if TYPE_CHECKING:
@@ -22,7 +21,7 @@ class WXVXError(Exception): ...
 @contextmanager
 def atomic(path: Path) -> Iterator[Path]:
     path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = Path(mkstemp(prefix=f".{path.name}", dir=path.parent)[1])
+    tmp = path.with_suffix(".tmp")
     yield tmp
     tmp.rename(path)
 

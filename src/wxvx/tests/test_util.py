@@ -18,8 +18,8 @@ def test_atomic(fakefs):
     assert not path.is_file()
     msg = "hello"
     with util.atomic(path) as tmp:
-        assert tmp.is_file()
         tmp.write_text(msg)
+        assert tmp.is_file()
     assert not tmp.is_file()
     assert path.read_text() == msg
 
