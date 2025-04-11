@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Callable
@@ -8,6 +9,8 @@ from pytest import fixture
 
 from wxvx import times
 from wxvx.types import Config
+
+logging.getLogger().setLevel(logging.DEBUG)
 
 
 @fixture

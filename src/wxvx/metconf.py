@@ -68,6 +68,8 @@ def _field_mapping_kvpairs(k: str, v: Any, level: int) -> list[str]:
     match k:
         case "cat_thresh":
             return _sequence(k, v, _bare, level)
+        case "cnt_thresh":
+            return _sequence(k, v, _bare, level)
         case "level":
             return _sequence(k, v, _quoted, level)
         case "name":
@@ -85,6 +87,15 @@ def _field_sequence(k: str, v: list[dict], level: int) -> list[str]:
 def _mask(k: str, v: list, level: int) -> list[str]:
     match k:
         case "grid" | "poly":
+            return _sequence(k, v, _quoted, level)
+    _fail(k)
+
+
+def _nbrhd(k: str, v: Any, level: int) -> list[str]:
+    match k:
+        case "shape":
+            return _kvpair(k, _bare(v), level)
+        case "width":
             return _sequence(k, v, _quoted, level)
     _fail(k)
 
@@ -111,6 +122,8 @@ def _top(k: str, v: Any, level: int) -> list[str]:
             return _kvpair(k, _quoted(v), level)
         case "mask":
             return _mapping(k, _collect(_mask, v, level + 1), level)
+        case "nbrhd":
+            return _mapping(k, _collect(_nbrhd, v, level + 1), level)
         case "nc_pairs_flag":
             return _kvpair(k, _bare(v), level)
         case "output_flag":

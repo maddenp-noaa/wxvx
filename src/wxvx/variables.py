@@ -54,11 +54,14 @@ VARMETA = {
         VarMeta(
             cat_thresh=">=20, >=30, >=40",
             cf_standard_name="unknown",
+            cnt_thresh=">15",
             description="Composite Reflectivity",
             level_type="atmosphere",
             met_linetypes=["cts", "nbrcnt"],
             met_stat="PODY",
             name="refc",
+            nbrhd_shape="CIRCLE",
+            nbrhd_width="3, 5, 11",
             units="dBZ",
         ),
         VarMeta(

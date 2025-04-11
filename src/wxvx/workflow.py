@@ -193,26 +193,29 @@ def _grid_stat_config(
     field_obs = {"level": [level_obs], "name": HRRR.varname(var.name)}
     meta = _meta(c, varname)
     if meta.cat_thresh:
-        field_fcst["cat_thresh"] = [meta.cat_thresh]
-        field_obs["cat_thresh"] = [meta.cat_thresh]
+        for x in field_fcst, field_obs:
+            x["cat_thresh"] = [meta.cat_thresh]
+    if meta.cnt_thresh:
+        for x in field_fcst, field_obs:
+            x["cnt_thresh"] = [meta.cnt_thresh]
     mask_grid = [] if polyfile else ["FULL"]
     mask_poly = [polyfile.refs] if polyfile else []
-    config = render(
-        {
-            "fcst": {"field": [field_fcst]},
-            "mask": {"grid": mask_grid, "poly": mask_poly},
-            "model": model,
-            "nc_pairs_flag": "FALSE",
-            "obs": {"field": [field_obs]},
-            "obtype": c.baseline.name,
-            "output_flag": {x: "BOTH" for x in meta.met_linetypes},
-            "output_prefix": f"{prefix}",
-            "regrid": {"to_grid": "FCST"},
-            "tmp_dir": rundir,
-        }
-    )
+    config = {
+        "fcst": {"field": [field_fcst]},
+        "mask": {"grid": mask_grid, "poly": mask_poly},
+        "model": model,
+        "nc_pairs_flag": "FALSE",
+        "obs": {"field": [field_obs]},
+        "obtype": c.baseline.name,
+        "output_flag": {x: "BOTH" for x in meta.met_linetypes},
+        "output_prefix": f"{prefix}",
+        "regrid": {"to_grid": "FCST"},
+        "tmp_dir": rundir,
+    }
+    if nbrhd := {k: v for k, v in [("shape", meta.nbrhd_shape), ("width", meta.nbrhd_width)] if v}:
+        config["nbrhd"] = nbrhd
     with atomic(path) as tmp:
-        tmp.write_text(f"{config}\n")
+        tmp.write_text("%s\n" % render(config))
 
 
 @task
