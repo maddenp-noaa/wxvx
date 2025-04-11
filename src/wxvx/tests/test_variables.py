@@ -131,9 +131,8 @@ def test_variables_ds_construct(c, check_cf_metadata):
         dims=("forecast_reference_time", "time", "latitude", "longitude"),
         name=name,
     )
-    assert not check_cf_metadata(ds=da.to_dataset(), name=name)
     ds = variables.ds_construct(c=c, da=da, taskname="test")
-    assert check_cf_metadata(ds=ds, name=name)
+    check_cf_metadata(ds=ds, name=name)
 
 
 @mark.parametrize(

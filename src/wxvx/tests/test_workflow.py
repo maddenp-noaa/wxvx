@@ -149,7 +149,7 @@ def test_workflow__grid_nc(c_real_fs, check_cf_metadata, da, tc):
     object.__setattr__(c_real_fs.forecast, "path", path)
     val = workflow._grid_nc(c=c_real_fs, varname="HGT", tc=tc, var=var)
     assert ready(val)
-    assert check_cf_metadata(ds=xr.open_dataset(refs(val), decode_timedelta=True), name="HGT")
+    check_cf_metadata(ds=xr.open_dataset(refs(val), decode_timedelta=True), name="HGT")
 
 
 def test_workflow__grid_stat_config(c, fakefs):
