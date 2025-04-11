@@ -143,13 +143,14 @@ def test_workflow__grid_grib(c, tc):
 
 
 def test_workflow__grid_nc(c_real_fs, check_cf_metadata, da, tc):
-    var = variables.Var(name="gh", level_type="isobaricInhPa", level=900)
+    level = 900
+    var = variables.Var(name="gh", level_type="isobaricInhPa", level=level)
     path = Path(c_real_fs.paths.grids_forecast, "a.nc")
     da.to_netcdf(path)
     object.__setattr__(c_real_fs.forecast, "path", path)
     val = workflow._grid_nc(c=c_real_fs, varname="HGT", tc=tc, var=var)
     assert ready(val)
-    check_cf_metadata(ds=xr.open_dataset(refs(val), decode_timedelta=True), name="HGT")
+    check_cf_metadata(ds=xr.open_dataset(refs(val), decode_timedelta=True), name="HGT", level=level)
 
 
 def test_workflow__grid_stat_config(c, fakefs):

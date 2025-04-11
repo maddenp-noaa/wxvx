@@ -131,7 +131,7 @@ def test_variables_ds_construct(c, check_cf_metadata):
         dims=("forecast_reference_time", "time", "latitude", "longitude"),
         name=name,
     )
-    ds = variables.ds_construct(c=c, da=da, taskname="test")
+    ds = variables.ds_construct(c=c, da=da, level=None, taskname="test")
     check_cf_metadata(ds=ds, name=name)
 
 

@@ -237,7 +237,7 @@ def da_select(ds: xr.Dataset, c: Config, varname: str, tc: TimeCoords, var: Var)
     return da
 
 
-def ds_construct(c: Config, da: xr.DataArray, taskname: str) -> xr.Dataset:
+def ds_construct(c: Config, da: xr.DataArray, taskname: str, level: float | None) -> xr.Dataset:
     logging.info("%s: Creating CF-compliant %s dataset", taskname, da.name)
     coord_names = ("forecast_reference_time", "time", "latitude", "longitude")
     assert len(da.shape) == len(coord_names)
@@ -268,10 +268,7 @@ def ds_construct(c: Config, da: xr.DataArray, taskname: str) -> xr.Dataset:
             crs: _da_crs(proj),
         },
         coords=coords,
-        attrs=dict(
-            Conventions="CF-1.8",
-            level=da.level.values[0] if hasattr(da, "level") else np.nan,
-        ),
+        attrs=dict(Conventions="CF-1.8", level=level or np.nan),
     )
 
 

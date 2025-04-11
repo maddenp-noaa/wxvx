@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -15,9 +17,13 @@ logging.getLogger().setLevel(logging.DEBUG)
 
 @fixture
 def check_cf_metadata() -> Callable:
-    def check(ds: xr.DataArray, name: str):
+    def check(ds: xr.DataArray, name: str, level: float | None = None):
         assert ds.attrs["Conventions"] == "CF-1.8"
-        assert np.isnan(ds.attrs["level"])
+        level_actual = ds.attrs["level"]
+        if level:
+            assert level_actual == level
+        else:
+            assert np.isnan(level_actual)
         da = ds[name]
         for k, v in [("standard_name", "geopotential_height"), ("units", "m")]:
             assert da.attrs[k] == v
