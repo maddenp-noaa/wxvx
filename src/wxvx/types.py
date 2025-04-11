@@ -91,10 +91,13 @@ class VarMeta:
     met_stat: str
     name: str
     units: str
+    # Optional:
+    cat_thresh: str | None = None
+    cnt_thresh: str | None = None
 
     def __post_init__(self):
         for val in vars(self):
-            assert val  # i.e. no empty strings
+            assert val is None or val
         assert self.level_type in ["atmosphere", "heightAboveGround", "isobaricInhPa", "surface"]
         for met_linetype in self.met_linetypes:
             assert met_linetype in ["cnt", "cts", "nbrcnt"]

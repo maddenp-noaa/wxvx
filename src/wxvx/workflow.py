@@ -192,10 +192,9 @@ def _grid_stat_config(
     field_fcst = {"level": [level_fcst], "name": name_fcst, "set_attr_level": level_obs}
     field_obs = {"level": [level_obs], "name": HRRR.varname(var.name)}
     meta = _meta(c, varname)
-    if "cts" in meta.met_linetypes:
-        thresholds = ">=20, >=30, >=40"
-        field_fcst["cat_thresh"] = [thresholds]
-        field_obs["cat_thresh"] = [thresholds]
+    if meta.cat_thresh:
+        field_fcst["cat_thresh"] = [meta.cat_thresh]
+        field_obs["cat_thresh"] = [meta.cat_thresh]
     mask_grid = [] if polyfile else ["FULL"]
     mask_poly = [polyfile.refs] if polyfile else []
     config = render(

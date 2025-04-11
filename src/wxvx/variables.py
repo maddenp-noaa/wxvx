@@ -52,6 +52,7 @@ VARMETA = {
             units="1",
         ),
         VarMeta(
+            cat_thresh=">=20, >=30, >=40",
             cf_standard_name="unknown",
             description="Composite Reflectivity",
             level_type="atmosphere",
