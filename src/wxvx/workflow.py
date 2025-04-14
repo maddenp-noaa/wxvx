@@ -181,7 +181,7 @@ def _grid_stat_config(
     yield asset(path, path.is_file)
     polyfile = None
     if mask := c.forecast.mask:
-        polyfile = _polyfile(base.with_suffix(".poly"), mask)
+        polyfile = _polyfile(c.paths.run / "mask.poly", mask)
     yield polyfile
     level_obs = metlevel(var.level_type, var.level)
     attrs = {
