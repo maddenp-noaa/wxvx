@@ -46,10 +46,12 @@ def tcinfo(tc: TimeCoords, leadtime_digits: int = 3) -> tuple[str, str, str]:
     return (yyyymmdd(dt=tc.cycle), hh(dt=tc.cycle), fmt % (tc.leadtime.total_seconds() // 3600))
 
 
-def validtimes(cycles: Cycles, leadtimes: Leadtimes) -> list[TimeCoords]:
+def validtimes(cycles: Cycles | datetime, leadtimes: Leadtimes) -> list[TimeCoords]:
     pairs = product(
-        _cycles(start=cycles.start, step=cycles.step, stop=cycles.stop),
-        _leadtimes(leadtimes.start, leadtimes.step, leadtimes.stop),
+        [cycles]
+        if isinstance(cycles, datetime)
+        else _cycles(start=cycles.start, step=cycles.step, stop=cycles.stop),
+        _leadtimes(leadtimes.start, leadtimes.step, stop=leadtimes.stop),
     )
     return sorted({TimeCoords(cycle=cycle, leadtime=leadtime) for cycle, leadtime in pairs})
 
