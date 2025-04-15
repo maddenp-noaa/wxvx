@@ -18,13 +18,15 @@ import xarray as xr
 from iotaa import Node, asset, external, refs, task, tasks
 
 from wxvx.metconf import render
+from wxvx.net import fetch
+from wxvx.times import TimeCoords, tcinfo, validtimes
 from wxvx.net import fetch, status
 from wxvx.times import TimeCoords, _cycles, _leadtimes, tcinfo, validtimes
 from wxvx.types import Source
-from wxvx.util import mpexec
+from wxvx.util import atomic, mpexec
 from wxvx.variables import HRRR, VARMETA, Var, da_construct, da_select, ds_construct, metlevel
 
-if TYPE_CHECKING:  # pragma: no cover
+if TYPE_CHECKING:
     from collections.abc import Iterator, Sequence
     from datetime import datetime
 
@@ -34,20 +36,36 @@ if TYPE_CHECKING:  # pragma: no cover
 
 
 @tasks
-def grids(c: Config):
+def grids(c: Config, baseline: bool = True, forecast: bool = True):
     taskname = "Grids for %s" % c.forecast.path
     yield taskname
     reqs: list[Node] = []
     for var, varname in _vxvars(c).items():
         for tc in validtimes(c.cycles, c.leadtimes):
-            forecast_grid = _grid_nc(c, varname, tc, var)
-            reqs.append(forecast_grid)
-            baseline_grid = _grid_grib(c, TimeCoords(cycle=tc.validtime, leadtime=0), var)
-            reqs.append(baseline_grid)
-            if c.baseline.plot:
-                comp_grid = _grid_grib(c, tc, var)
-                reqs.append(comp_grid)
+            if forecast:
+                forecast_grid = _grid_nc(c, varname, tc, var)
+                reqs.append(forecast_grid)
+            if baseline:
+                baseline_grid = _grid_grib(c, TimeCoords(cycle=tc.validtime, leadtime=0), var)
+                reqs.append(baseline_grid)
+                if c.baseline.compare:
+                    comp_grid = _grid_grib(c, tc, var)
+                    reqs.append(comp_grid)
     yield reqs
+
+
+@tasks
+def grids_baseline(c: Config):
+    taskname = "Baseline grids for %s" % c.forecast.path
+    yield taskname
+    yield grids(c, baseline=True, forecast=False)
+
+
+@tasks
+def grids_forecast(c: Config):
+    taskname = "Forecast grids for %s" % c.forecast.path
+    yield taskname
+    yield grids(c, baseline=False, forecast=True)
 
 
 @tasks
@@ -104,7 +122,7 @@ def _grib_index_data(c: Config, outdir: Path, tc: TimeCoords, url: str):
     yield asset(idxdata, lambda: bool(idxdata))
     idxfile = _grib_index_file(outdir, url)
     yield idxfile
-    lines = refs(idxfile).read_text(encoding="utf-8").strip().split("\n")
+    lines = idxfile.refs.read_text(encoding="utf-8").strip().split("\n")
     lines.append(":-1:::::")  # end marker
     vxvars = set(_vxvars(c).keys())
     for this_record, next_record in pairwise([line.split(":") for line in lines]):
@@ -124,21 +142,15 @@ def _grib_index_file(outdir: Path, url: str):
     taskname = "GRIB index file %s" % path
     yield taskname
     yield asset(path, path.is_file)
-    yield _grib_index_remote(url)
-    fetch(taskname, url, path)
-
-
-@external
-def _grib_index_remote(url: str):
-    taskname = "GRIB index remote %s" % url
-    yield taskname
-    yield asset(url, lambda: status(url) == 200)
+    yield None
+    with atomic(path) as tmp:
+        fetch(taskname, url, tmp)
 
 
 @task
 def _grid_grib(c: Config, tc: TimeCoords, var: Var):
     yyyymmdd, hh, leadtime = tcinfo(tc)
-    outdir = c.paths.grids / yyyymmdd / hh / leadtime
+    outdir = c.paths.grids_baseline / yyyymmdd / hh / leadtime
     path = outdir / f"{var}.grib2"
     taskname = "Baseline grid %s" % path
     yield taskname
@@ -146,70 +158,62 @@ def _grid_grib(c: Config, tc: TimeCoords, var: Var):
     url = c.baseline.template.format(yyyymmdd=yyyymmdd, hh=hh, ff="%02d" % int(leadtime))
     idxdata = _grib_index_data(c, outdir, tc, url=f"{url}.idx")
     yield idxdata
-    var_idxdata = refs(idxdata)[str(var)]
+    var_idxdata = idxdata.refs[str(var)]
     fb, lb = var_idxdata.firstbyte, var_idxdata.lastbyte
     headers = {"Range": "bytes=%s" % (f"{fb}-{lb}" if lb else fb)}
-    fetch(taskname, url, path, headers)
+    with atomic(path) as tmp:
+        fetch(taskname, url, tmp, headers)
 
 
 @task
 def _grid_nc(c: Config, varname: str, tc: TimeCoords, var: Var):
     yyyymmdd, hh, leadtime = tcinfo(tc)
-    path = c.paths.grids / yyyymmdd / hh / leadtime / f"{var}.nc"
+    path = c.paths.grids_forecast / yyyymmdd / hh / leadtime / f"{var}.nc"
     taskname = "Forecast grid %s" % path
     yield taskname
     yield asset(path, path.is_file)
     fd = _forecast_dataset(c.forecast.path)
     yield fd
-    src = da_select(refs(fd), c, varname, tc, var)
+    src = da_select(fd.refs, c, varname, tc, var)
     da = da_construct(src)
     ds = ds_construct(c, da, taskname)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    ds.to_netcdf(path, encoding={varname: {"zlib": True, "complevel": 9}})
+    with atomic(path) as tmp:
+        ds.to_netcdf(tmp, encoding={varname: {"zlib": True, "complevel": 9}})
     logging.info("%s: Wrote %s", taskname, path)
 
 
 @task
 def _grid_stat_config(
-    c: Config,
-    poly_path: Path,
-    basepath: Path,
-    varname: str,
-    rundir: Path,
-    var: Var,
-    prefix: str,
-    source: Source,
+    c: Config, basepath: Path, varname: str, rundir: Path, var: Var, prefix: str, source: Source
 ):
-    path = (basepath.parent / basepath.stem).with_suffix(".config")
+    base = basepath.parent / basepath.stem
+    path = base.with_suffix(".config")
     taskname = "Verification config %s" % path
     yield taskname
     yield asset(path, path.is_file)
-    yield None
+    polyfile = None
+    if mask := c.forecast.mask:
+        polyfile = _polyfile(base.with_suffix(".poly"), mask)
+    yield polyfile
+    level_obs = metlevel(var.level_type, var.level)
     attrs = {
-        Source.BASELINE: (
-            metlevel(var.level_type, var.level),
-            HRRR.varname(var.name),
-            c.baseline.name,
-        ),
-        Source.FORECAST: (
-            "(0,0,*,*)",
-            varname,
-            c.forecast.name,
-        ),
+        Source.BASELINE: (level_obs, HRRR.varname(var.name), c.baseline.name),
+        Source.FORECAST: ("(0,0,*,*)", varname, c.forecast.name),
     }
     forecast_level, forecast_name, model = attrs[source]
-    field_fcst = {"level": [forecast_level], "name": forecast_name}
-    field_obs = {"level": [metlevel(var.level_type, var.level)], "name": HRRR.varname(var.name)}
+    field_fcst = {"level": [forecast_level], "name": forecast_name, "set_attr_level": level_obs}
+    field_obs = {"level": [level_obs], "name": HRRR.varname(var.name)}
     meta = _meta(c, varname)
     if meta.met_linetype == "cts":
-        field_fcst["cat_thresh"] = [">0"]
-        field_obs["cat_thresh"] = [">0"]
-    poly_level, poly_name, _ = attrs[Source.FORECAST]
-    poly = r"%s {name = \"%s\"; level = \"%s\";}" % (poly_path, poly_name, poly_level)
+        thresholds = ">=20, >=30, >=40"
+        field_fcst["cat_thresh"] = [thresholds]
+        field_obs["cat_thresh"] = [thresholds]
+    mask_grid = [] if polyfile else ["FULL"]
+    mask_poly = [polyfile.refs] if polyfile else []
     config = render(
         {
             "fcst": {"field": [field_fcst]},
-            "mask": {"grid": [], "poly": [poly]},
+            "mask": {"grid": mask_grid, "poly": mask_poly},
             "model": model,
             "nc_pairs_flag": "FALSE",
             "obs": {"field": [field_obs]},
@@ -220,8 +224,18 @@ def _grid_stat_config(
             "tmp_dir": rundir,
         }
     )
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(f"{config}\n")
+    with atomic(path) as tmp:
+        tmp.write_text(f"{config}\n")
+
+
+@task
+def _polyfile(path: Path, mask: tuple[tuple[float, float]]):
+    yield "Poly file %s" % path
+    yield asset(path, path.is_file)
+    yield None
+    content = "MASK\n%s\n" % "\n".join(f"{lat} {lon}" for lat, lon in mask)
+    with atomic(path) as tmp:
+        tmp.write_text(content)
 
 
 @task
@@ -393,9 +407,8 @@ def _runscript(basepath: Path, content: str):
     yield asset(path, path.is_file)
     yield None
     content = dedent(content).strip()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w") as f:
-        print(f"#!/usr/bin/env bash\n\n{content}", file=f)
+    with atomic(path) as tmp:
+        tmp.write_text(f"#!/usr/bin/env bash\n\n{content}\n")
     path.chmod(path.stat().st_mode | S_IEXEC)
 
 
@@ -413,18 +426,18 @@ def _stat(c: Config, varname: str, tc: TimeCoords, var: Var, prefix: str, source
     baseline = _grid_grib(c, TimeCoords(cycle=tc.validtime, leadtime=0), var)
     forecast = _grid_nc(c, varname, tc, var)
     toverify = _grid_grib(c, tc, var) if source == Source.BASELINE else forecast
-    cfgfile = _grid_stat_config(c, refs(forecast), path, varname, rundir, var, prefix, source)
+    cfgfile = _grid_stat_config(c, path, varname, rundir, var, prefix, source)
     log = f"{path.stem}.log"
     content = f"""
     export OMP_NUM_THREADS=1
-    grid_stat -v 4 {refs(toverify)} {refs(baseline)} {refs(cfgfile).name} >{log} 2>&1
+    grid_stat -v 4 {toverify.refs} {baseline.refs} {cfgfile.refs.name} >{log} 2>&1
     """
     script = _runscript(basepath=path, content=content)
     reqs = [toverify, baseline, cfgfile, script]
     if source == Source.BASELINE:
         reqs.append(forecast)
     yield reqs
-    mpexec(str(refs(script)), rundir, taskname)
+    mpexec(str(script.refs), rundir, taskname)
 
 
 # @task
@@ -432,7 +445,7 @@ def _stat(c: Config, varname: str, tc: TimeCoords, var: Var, prefix: str, source
 #     taskname = "MET stats for %s " % _var(c, varname, level)
 #     yield taskname
 #     reqs = _statreqs(c, varname, level)
-#     files = [refs(x) for x in reqs]
+#     files = [x.refs for x in reqs]
 #     links = [rundir / x.name for x in files]
 #     yield [asset(link, link.is_symlink) for link in links]
 #     yield reqs
@@ -471,7 +484,7 @@ def _statreqs(
         _stat(*args) for args in _statargs(c, varname, level, source, cycle)
     ]
     reqs: Sequence[Node] = genreqs(Source.FORECAST)
-    if c.baseline.plot:
+    if c.baseline.compare:
         reqs = [*reqs, *genreqs(Source.BASELINE)]
     return reqs
 

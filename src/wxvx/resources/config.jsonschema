@@ -18,19 +18,19 @@
     "baseline": {
       "additionalProperties": false,
       "properties": {
+        "compare": {
+          "type": "boolean"
+        },
         "name": {
           "type": "string"
-        },
-        "plot": {
-          "type": "boolean"
         },
         "template": {
           "type": "string"
         }
       },
       "required": [
+        "compare",
         "name",
-        "plot",
         "template"
       ],
       "type": "object"
@@ -58,6 +58,15 @@
     "forecast": {
       "additionalProperties": false,
       "properties": {
+        "mask": {
+          "items": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "type": "array"
+        },
         "name": {
           "type": "string"
         },
@@ -178,7 +187,20 @@
       "additionalProperties": false,
       "properties": {
         "grids": {
-          "type": "string"
+          "additionalProperties": false,
+          "properties": {
+            "baseline": {
+              "type": "string"
+            },
+            "forecast": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "baseline",
+            "forecast"
+          ],
+          "type": "object"
         },
         "run": {
           "type": "string"

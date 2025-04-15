@@ -1,12 +1,17 @@
 baseline:
+  compare: false
   name: HRRR
-  plot: false
   template: https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.{yyyymmdd}/conus/hrrr.t{hh}z.wrfprsf{ff}.grib2
 cycles:
   start: "2024-04-01T02:00:00"
   step: "01:00:00"
   stop: "2024-04-07T23:00:00"
 forecast:
+  mask:
+    - [52.61564933, 225.90452027]
+    - [52.61564933, 255.00000000]
+    - [21.138123,   255.00000000]
+    - [21.138123,   225.90452027]
   name: ResHRRR
   path: /path/to/forecast.zarr
   projection:
@@ -16,10 +21,13 @@ leadtimes:
   step: "01:00:00"
   stop: "01:00:00"
 meta:
+  grids: "{{ meta.workdir }}/grids"
   levels: &levels [200, 300, 475, 800, 825, 850, 875, 900, 925, 950, 975, 1000]
   workdir: /path/to/workdir
 paths:
-  grids: "{{ meta.workdir }}/grids"
+  grids:
+    baseline: "{{ meta.grids }}/baseline"
+    forecast: "{{ meta.grids }}/forecast"
   run: "{{ meta.workdir }}/run"
 variables:
   HGT:

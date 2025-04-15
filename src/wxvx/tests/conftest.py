@@ -33,26 +33,48 @@ def check_cf_metadata() -> Callable:
 
 @fixture
 def c(config_data, fakefs):
-    grids, run = [fakefs / x for x in ("grids", "run")]
-    grids.mkdir()
+    grids_baseline, grids_forecast, run = [
+        fakefs / x for x in ("grids/baseline", "grids/forecast", "run")
+    ]
+    grids_baseline.mkdir(parents=True)
+    grids_forecast.mkdir(parents=True)
     run.mkdir()
-    return Config({**config_data, "paths": {"grids": str(grids), "run": str(run)}})
+    return Config(
+        {
+            **config_data,
+            "paths": {
+                "grids": {"baseline": str(grids_baseline), "forecast": str(grids_forecast)},
+                "run": str(run),
+            },
+        }
+    )
 
 
 @fixture
 def c_real_fs(config_data, tmp_path):
-    grids, run = [tmp_path / x for x in ("grids", "run")]
-    grids.mkdir()
+    grids_baseline, grids_forecast, run = [
+        tmp_path / x for x in ("grids/baseline", "grids/forecast", "run")
+    ]
+    grids_baseline.mkdir(parents=True)
+    grids_forecast.mkdir(parents=True)
     run.mkdir()
-    return Config({**config_data, "paths": {"grids": str(grids), "run": str(run)}})
+    return Config(
+        {
+            **config_data,
+            "paths": {
+                "grids": {"baseline": str(grids_baseline), "forecast": str(grids_forecast)},
+                "run": str(run),
+            },
+        }
+    )
 
 
 @fixture
 def config_data():
     return {
         "baseline": {
+            "compare": True,
             "name": "Baseline",
-            "plot": True,
             "template": "https://some.url/{yyyymmdd}/{hh}/{ff}/a.grib2",
         },
         "cycles": {
@@ -61,6 +83,12 @@ def config_data():
             "stop": "2024-12-20T06:00:00",
         },
         "forecast": {
+            "mask": [
+                [52.61564933, 225.90452027],
+                [52.61564933, 275.0],
+                [21.138123, 275.0],
+                [21.138123, 225.90452027],
+            ],
             "name": "Forecast",
             "path": "/path/to/forecast",
             "projection": {
@@ -79,7 +107,10 @@ def config_data():
             "stop": "12:00:00",
         },
         "paths": {
-            "grids": "/path/to/grids",
+            "grids": {
+                "baseline": "/path/to/grids/baseline",
+                "forecast": "/path/to/grids/forecast",
+            },
             "run": "/path/to/run",
         },
         "variables": {

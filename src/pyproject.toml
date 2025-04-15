@@ -1,4 +1,7 @@
 [tool.coverage.report]
+exclude_also = [
+  "if TYPE_CHECKING:"
+]
 fail_under = 100
 omit = ["*/tests/*"]
 show_missing = true
@@ -46,10 +49,11 @@ ignore = [
   "D401",    # non-imperative-mood
   "E731",    # lambda-assignment
   "ERA001",  # commented-out-code
+  "FBT001",  # boolean-type-hint-positional-argument
+  "FBT002",  # boolean-default-value-positional-argument
   "FLY002",  # static-join-to-f-string
   "N813",    # camelcase-imported-as-lowercase
   "PLR0913", # too-many-arguments
-  "PLR2004", # magic-value-comparison
   "S101",    # assert
   "T201",    # print
   "UP031",   # printf-string-formatting
@@ -58,6 +62,7 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "wxvx/tests/*" = [
   "N802",    # invalid-function-name
+  "PLR2004", # magic-value-comparison
   "PT013",   # pytest-incorrect-pytest-import
   "SLF001",  # private-member-access
 ]

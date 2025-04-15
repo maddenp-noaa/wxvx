@@ -12,7 +12,7 @@ from pyproj import Proj
 from wxvx.types import VarMeta
 from wxvx.util import WXVXError
 
-if TYPE_CHECKING:  # pragma: no cover
+if TYPE_CHECKING:
     from wxvx.times import TimeCoords
     from wxvx.types import Config
 
@@ -235,7 +235,8 @@ def da_select(ds: xr.Dataset, c: Config, varname: str, tc: TimeCoords, var: Var)
 
 def ds_construct(c: Config, da: xr.DataArray, taskname: str) -> xr.Dataset:
     logging.info("%s: Creating CF-compliant %s dataset", taskname, da.name)
-    assert len(da.shape) == 4
+    coord_names = ("forecast_reference_time", "time", "latitude", "longitude")
+    assert len(da.shape) == len(coord_names)
     proj = Proj(c.forecast.projection)
     latlon = proj.name == "longlat"  # yes, "longlat"
     dims = ["forecast_reference_time", "time"]
@@ -244,12 +245,17 @@ def ds_construct(c: Config, da: xr.DataArray, taskname: str) -> xr.Dataset:
     meta = VARMETA[c.variables[da.name]["name"]]
     attrs = dict(grid_mapping=crs, standard_name=meta.cf_standard_name, units=meta.units)
     dims_lat, dims_lon = ([k] if latlon else ["y", "x"] for k in ["latitude", "longitude"])
-    coords = {
-        "forecast_reference_time": _da_to_forecast_reference_time(da),
-        "time": _da_to_time(da),
-        "latitude": _da_to_latitude(da, dims_lat),
-        "longitude": _da_to_longitude(da, dims_lon),
-    }
+    coords = dict(
+        zip(
+            coord_names,
+            [
+                _da_to_forecast_reference_time(da),
+                _da_to_time(da),
+                _da_to_latitude(da, dims_lat),
+                _da_to_longitude(da, dims_lon),
+            ],
+        )
+    )
     if not latlon:
         coords = {**coords, "y": _da_to_y(da, proj), "x": _da_to_x(da, proj)}
     return xr.Dataset(

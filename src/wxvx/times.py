@@ -6,7 +6,9 @@ from typing import TYPE_CHECKING, overload
 
 from wxvx.util import WXVXError
 
-if TYPE_CHECKING:  # pragma: no cover
+if TYPE_CHECKING:
+    from collections.abc import Iterator
+
     from wxvx.types import Cycles, Leadtimes
 
 # Public
@@ -46,14 +48,20 @@ def tcinfo(tc: TimeCoords, leadtime_digits: int = 3) -> tuple[str, str, str]:
     return (yyyymmdd(dt=tc.cycle), hh(dt=tc.cycle), fmt % (tc.leadtime.total_seconds() // 3600))
 
 
-def validtimes(cycles: Cycles | datetime, leadtimes: Leadtimes) -> list[TimeCoords]:
-    pairs = product(
+def validtimes(cycles: Cycles | datetime, leadtimes: Leadtimes) -> Iterator[TimeCoords]:
+    # pairs = product(
+    #     [cycles]
+    #     if isinstance(cycles, datetime)
+    #     else _cycles(start=cycles.start, step=cycles.step, stop=cycles.stop),
+    #     _leadtimes(leadtimes.start, leadtimes.step, stop=leadtimes.stop),
+    # )
+    for cycle, leadtime in product(
         [cycles]
         if isinstance(cycles, datetime)
         else _cycles(start=cycles.start, step=cycles.step, stop=cycles.stop),
         _leadtimes(leadtimes.start, leadtimes.step, stop=leadtimes.stop),
-    )
-    return sorted({TimeCoords(cycle=cycle, leadtime=leadtime) for cycle, leadtime in pairs})
+    ):
+        yield TimeCoords(cycle=cycle, leadtime=leadtime)
 
 
 def yyyymmdd(dt: datetime) -> str:

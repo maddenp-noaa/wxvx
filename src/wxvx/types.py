@@ -1,5 +1,7 @@
 # noqa: A005
 
+from __future__ import annotations
+
 import json
 from dataclasses import dataclass
 from enum import Enum, auto
@@ -11,18 +13,20 @@ Source = Enum("Source", [("BASELINE", auto()), ("FORECAST", auto())])
 
 @dataclass(frozen=True)
 class Baseline:
+    compare: bool
     name: str
-    plot: bool
     template: str
 
 
 class Config:
     def __init__(self, config_data: dict):
+        paths = config_data["paths"]
+        grids = paths["grids"]
         self.baseline = Baseline(**config_data["baseline"])
         self.cycles = Cycles(**config_data["cycles"])
         self.forecast = Forecast(**config_data["forecast"])
         self.leadtimes = Leadtimes(**config_data["leadtimes"])
-        self.paths = Paths(**config_data["paths"])
+        self.paths = Paths(grids["baseline"], grids["forecast"], paths["run"])
         self.variables = config_data["variables"]
 
     KEYS = ("baseline", "cycles", "forecast", "leadtimes", "paths", "variables")
@@ -46,13 +50,16 @@ class Forecast:
     name: str
     path: Path
     projection: dict
+    mask: tuple[tuple[float, float]] | None = None
 
-    KEYS = ("name", "path", "projection")
+    KEYS = ("mask", "name", "path", "projection")
 
     def __hash__(self):
         return _hash(self)
 
     def __post_init__(self):
+        if self.mask:
+            _force(self, "mask", tuple(tuple(x) for x in self.mask))
         _force(self, "path", Path(self.path))
 
 
@@ -65,11 +72,13 @@ class Leadtimes:
 
 @dataclass(frozen=True)
 class Paths:
-    grids: Path
+    grids_baseline: Path
+    grids_forecast: Path
     run: Path
 
     def __post_init__(self):
-        _force(self, "grids", Path(self.grids))
+        _force(self, "grids_baseline", Path(self.grids_baseline))
+        _force(self, "grids_forecast", Path(self.grids_forecast))
         _force(self, "run", Path(self.run))
 
 

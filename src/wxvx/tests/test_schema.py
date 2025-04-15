@@ -32,7 +32,7 @@ def test_schema(logged, config_data, fs):
     ]:
         assert not ok(with_del(config, key))
         assert logged(f"'{key}' is a required property")
-    # Addional keys are not allowed:
+    # Additional keys are not allowed:
     assert not ok(with_set(config, 42, "n"))
     assert logged("'n' was unexpected")
     # Some keys have object values:
@@ -47,14 +47,14 @@ def test_schema_baseline(logged, config_data, fs):
     # Basic correctness:
     assert ok(config)
     # Certain top-level keys are required:
-    for key in ["name", "plot", "template"]:
+    for key in ["compare", "name", "template"]:
         assert not ok(with_del(config, key))
         assert logged(f"'{key}' is a required property")
-    # Addional keys are not allowed:
+    # Additional keys are not allowed:
     assert not ok(with_set(config, 42, "n"))
     assert logged("'n' was unexpected")
     # Some keys have bool values:
-    for key in ["plot"]:
+    for key in ["compare"]:
         assert not ok(with_set(config, None, key))
         assert logged("None is not of type 'boolean'")
     # Some keys have string values:
@@ -72,7 +72,7 @@ def test_schema_cycles(logged, config_data, fs):
     for key in ["start", "step", "stop"]:
         assert not ok(with_del(config, key))
         assert logged(f"'{key}' is a required property")
-    # Addional keys are not allowed:
+    # Additional keys are not allowed:
     assert not ok(with_set(config, 42, "n"))
     assert logged("'n' was unexpected")
     # Some keys must match a certain regex:
@@ -90,7 +90,7 @@ def test_schema_forecast(logged, config_data, fs):
     for key in ["name", "path", "projection"]:
         assert not ok(with_del(config, key))
         assert logged(f"'{key}' is a required property")
-    # Addional keys are not allowed:
+    # Additional keys are not allowed:
     assert not ok(with_set(config, 42, "n"))
     assert logged("'n' was unexpected")
     # Some keys have object values:
@@ -101,6 +101,13 @@ def test_schema_forecast(logged, config_data, fs):
     for key in ["name", "path"]:
         assert not ok(with_set(config, None, key))
         assert logged("None is not of type 'string'")
+    # Optional 'mask' key must match its schema:
+    assert ok(with_set(config, [[1.1, 2], [3.3, 4], [5.5, 6], [7.7, 8]], "mask"))
+    assert ok(with_del(config, "mask"))
+    assert not ok(with_set(config, "string", "mask"))
+    assert logged("'string' is not of type 'array'")
+    assert not ok(with_set(config, ["foo"], "mask"))
+    assert logged("'foo' is not of type 'array'")
 
 
 def test_schema_forecast_projection(logged, config_data, fs):
@@ -112,7 +119,7 @@ def test_schema_forecast_projection(logged, config_data, fs):
     for key in ["proj"]:
         assert not ok(with_del(config, key))
         assert logged("'proj' is a required property")
-    # Addional keys are not allowed:
+    # Additional keys are not allowed:
     assert not ok(with_set(config, 42, "foo"))
     assert logged("'foo' was unexpected")
     # Some keys have enum values:
@@ -142,7 +149,7 @@ def test_schema_leadtimes(logged, config_data, fs):
     for key in ["start", "step", "stop"]:
         assert not ok(with_del(config, key))
         assert logged(f"'{key}' is a required property")
-    # Addional keys are not allowed:
+    # Additional keys are not allowed:
     assert not ok(with_set(config, 42, "n"))
     assert logged("'n' was unexpected")
     # Some keys must match a certain regex:
@@ -169,10 +176,31 @@ def test_schema_paths(config_data, fs, logged):
     for key in ["grids", "run"]:
         assert not ok(with_del(config, key))
         assert logged(f"'{key}' is a required property")
-    # Addional keys are not allowed:
+    # Additional keys are not allowed:
+    assert not ok(with_set(config, 42, "n"))
+    # Some keys have object values:
+    for key in ["grids"]:
+        assert not ok(with_set(config, None, key))
+        assert logged("None is not of type 'object'")
+    # Some keys have string values:
+    for key in ["run"]:
+        assert not ok(with_set(config, None, key))
+        assert logged("None is not of type 'string'")
+
+
+def test_schema_paths_grids(config_data, fs, logged):
+    ok = validator(fs, "properties", "paths", "properties", "grids")
+    config = config_data["paths"]["grids"]
+    # Basic correctness:
+    assert ok(config)
+    # Certain top-level keys are required:
+    for key in ["baseline", "forecast"]:
+        assert not ok(with_del(config, key))
+        assert logged(f"'{key}' is a required property")
+    # Additional keys are not allowed:
     assert not ok(with_set(config, 42, "n"))
     # Some keys have string values:
-    for key in ["grids", "run"]:
+    for key in ["baseline", "forecast"]:
         assert not ok(with_set(config, None, key))
         assert logged("None is not of type 'string'")
 
