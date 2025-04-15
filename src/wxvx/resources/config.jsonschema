@@ -259,9 +259,6 @@
             },
             "name": {
               "type": "string"
-            },
-            "stat": {
-              "type": "string"
             }
           },
           "required": [

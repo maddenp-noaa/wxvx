@@ -11,7 +11,6 @@ from urllib.parse import urlparse
 from warnings import catch_warnings, simplefilter
 
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 import seaborn as sns
 import xarray as xr
@@ -19,8 +18,6 @@ from iotaa import Node, asset, external, refs, task, tasks
 
 from wxvx.metconf import render
 from wxvx.net import fetch
-from wxvx.times import TimeCoords, tcinfo, validtimes
-from wxvx.net import fetch, status
 from wxvx.times import TimeCoords, _cycles, _leadtimes, tcinfo, validtimes
 from wxvx.types import Source
 from wxvx.util import atomic, mpexec
@@ -240,12 +237,12 @@ def _polyfile(path: Path, mask: tuple[tuple[float, float]]):
 
 @task
 def _plot(c: Config, cycle: datetime, varname: str, level: float | None):
+    # breakpoint()
     taskname = "Plot %s %s %s" % (varname, level, cycle)
     yield taskname
     var = _var(c, varname, level)
-    rundir = c.paths.run / "plot" / str(var)
-    cycledir = cycle.strftime("%Y%m%dT%H")
-    plot_fn = rundir / cycledir / "plot.png"
+    rundir = c.paths.run / "plot" / str(var) / cycle.strftime("%Y%m%dT%H")
+    plot_fn = rundir / "plot.png"
     yield asset(plot_fn, plot_fn.is_file)
     reqs = _statreqs(c, varname, level, cycle=cycle)
     yield reqs
@@ -267,22 +264,21 @@ def _plot(c: Config, cycle: datetime, varname: str, level: float | None):
     df_combined["FCST_LEAD"] = df_combined["FCST_LEAD"].apply(
         lambda x: str(int(x // 10000)).zfill(3)
     )
-    df_combined["FCST_LEAD"] = pd.Categorical(
-        df_combined["FCST_LEAD"], categories=leadtimes, ordered=True
-    )
+    df_combined["FCST_LEAD"] = df_combined["FCST_LEAD"].astype(int)
     plt.figure(figsize=(10, 6))
-    sns.set(style="darkgrid")
+    sns.set(style="whitegrid")
     sns.lineplot(data=df_combined, x="FCST_LEAD", y=stat, hue="MODEL", marker="o")
     plt.title(
         f"{varname} {level if level else ''} {stat}, {c.forecast.name} v {c.baseline.name}: {cyc}"
     )
     plt.xlabel("Leadtime")
     plt.ylabel(f"{stat} ({meta.units})")
-    plt.xticks(ticks=np.arange(len(leadtimes)), labels=leadtimes, rotation=90)
+    plt.xticks(ticks=[int(lt) for lt in leadtimes], labels=leadtimes, rotation=90)
     plt.legend(title="Model")
     plt.tight_layout()
     plot_fn.parent.mkdir(parents=True, exist_ok=True)
     plt.savefig(plot_fn)
+    plt.close()
 
 
 # @task
@@ -480,9 +476,7 @@ def _statargs(
 def _statreqs(
     c: Config, varname: str, level: float | None, cycle: datetime | None = None
 ) -> Sequence[Node]:
-    genreqs = lambda source: [
-        _stat(*args) for args in _statargs(c, varname, level, source, cycle)
-    ]
+    genreqs = lambda source: [_stat(*args) for args in _statargs(c, varname, level, source, cycle)]
     reqs: Sequence[Node] = genreqs(Source.FORECAST)
     if c.baseline.compare:
         reqs = [*reqs, *genreqs(Source.BASELINE)]
