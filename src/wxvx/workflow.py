@@ -237,7 +237,6 @@ def _polyfile(path: Path, mask: tuple[tuple[float, float]]):
 
 @task
 def _plot(c: Config, cycle: datetime, varname: str, level: float | None):
-    # breakpoint()
     taskname = "Plot %s %s %s" % (varname, level, cycle)
     yield taskname
     var = _var(c, varname, level)
