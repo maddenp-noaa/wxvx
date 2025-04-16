@@ -23,6 +23,7 @@ requirements:
     - python >={{ pymin }}
     - pyyaml 6.*
     - requests >=2.32,<3
+    - seaborn 0.13.*
     - uwtools 2.7.*
     - xarray >=2023.12
     - zarr >=2.17,<3
@@ -31,7 +32,7 @@ test:
     - docformatter 1.7.*
     - jq 1.7.*
     - make 4.4.*
-    - mypy 1.14.*
+    - mypy 1.15.*
     - pyfakefs 5.7.*
     - pytest 8.3.*
     - pytest-cov 6.0.*
