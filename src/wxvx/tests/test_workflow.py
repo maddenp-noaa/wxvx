@@ -2,18 +2,20 @@
 Tests for wxvx.workflow.
 """
 
+import os
 from pathlib import Path
 from textwrap import dedent
 from threading import Event
 from types import SimpleNamespace as ns
 from unittest.mock import ANY, patch
 
+import pandas as pd
 import xarray as xr
 from iotaa import asset, external, ready, refs
 from pytest import fixture
 
 from wxvx import variables, workflow
-from wxvx.times import TimeCoords, validtimes
+from wxvx.times import TimeCoords, _cycles, validtimes
 from wxvx.types import Source
 from wxvx.variables import Var
 
@@ -40,9 +42,10 @@ def test_workflow_grids_forecast(c, n_grids, noop):
 
 
 def test_workflow_plots(c, noop):
+    cycles = _cycles(start=c.cycles.start, step=c.cycles.step, stop=c.cycles.stop)
     with patch.object(workflow, "_plot", noop):
         val = workflow.plots(c=c)
-    assert len(refs(val)) == len(c.variables) + 1  # for 2x SPFH levels
+    assert len(refs(val)) == len(cycles) * (len(c.variables) + 1)  # for 2x SPFH levels
 
 
 def test_workflow_stats(c, noop):
@@ -185,26 +188,27 @@ def test_workflow__polyfile(fakefs):
     assert path.read_text().strip() == dedent(expected).strip()
 
 
-def test_workflow__plot(c, fakefs):
+def test_workflow__plot(c, fakefs, fs):
     @external
-    def mock(*_args, **_kwargs):
-        yield "mock"
-        yield asset(Path("/some/file"), lambda: True)
+    def _stat(x: str):
+        yield x
+        yield asset(fakefs / f"{x}.stat", lambda: True)
 
+    fs.add_real_directory(os.environ["CONDA_PREFIX"])
+    cycles = _cycles(start=c.cycles.start, step=c.cycles.step, stop=c.cycles.stop)
     varname, level = "T2M", 2
-    var = variables.Var(name="2t", level_type="heightAboveGround", level=level)
-    rundir = fakefs / "run" / "plot" / str(var)
-    path = rundir / "plot.png"
-    taskname = f"Plot {path}"
     with (
-        # patch.object(workflow, "_reformat", mock),
-        # patch.object(workflow, "_plot_config", mock),
-        patch.object(workflow, "mpexec", side_effect=lambda *_: path.touch()) as mpexec,
+        patch.object(workflow, "_statreqs") as _statreqs,
+        patch.object(workflow.pd, "read_csv") as read_csv,
     ):
-        rundir.mkdir(parents=True)
-        val = workflow._plot(c=c, varname=varname, level=level)
-    runscript = str((rundir / refs(val).stem).with_suffix(".sh"))
-    mpexec.assert_called_once_with(runscript, rundir, taskname)
+        _statreqs.return_value = [_stat("foo"), _stat("bar")]
+        read_csv.side_effect = [
+            pd.DataFrame({"MODEL": ["HRRR"], "FCST_LEAD": [60000], "RMSE": [0.5]}),
+            pd.DataFrame({"MODEL": ["GraphHRRR"], "FCST_LEAD": [60000], "RMSE": [0.4]}),
+        ]
+        os.environ["MPLCONFIGDIR"] = str(fakefs)
+        val = workflow._plot(c=c, varname=varname, level=level, cycle=cycles[0])
+    path = val.refs
     assert ready(val)
     assert path.is_file()
 
