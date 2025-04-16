@@ -29,7 +29,7 @@ def main() -> None:
     if not validate(schema_file=resource_path("config.jsonschema"), config_data=config_data):
         fail()
     if not args.check:
-        logging.info("Preparing task graph for: %s", args.task)
+        logging.info("Preparing task graph for %s", args.task)
         task = getattr(workflow, args.task)
         task(Config(config_data.data), threads=args.threads)
 
