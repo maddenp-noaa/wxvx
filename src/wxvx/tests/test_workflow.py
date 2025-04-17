@@ -2,7 +2,6 @@
 Tests for wxvx.workflow.
 """
 
-import subprocess
 from pathlib import Path
 from textwrap import dedent
 from threading import Event
@@ -38,12 +37,6 @@ def test_workflow_grids_baseline(c, n_grids, noop):
 def test_workflow_grids_forecast(c, n_grids, noop):
     with patch.object(workflow, "_grid_nc", noop):
         assert len(refs(workflow.grids_forecast(c=c))) == n_grids
-
-
-# def test_workflow_plots(c, noop):
-#     with patch.object(workflow, "_plot", noop):
-#         val = workflow.plots(c=c)
-#     assert len(refs(val)) == len(c.variables) + 1  # for 2x SPFH levels
 
 
 def test_workflow_stats(c, noop):
@@ -187,46 +180,6 @@ def test_workflow__polyfile(fakefs):
     assert path.read_text().strip() == dedent(expected).strip()
 
 
-# def test_workflow__plot(c, fakefs):
-#     @external
-#     def mock(*_args, **_kwargs):
-#         yield "mock"
-#         yield asset(Path("/some/file"), lambda: True)
-#     varname, level = "T2M", 2
-#     var = variables.Var(name="2t", level_type="heightAboveGround", level=level)
-#     rundir = fakefs / "run" / "plot" / str(var)
-#     path = rundir / "plot.png"
-#     taskname = f"Plot {path}"
-#     with (
-#         patch.object(workflow, "_reformat", mock),
-#         patch.object(workflow, "_plot_config", mock),
-#         patch.object(workflow, "mpexec", side_effect=lambda *_: path.touch()) as mpexec,
-#     ):
-#         rundir.mkdir(parents=True)
-#         val = workflow._plot(c=c, varname=varname, level=level)
-#     runscript = str((rundir / refs(val).stem).with_suffix(".sh"))
-#     mpexec.assert_called_once_with(runscript, rundir, taskname)
-#     assert ready(val)
-#     assert path.is_file()
-
-
-def test_workflow__runscript(tmp_path):
-    script = tmp_path / "foo.sh"
-    outfile = tmp_path / "foo.out"
-    content = f"""
-    #!/usr/bin/env bash
-    echo hello >{outfile}
-    """
-    assert not script.is_file()
-    assert not outfile.is_file()
-    val = workflow._runscript(basepath=outfile, content=dedent(content).lstrip())
-    assert ready(val)
-    assert script.is_file()
-    subprocess.check_call([str(script)])
-    assert outfile.is_file()
-    assert outfile.read_text().strip() == "hello"
-
-
 def test_workflow__stat(c, fakefs, tc):
     @external
     def mock(*_args, **_kwargs):
@@ -237,20 +190,20 @@ def test_workflow__stat(c, fakefs, tc):
     taskname = "MET stats for baseline 2t-heightAboveGround-0002 at 19700101 00Z 000"
     var = variables.Var(name="2t", level_type="heightAboveGround", level=2)
     kwargs = dict(c=c, varname="T2M", tc=tc, var=var, prefix="foo", source=Source.BASELINE)
+    stat = refs(workflow._stat(**kwargs, dry_run=True))
+    runscript = (rundir / stat.stem).with_suffix(".sh")
+    assert not stat.is_file()
+    assert not runscript.is_file()
     with (
         patch.object(workflow, "_grid_grib", mock),
         patch.object(workflow, "_grid_nc", mock),
         patch.object(workflow, "_grid_stat_config", mock),
-        patch.object(workflow, "mpexec") as mpexec,
+        patch.object(workflow, "mpexec", side_effect=lambda *_: stat.touch()) as mpexec,
     ):
-        stat = refs(workflow._stat(**kwargs, dry_run=True))
-        assert not stat.is_file()
-        mpexec.side_effect = lambda *_: stat.touch()
-        rundir.mkdir(parents=True)
         workflow._stat(**kwargs)
-    runscript = str((rundir / stat.stem).with_suffix(".sh"))
-    mpexec.assert_called_once_with(runscript, rundir, taskname)
     assert stat.is_file()
+    assert runscript.is_file()
+    mpexec.assert_called_once_with(str(runscript), rundir, taskname)
 
 
 # Support Tests

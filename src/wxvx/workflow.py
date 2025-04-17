@@ -61,13 +61,6 @@ def grids_forecast(c: Config):
     yield grids(c, baseline=False, forecast=True)
 
 
-# @tasks
-# def plots(c: Config):
-#     taskname = "Plots for %s" % c.forecast.path
-#     yield taskname
-#     yield [_plot(c, varname, level) for varname, level in _varnames_and_levels(c)]
-
-
 @tasks
 def stats(c: Config):
     taskname = "Stats for %s" % c.forecast.path
@@ -228,35 +221,6 @@ def _polyfile(path: Path, mask: tuple[tuple[float, float]]):
         tmp.write_text(content)
 
 
-# @task
-# def _plot(c: Config, varname: str, level: float | None):
-#     var = _var(c, varname, level)
-#     rundir = c.paths.run / "plot" / str(var)
-#     path = rundir / "plot.png"
-#     taskname = "Plot %s" % path
-#     yield taskname
-#     yield asset(path, path.is_file)
-#     reformatted = _reformat(c, varname, level, rundir)
-#     stat_fn = reformatted.refs.name
-#     cfgfile = _plot_config(c, rundir, varname, var, plot_fn=path.name, stat_fn=stat_fn)
-#     content = "line.py %s >%s 2>&1" % (cfgfile.refs.name, "plot.log")
-#     script = _runscript(basepath=path, content=content)
-#     yield [cfgfile, reformatted, script]
-#     mpexec(str(script.refs), rundir, taskname)
-
-
-@task
-def _runscript(basepath: Path, content: str):
-    path = (basepath.parent / basepath.stem).with_suffix(".sh")
-    yield "Runscript %s" % path
-    yield asset(path, path.is_file)
-    yield None
-    content = dedent(content).strip()
-    with atomic(path) as tmp:
-        tmp.write_text(f"#!/usr/bin/env bash\n\n{content}\n")
-    path.chmod(path.stat().st_mode | S_IEXEC)
-
-
 @task
 def _stat(c: Config, varname: str, tc: TimeCoords, var: Var, prefix: str, source: Source):
     yyyymmdd, hh, leadtime = tcinfo(tc)
@@ -273,16 +237,19 @@ def _stat(c: Config, varname: str, tc: TimeCoords, var: Var, prefix: str, source
     toverify = _grid_grib(c, tc, var) if source == Source.BASELINE else forecast
     cfgfile = _grid_stat_config(c, path, varname, rundir, var, prefix, source)
     log = f"{path.stem}.log"
+    reqs = [toverify, baseline, cfgfile]
+    if source == Source.BASELINE:
+        reqs.append(forecast)
+    yield reqs
+    script = path.with_suffix(".sh")
     content = f"""
     export OMP_NUM_THREADS=1
     grid_stat -v 4 {toverify.refs} {baseline.refs} {cfgfile.refs.name} >{log} 2>&1
     """
-    script = _runscript(basepath=path, content=content)
-    reqs = [toverify, baseline, cfgfile, script]
-    if source == Source.BASELINE:
-        reqs.append(forecast)
-    yield reqs
-    mpexec(str(script.refs), rundir, taskname)
+    with atomic(script) as tmp:
+        tmp.write_text("#!/usr/bin/env bash\n\n%s\n" % dedent(content).strip())
+    script.chmod(script.stat().st_mode | S_IEXEC)
+    mpexec(str(script), rundir, taskname)
 
 
 # Support
