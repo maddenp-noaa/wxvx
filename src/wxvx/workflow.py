@@ -241,15 +241,15 @@ def _stat(c: Config, varname: str, tc: TimeCoords, var: Var, prefix: str, source
     if source == Source.BASELINE:
         reqs.append(forecast)
     yield reqs
-    script = path.with_suffix(".sh")
+    runscript = path.with_suffix(".sh")
     content = f"""
     export OMP_NUM_THREADS=1
     grid_stat -v 4 {toverify.refs} {baseline.refs} {cfgfile.refs.name} >{log} 2>&1
     """
-    with atomic(script) as tmp:
+    with atomic(runscript) as tmp:
         tmp.write_text("#!/usr/bin/env bash\n\n%s\n" % dedent(content).strip())
-    script.chmod(script.stat().st_mode | S_IEXEC)
-    mpexec(str(script), rundir, taskname)
+    runscript.chmod(runscript.stat().st_mode | S_IEXEC)
+    mpexec(str(runscript), rundir, taskname)
 
 
 # Support
