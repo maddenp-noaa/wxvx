@@ -210,52 +210,6 @@ def test_workflow__polyfile(fakefs):
 #     assert path.is_file()
 
 
-# def test_workflow__plot_config(c, fakefs):
-#     var = variables.Var(name="2t", level_type="heightAboveGround", level=2)
-#     varname, plot_fn, stat_fn = "T2M", f"plot-{var}.png", f"{var}.stat"
-#     kwargs = dict(c=c, rundir=fakefs, varname=varname, var=var, plot_fn=plot_fn, stat_fn=stat_fn)
-#     assert not ready(val := workflow._plot_config(**kwargs, dry_run=True))
-#     assert not refs(val).is_file()
-#     val = workflow._plot_config(**kwargs)
-#     assert ready(val)
-#     config_data = yaml.safe_load(refs(val).read_text())
-#     assert config_data["fcst_var_val_1"] == {varname: ["RMSE"]}
-#     assert config_data["plot_filename"] == plot_fn
-#     assert config_data["stat_input"] == stat_fn
-
-
-# def test_workflow__reformat(c, fakefs, testvars):
-#     @external
-#     def mock(*_args, **_kwargs):
-#         yield "mock"
-#         yield asset(Path("/some/file"), lambda: True)
-#     varname = "HGT"
-#     var = testvars[varname]
-#     rundir = fakefs / "run" / "plot" / str(var)
-#     path = rundir / "reformat.data"
-#     taskname = f"Reformatted stats {path}"
-#     with (
-#         patch.object(workflow, "_reformat_config", mock),
-#         patch.object(workflow, "_stat_links", mock),
-#         patch.object(workflow, "mpexec", side_effect=lambda *_: path.touch()) as mpexec,
-#     ):
-#         rundir.mkdir(parents=True)
-#         val = workflow._reformat(c=c, varname=varname, level=900, rundir=rundir)
-#     runscript = str((rundir / refs(val).stem).with_suffix(".sh"))
-#     mpexec.assert_called_once_with(runscript, rundir, taskname)
-#     assert ready(val)
-#     assert path.is_file()
-
-
-# def test_workflow__reformat_config(c, fakefs):
-#     val = workflow._reformat_config(c=c, varname="HGT", rundir=fakefs, dry_run=True)
-#     assert not ready(val)
-#     assert not refs(val).is_file()
-#     val = workflow._reformat_config(c, varname="HGT", rundir=fakefs)
-#     assert ready(val)
-#     assert refs(val).is_file()
-
-
 def test_workflow__runscript(tmp_path):
     script = tmp_path / "foo.sh"
     outfile = tmp_path / "foo.out"
@@ -297,21 +251,6 @@ def test_workflow__stat(c, fakefs, tc):
     runscript = str((rundir / stat.stem).with_suffix(".sh"))
     mpexec.assert_called_once_with(runscript, rundir, taskname)
     assert stat.is_file()
-
-
-# def test_workflow__stat_links(c, fakefs):
-#     target = fakefs / "target" / "a.stats"
-#     @external
-#     def mock(*_args, **_kwargs):
-#         yield "mock"
-#         yield asset(target, lambda: True)
-#     rundir = c.paths.run / "plot"
-#     link = rundir / "a.stats"
-#     assert not link.exists()
-#     with patch.object(workflow, "_stat", mock):
-#         workflow._stat_links(c=c, varname="T2M", level=2, rundir=rundir)
-#     assert link.is_symlink()
-#     assert link.resolve() == target
 
 
 # Support Tests
