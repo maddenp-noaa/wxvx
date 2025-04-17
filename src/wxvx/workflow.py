@@ -164,18 +164,64 @@ def _grid_nc(c: Config, varname: str, tc: TimeCoords, var: Var):
 
 
 @task
-def _grid_stat_config(
-    c: Config, basepath: Path, varname: str, rundir: Path, var: Var, prefix: str, source: Source
-):
-    base = basepath.parent / basepath.stem
-    path = base.with_suffix(".config")
-    taskname = "Verification config %s" % path
-    yield taskname
+def _polyfile(path: Path, mask: tuple[tuple[float, float]]):
+    yield "Poly file %s" % path
     yield asset(path, path.is_file)
+    yield None
+    content = "MASK\n%s\n" % "\n".join(f"{lat} {lon}" for lat, lon in mask)
+    with atomic(path) as tmp:
+        tmp.write_text(content)
+
+
+@task
+def _stat(c: Config, varname: str, tc: TimeCoords, var: Var, prefix: str, source: Source):
+    yyyymmdd, hh, leadtime = tcinfo(tc)
+    source_name = {Source.BASELINE: "baseline", Source.FORECAST: "forecast"}[source]
+    taskname = "MET stats for %s %s at %s %sZ %s" % (source_name, var, yyyymmdd, hh, leadtime)
+    yield taskname
+    rundir = c.paths.run / "stats" / yyyymmdd / hh / leadtime
+    yyyymmdd_valid, hh_valid, _ = tcinfo(TimeCoords(tc.validtime))
+    template = "grid_stat_%s_%02d0000L_%s_%s0000V.stat"
+    path = rundir / (template % (prefix, int(leadtime), yyyymmdd_valid, hh_valid))
+    yield asset(path, path.is_file)
+    baseline = _grid_grib(c, TimeCoords(cycle=tc.validtime, leadtime=0), var)
+    forecast = _grid_nc(c, varname, tc, var)
+    toverify = _grid_grib(c, tc, var) if source == Source.BASELINE else forecast
+    log = f"{path.stem}.log"
+    reqs = [toverify, baseline]
+    if source == Source.BASELINE:
+        reqs.append(forecast)
     polyfile = None
     if mask := c.forecast.mask:
         polyfile = _polyfile(c.paths.run / "stats" / "mask.poly", mask)
-    yield polyfile
+        reqs.append(polyfile)
+    yield reqs
+    cfgfile = path.with_suffix(".config")
+    _grid_stat_config(c, cfgfile, varname, rundir, var, prefix, source, polyfile)
+    runscript = path.with_suffix(".sh")
+    content = f"""
+    export OMP_NUM_THREADS=1
+    grid_stat -v 4 {toverify.refs} {baseline.refs} {cfgfile} >{log} 2>&1
+    """
+    with atomic(runscript) as tmp:
+        tmp.write_text("#!/usr/bin/env bash\n\n%s\n" % dedent(content).strip())
+    runscript.chmod(runscript.stat().st_mode | S_IEXEC)
+    mpexec(str(runscript), rundir, taskname)
+
+
+# Support
+
+
+def _grid_stat_config(
+    c: Config,
+    path: Path,
+    varname: str,
+    rundir: Path,
+    var: Var,
+    prefix: str,
+    source: Source,
+    polyfile: Node | None,
+):
     level_obs = metlevel(var.level_type, var.level)
     attrs = {
         Source.BASELINE: (level_obs, HRRR.varname(var.name), c.baseline.name),
@@ -209,50 +255,6 @@ def _grid_stat_config(
         config["nbrhd"] = nbrhd
     with atomic(path) as tmp:
         tmp.write_text("%s\n" % render(config))
-
-
-@task
-def _polyfile(path: Path, mask: tuple[tuple[float, float]]):
-    yield "Poly file %s" % path
-    yield asset(path, path.is_file)
-    yield None
-    content = "MASK\n%s\n" % "\n".join(f"{lat} {lon}" for lat, lon in mask)
-    with atomic(path) as tmp:
-        tmp.write_text(content)
-
-
-@task
-def _stat(c: Config, varname: str, tc: TimeCoords, var: Var, prefix: str, source: Source):
-    yyyymmdd, hh, leadtime = tcinfo(tc)
-    source_name = {Source.BASELINE: "baseline", Source.FORECAST: "forecast"}[source]
-    taskname = "MET stats for %s %s at %s %sZ %s" % (source_name, var, yyyymmdd, hh, leadtime)
-    yield taskname
-    rundir = c.paths.run / "stats" / yyyymmdd / hh / leadtime
-    yyyymmdd_valid, hh_valid, _ = tcinfo(TimeCoords(tc.validtime))
-    template = "grid_stat_%s_%02d0000L_%s_%s0000V.stat"
-    path = rundir / (template % (prefix, int(leadtime), yyyymmdd_valid, hh_valid))
-    yield asset(path, path.is_file)
-    baseline = _grid_grib(c, TimeCoords(cycle=tc.validtime, leadtime=0), var)
-    forecast = _grid_nc(c, varname, tc, var)
-    toverify = _grid_grib(c, tc, var) if source == Source.BASELINE else forecast
-    cfgfile = _grid_stat_config(c, path, varname, rundir, var, prefix, source)
-    log = f"{path.stem}.log"
-    reqs = [toverify, baseline, cfgfile]
-    if source == Source.BASELINE:
-        reqs.append(forecast)
-    yield reqs
-    runscript = path.with_suffix(".sh")
-    content = f"""
-    export OMP_NUM_THREADS=1
-    grid_stat -v 4 {toverify.refs} {baseline.refs} {cfgfile.refs.name} >{log} 2>&1
-    """
-    with atomic(runscript) as tmp:
-        tmp.write_text("#!/usr/bin/env bash\n\n%s\n" % dedent(content).strip())
-    runscript.chmod(runscript.stat().st_mode | S_IEXEC)
-    mpexec(str(runscript), rundir, taskname)
-
-
-# Support
 
 
 def _meta(c: Config, varname: str) -> VarMeta:
