@@ -45,7 +45,7 @@ def test_workflow_plots(c, noop):
     cycles = _cycles(start=c.cycles.start, step=c.cycles.step, stop=c.cycles.stop)
     with patch.object(workflow, "_plot", noop):
         val = workflow.plots(c=c)
-    assert len(refs(val)) == len(cycles) * (len(c.variables) + 1)  # for 2x SPFH levels
+    assert len(refs(val)) == len(cycles) * len(list(workflow._varnames_and_levels(c)))  # for 2x SPFH levels
 
 
 def test_workflow_stats(c, noop):
@@ -354,6 +354,7 @@ def test__statreqs(c, statkit):
         f"baseline_gh_{statkit.level_type}_{statkit.level:04d}",
         Source.BASELINE,
     )
+    
 
 
 def test__var(c):
