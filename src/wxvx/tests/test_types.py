@@ -101,8 +101,7 @@ def test_VarMeta():
         cnt_thresh=[">15"],
         description="Composite Reflectivity",
         level_type="atmosphere",
-        met_linetypes=["cts", "nbrcnt"],
-        met_stat="PODY",
+        met_stats=["FSS", "PODY"],
         name="refc",
         nbrhd_shape="CIRCLE",
         nbrhd_width=[3, 5, 11],
@@ -115,13 +114,12 @@ def test_VarMeta():
     for k, v in kwargs.items():
         fails(k, type(v)())
     # Must not have None values:
-    for k in ["cf_standard_name", "description", "level_type", "met_stat", "name", "units"]:
+    for k in ["cf_standard_name", "description", "level_type", "met_stats", "name", "units"]:
         fails(k, None)
     # Must not have unrecognized values:
     for k, v in [
         ("level_type", "intergalactic"),
-        ("met_linetypes", "foo"),
-        ("met_stat", "XYZ"),
+        ("met_stats", ["XYZ"]),
         ("nbrhd_shape", "TRIANGLE"),
     ]:
         fails(k, v)

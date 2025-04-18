@@ -8,6 +8,8 @@ from enum import Enum, auto
 from pathlib import Path
 from typing import Any
 
+from wxvx.util import LINETYPE
+
 Source = Enum("Source", [("BASELINE", auto()), ("FORECAST", auto())])
 
 
@@ -87,8 +89,7 @@ class VarMeta:
     cf_standard_name: str
     description: str
     level_type: str
-    met_linetypes: list[str]
-    met_stat: str
+    met_stats: list[str]
     name: str
     units: str
     # Optional:
@@ -110,12 +111,9 @@ class VarMeta:
                     assert v
                 case "level_type":
                     assert v in ("atmosphere", "heightAboveGround", "isobaricInhPa", "surface")
-                case "met_linetypes":
+                case "met_stats":
                     assert v
-                    for x in v:
-                        assert x in ("cnt", "cts", "nbrcnt")
-                case "met_stat":
-                    assert v in ("RMSE", "PODY")
+                    assert all(x in LINETYPE for x in v)
                 case "name":
                     assert v
                 case "nbrhd_shape":
