@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 from functools import cache
 from itertools import pairwise, product
 from pathlib import Path
@@ -19,13 +20,12 @@ from iotaa import Node, asset, external, refs, task, tasks
 from wxvx.metconf import render
 from wxvx.net import fetch
 from wxvx.times import TimeCoords, _cycles, _leadtimes, tcinfo, validtimes
-from wxvx.types import Source
+from wxvx.types import Source, Cycles
 from wxvx.util import atomic, mpexec
 from wxvx.variables import HRRR, VARMETA, Var, da_construct, da_select, ds_construct, metlevel
 
 if TYPE_CHECKING:
     from collections.abc import Iterator, Sequence
-    from datetime import datetime
 
     from wxvx.types import Config, VarMeta
 
@@ -243,7 +243,7 @@ def _plot(c: Config, cycle: datetime, varname: str, level: float | None):
     rundir = c.paths.run / "plot" / str(var) / cycle.strftime("%Y%m%dT%H")
     plot_fn = rundir / "plot.png"
     yield asset(plot_fn, plot_fn.is_file)
-    reqs = _statreqs(c, varname, level, cycle=cycle)
+    reqs = _statreqs(c, varname, level, cycle)
     yield reqs
     meta = _meta(c, varname)
     stat = meta.met_stat
@@ -461,9 +461,12 @@ def _meta(c: Config, varname: str) -> VarMeta:
 def _statargs(
     c: Config, varname: str, level: float | None, source: Source, cycle: datetime | None = None
 ) -> Iterator:
+    if isinstance(cycle, datetime):
+        ctc = Cycles(start=cycle.strftime("%Y-%m-%dT%H:%M:%S"), step="01:00:00", stop=cycle.strftime("%Y-%m-%dT%H:%M:%S"))
+    else:
+        ctc = c.cycles
     name = (c.baseline if source == Source.BASELINE else c.forecast).name.lower()
     prefix = lambda var: "%s_%s" % (name, str(var).replace("-", "_"))
-    ctc = cycle if cycle else c.cycles
     args = [
         (c, vn, tc, var, prefix(var), source)
         for (var, vn), tc in product(_vxvars(c).items(), validtimes(ctc, c.leadtimes))
@@ -480,6 +483,23 @@ def _statreqs(
     if c.baseline.compare:
         reqs = [*reqs, *genreqs(Source.BASELINE)]
     return reqs
+
+# def _statcycle(c: Config, varname: str, level: float | None, source: Source, cycle: datetime) -> Iterator:
+#     ctc = Cycles(start=cycle.strftime("%Y-%m-%dT%H:%M:%S"), step="01:00:00", stop=cycle.strftime("%Y-%m-%dT%H:%M:%S"))
+#     name = (c.baseline if source == Source.BASELINE else c.forecast).name.lower()
+#     prefix = lambda var: "%s_%s" % (name, str(var).replace("-", "_"))
+#     args = [
+#         (c, vn, tc, var, prefix(var), source)
+#         for (var, vn), tc in product(_vxvars(c).items(), validtimes(ctc, c.leadtimes))
+#         if vn == varname and var.level == level
+#     ]
+#     # iter(sorted(args))
+#     # genreqs = lambda source: [_stat(*args) for args in _statargs(c, varname, level, source, cycle)]
+#     genreqs = lambda source: [_stat(*args) for args in iter(sorted(args))]
+#     reqs: Sequence[Node] = genreqs(Source.FORECAST)
+#     if c.baseline.compare:
+#         reqs = [*reqs, *genreqs(Source.BASELINE)]
+#     return reqs
 
 
 def _var(c: Config, varname: str, level: float | None) -> Var:
