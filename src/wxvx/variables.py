@@ -28,7 +28,7 @@ VARMETA = {
             cf_standard_name="air_temperature",
             description="2m Temperature",
             level_type="heightAboveGround",
-            met_linetype="cnt",
+            met_linetypes=["cnt"],
             met_stat="RMSE",
             name="2t",
             units="K",
@@ -37,7 +37,7 @@ VARMETA = {
             cf_standard_name="geopotential_height",
             description="Geopotential Height at {level} mb",
             level_type="isobaricInhPa",
-            met_linetype="cnt",
+            met_linetypes=["cnt"],
             met_stat="RMSE",
             name="gh",
             units="m",
@@ -46,25 +46,29 @@ VARMETA = {
             cf_standard_name="specific_humidity",
             description="Specific Humidity at {level} mb",
             level_type="isobaricInhPa",
-            met_linetype="cnt",
+            met_linetypes=["cnt"],
             met_stat="RMSE",
             name="q",
             units="1",
         ),
         VarMeta(
+            cat_thresh=">=20, >=30, >=40",
             cf_standard_name="unknown",
+            cnt_thresh=">15",
             description="Composite Reflectivity",
             level_type="atmosphere",
-            met_linetype="cts",
+            met_linetypes=["cts", "nbrcnt"],
             met_stat="PODY",
             name="refc",
+            nbrhd_shape="CIRCLE",
+            nbrhd_width="3, 5, 11",
             units="dBZ",
         ),
         VarMeta(
             cf_standard_name="air_temperature",
             description="Temperature at {level} mb",
             level_type="isobaricInhPa",
-            met_linetype="cnt",
+            met_linetypes=["cnt"],
             met_stat="RMSE",
             name="t",
             units="K",
@@ -73,7 +77,7 @@ VARMETA = {
             cf_standard_name="eastward_wind",
             description="U-Component of Wind at {level} mb",
             level_type="isobaricInhPa",
-            met_linetype="cnt",
+            met_linetypes=["cnt"],
             met_stat="RMSE",
             name="u",
             units="m s-1",
@@ -82,7 +86,7 @@ VARMETA = {
             cf_standard_name="northward_wind",
             description="V-Component of Wind at {level} mb",
             level_type="isobaricInhPa",
-            met_linetype="cnt",
+            met_linetypes=["cnt"],
             met_stat="RMSE",
             name="v",
             units="m s-1",
@@ -91,7 +95,7 @@ VARMETA = {
             cf_standard_name="lagrangian_tendency_of_air_pressure",
             description="Vertical Velocity at {level} mb",
             level_type="isobaricInhPa",
-            met_linetype="cnt",
+            met_linetypes=["cnt"],
             met_stat="RMSE",
             name="w",
             units="Pa s-1",
@@ -233,7 +237,7 @@ def da_select(ds: xr.Dataset, c: Config, varname: str, tc: TimeCoords, var: Var)
     return da
 
 
-def ds_construct(c: Config, da: xr.DataArray, taskname: str) -> xr.Dataset:
+def ds_construct(c: Config, da: xr.DataArray, taskname: str, level: float | None) -> xr.Dataset:
     logging.info("%s: Creating CF-compliant %s dataset", taskname, da.name)
     coord_names = ("forecast_reference_time", "time", "latitude", "longitude")
     assert len(da.shape) == len(coord_names)
@@ -264,10 +268,7 @@ def ds_construct(c: Config, da: xr.DataArray, taskname: str) -> xr.Dataset:
             crs: _da_crs(proj),
         },
         coords=coords,
-        attrs=dict(
-            Conventions="CF-1.8",
-            level=da.level.values[0] if hasattr(da, "level") else np.nan,
-        ),
+        attrs=dict(Conventions="CF-1.8", level=level or np.nan),
     )
 
 

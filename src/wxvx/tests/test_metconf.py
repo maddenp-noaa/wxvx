@@ -6,6 +6,7 @@ config = {
     "fcst": {"field": [{"cat_thresh": [">0"], "level": ["(0,0,*,*)"], "name": "T2M"}]},
     "mask": {"poly": ["a.nc"]},
     "model": "GraphHRRR",
+    "nbrhd": {"shape": "CIRCLE", "width": "3, 5, 11"},
     "nc_pairs_flag": "FALSE",
     "obs": {"field": [{"cat_thresh": [">0"], "level": ["Z2"], "name": "TMP"}]},
     "obtype": "HRRR",
@@ -35,6 +36,12 @@ mask = {
   ];
 }
 model = "GraphHRRR";
+nbrhd = {
+  shape = CIRCLE;
+  width = [
+    3, 5, 11
+  ];
+}
 nc_pairs_flag = FALSE;
 obs = {
   field = [
@@ -74,6 +81,11 @@ def test_metconf__field_mapping_kvpairs():
 def test_metconf__mask():
     with raises(ValueError, match="Unsupported key: foo"):
         metconf._mask(k="foo", v=[], level=0)
+
+
+def test_metconf__nbrhd():
+    with raises(ValueError, match="Unsupported key: foo"):
+        metconf._nbrhd(k="foo", v=None, level=0)
 
 
 def test_metconf__output_flag():

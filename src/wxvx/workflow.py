@@ -11,7 +11,6 @@ from urllib.parse import urlparse
 from warnings import catch_warnings, simplefilter
 
 import xarray as xr
-import yaml
 from iotaa import Node, asset, external, task, tasks
 
 from wxvx.metconf import render
@@ -60,13 +59,6 @@ def grids_forecast(c: Config):
     taskname = "Forecast grids for %s" % c.forecast.path
     yield taskname
     yield grids(c, baseline=False, forecast=True)
-
-
-@tasks
-def plots(c: Config):
-    taskname = "Plots for %s" % c.forecast.path
-    yield taskname
-    yield [_plot(c, varname, level) for varname, level in _varnames_and_levels(c)]
 
 
 @tasks
@@ -165,56 +157,10 @@ def _grid_nc(c: Config, varname: str, tc: TimeCoords, var: Var):
     yield fd
     src = da_select(fd.refs, c, varname, tc, var)
     da = da_construct(src)
-    ds = ds_construct(c, da, taskname)
+    ds = ds_construct(c, da, taskname, var.level)
     with atomic(path) as tmp:
         ds.to_netcdf(tmp, encoding={varname: {"zlib": True, "complevel": 9}})
     logging.info("%s: Wrote %s", taskname, path)
-
-
-@task
-def _grid_stat_config(
-    c: Config, basepath: Path, varname: str, rundir: Path, var: Var, prefix: str, source: Source
-):
-    base = basepath.parent / basepath.stem
-    path = base.with_suffix(".config")
-    taskname = "Verification config %s" % path
-    yield taskname
-    yield asset(path, path.is_file)
-    polyfile = None
-    if mask := c.forecast.mask:
-        polyfile = _polyfile(base.with_suffix(".poly"), mask)
-    yield polyfile
-    level_obs = metlevel(var.level_type, var.level)
-    attrs = {
-        Source.BASELINE: (level_obs, HRRR.varname(var.name), c.baseline.name),
-        Source.FORECAST: ("(0,0,*,*)", varname, c.forecast.name),
-    }
-    forecast_level, forecast_name, model = attrs[source]
-    field_fcst = {"level": [forecast_level], "name": forecast_name, "set_attr_level": level_obs}
-    field_obs = {"level": [level_obs], "name": HRRR.varname(var.name)}
-    meta = _meta(c, varname)
-    if meta.met_linetype == "cts":
-        thresholds = ">=20, >=30, >=40"
-        field_fcst["cat_thresh"] = [thresholds]
-        field_obs["cat_thresh"] = [thresholds]
-    mask_grid = [] if polyfile else ["FULL"]
-    mask_poly = [polyfile.refs] if polyfile else []
-    config = render(
-        {
-            "fcst": {"field": [field_fcst]},
-            "mask": {"grid": mask_grid, "poly": mask_poly},
-            "model": model,
-            "nc_pairs_flag": "FALSE",
-            "obs": {"field": [field_obs]},
-            "obtype": c.baseline.name,
-            "output_flag": {meta.met_linetype: "BOTH"},
-            "output_prefix": f"{prefix}",
-            "regrid": {"to_grid": "FCST"},
-            "tmp_dir": rundir,
-        }
-    )
-    with atomic(path) as tmp:
-        tmp.write_text(f"{config}\n")
 
 
 @task
@@ -225,150 +171,6 @@ def _polyfile(path: Path, mask: tuple[tuple[float, float]]):
     content = "MASK\n%s\n" % "\n".join(f"{lat} {lon}" for lat, lon in mask)
     with atomic(path) as tmp:
         tmp.write_text(content)
-
-
-@task
-def _plot(c: Config, varname: str, level: float | None):
-    var = _var(c, varname, level)
-    rundir = c.paths.run / "plot" / str(var)
-    path = rundir / "plot.png"
-    taskname = "Plot %s" % path
-    yield taskname
-    yield asset(path, path.is_file)
-    reformatted = _reformat(c, varname, level, rundir)
-    stat_fn = reformatted.refs.name
-    cfgfile = _plot_config(c, rundir, varname, var, plot_fn=path.name, stat_fn=stat_fn)
-    content = "line.py %s >%s 2>&1" % (cfgfile.refs.name, "plot.log")
-    script = _runscript(basepath=path, content=content)
-    yield [cfgfile, reformatted, script]
-    mpexec(str(script.refs), rundir, taskname)
-
-
-@task
-def _plot_config(c: Config, rundir: Path, varname: str, var: Var, plot_fn: str, stat_fn: str):
-    path = rundir / "plot.yaml"
-    taskname = "Plot config %s" % path
-    yield taskname
-    yield asset(path, path.is_file)
-    yield None
-    meta = _meta(c, varname)
-    stat = meta.met_stat
-    vts = validtimes(c.cycles, c.leadtimes)
-    x_axis_labels = [
-        vt.validtime.strftime("%Y%m%d %HZ") if i % 10 == 0 else "" for i, vt in enumerate(vts)
-    ]
-    title = "%s %s vs %s" % (
-        meta.description.format(level=var.level),
-        stat,
-        c.baseline.name,
-    )
-    config = dict(
-        colors=["#CC6677"],
-        con_series=[1],
-        fcst_var_val_1={varname: [stat]},
-        grid_col="#cccccc",
-        indy_label=x_axis_labels,
-        indy_vals=[vt.validtime.strftime("%Y-%m-%d %H:%M:%S") for vt in vts],
-        indy_var="fcst_init_beg",
-        legend_box="n",
-        list_stat_1=[stat],
-        log_level="DEBUG",
-        met_linetype=meta.met_linetype,
-        plot_caption="",
-        plot_ci=["none"],
-        plot_disp=[True],
-        plot_filename=plot_fn,
-        plot_height=10,
-        plot_width=13,
-        series_line_style=["-"],
-        series_line_width=[1],
-        series_order=[1],
-        series_symbols=["."],
-        series_type=["b"],
-        series_val_1={"model": [c.forecast.name]},
-        show_legend=[True],
-        stat_input=stat_fn,
-        title=title,
-        xaxis="Cycle",
-        xlab_offset=20,
-        xtlab_orient=270,
-        yaxis_1=stat,
-        ylab_offset=10,
-    )
-    if c.baseline.compare:
-        update = dict(
-            fcst_var_val_2={HRRR.varname(var.name): [stat]},
-            list_stat_2=[stat],
-            series_val_2={"model": [c.baseline.name]},
-        )
-        config.update(update)
-        for k, v in [
-            ("colors", "#44AA99"),
-            ("con_series", 1),
-            ("plot_ci", "none"),
-            ("plot_disp", True),
-            ("series_line_style", "-"),
-            ("series_line_width", 1),
-            ("series_order", 2),
-            ("series_symbols", "."),
-            ("series_type", "b"),
-            ("show_legend", True),
-        ]:
-            config[k].append(v)  # type: ignore[attr-defined]
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w") as f:
-        yaml.dump(config, f)
-
-
-@task
-def _reformat(c: Config, varname: str, level: float | None, rundir: Path):
-    path = rundir / "reformat.data"
-    taskname = "Reformatted stats %s" % path
-    yield taskname
-    yield asset(path, path.is_file)
-    cfgfile = _reformat_config(c, varname, rundir)
-    content = f"""
-    export PYTHONWARNINGS=ignore::FutureWarning
-    write_stat_ascii.py {cfgfile.refs.name} >reformat.log 2>&1
-    """
-    script = _runscript(basepath=path, content=content)
-    yield [cfgfile, script, _stat_links(c, varname, level, rundir)]
-    mpexec(str(script.refs), rundir, taskname)
-
-
-@task
-def _reformat_config(c: Config, varname: str, rundir: Path):
-    path = rundir / "reformat.yaml"
-    taskname = "Reformat config %s" % path
-    yield taskname
-    yield asset(path, path.is_file)
-    yield None
-    meta = _meta(c, varname)
-    config = dict(
-        input_data_dir=".",
-        input_stats_aggregated=True,
-        line_type=meta.met_linetype.upper(),
-        log_directory=".",
-        log_filename="/dev/stdout",
-        log_level="debug",
-        output_dir=".",
-        output_filename="reformat.data",
-    )
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w") as f:
-        yaml.dump(config, f)
-
-
-@task
-def _runscript(basepath: Path, content: str):
-    path = (basepath.parent / basepath.stem).with_suffix(".sh")
-    yield "Runscript %s" % path
-    yield asset(path, path.is_file)
-    yield None
-    content = dedent(content).strip()
-    with atomic(path) as tmp:
-        tmp.write_text(f"#!/usr/bin/env bash\n\n{content}\n")
-    path.chmod(path.stat().st_mode | S_IEXEC)
 
 
 @task
@@ -385,37 +187,74 @@ def _stat(c: Config, varname: str, tc: TimeCoords, var: Var, prefix: str, source
     baseline = _grid_grib(c, TimeCoords(cycle=tc.validtime, leadtime=0), var)
     forecast = _grid_nc(c, varname, tc, var)
     toverify = _grid_grib(c, tc, var) if source == Source.BASELINE else forecast
-    cfgfile = _grid_stat_config(c, path, varname, rundir, var, prefix, source)
     log = f"{path.stem}.log"
-    content = f"""
-    export OMP_NUM_THREADS=1
-    grid_stat -v 4 {toverify.refs} {baseline.refs} {cfgfile.refs.name} >{log} 2>&1
-    """
-    script = _runscript(basepath=path, content=content)
-    reqs = [toverify, baseline, cfgfile, script]
+    reqs = [toverify, baseline]
     if source == Source.BASELINE:
         reqs.append(forecast)
+    polyfile = None
+    if mask := c.forecast.mask:
+        polyfile = _polyfile(c.paths.run / "stats" / "mask.poly", mask)
+        reqs.append(polyfile)
     yield reqs
-    mpexec(str(script.refs), rundir, taskname)
-
-
-@task
-def _stat_links(c: Config, varname: str, level: float | None, rundir: Path):
-    taskname = "MET stats for %s " % _var(c, varname, level)
-    yield taskname
-    reqs = _statreqs(c, varname, level)
-    files = [x.refs for x in reqs]
-    links = [rundir / x.name for x in files]
-    yield [asset(link, link.is_symlink) for link in links]
-    yield reqs
-    for target, link in zip(files, links):
-        link.parent.mkdir(parents=True, exist_ok=True)
-        logging.info("%s: Linking %s -> %s", taskname, link, target)
-        if not link.exists():
-            link.symlink_to(target)
+    cfgfile = path.with_suffix(".config")
+    _grid_stat_config(c, cfgfile, varname, rundir, var, prefix, source, polyfile)
+    runscript = path.with_suffix(".sh")
+    content = f"""
+    export OMP_NUM_THREADS=1
+    grid_stat -v 4 {toverify.refs} {baseline.refs} {cfgfile} >{log} 2>&1
+    """
+    with atomic(runscript) as tmp:
+        tmp.write_text("#!/usr/bin/env bash\n\n%s\n" % dedent(content).strip())
+    runscript.chmod(runscript.stat().st_mode | S_IEXEC)
+    mpexec(str(runscript), rundir, taskname)
 
 
 # Support
+
+
+def _grid_stat_config(
+    c: Config,
+    path: Path,
+    varname: str,
+    rundir: Path,
+    var: Var,
+    prefix: str,
+    source: Source,
+    polyfile: Node | None,
+):
+    level_obs = metlevel(var.level_type, var.level)
+    attrs = {
+        Source.BASELINE: (level_obs, HRRR.varname(var.name), c.baseline.name),
+        Source.FORECAST: ("(0,0,*,*)", varname, c.forecast.name),
+    }
+    level_fcst, name_fcst, model = attrs[source]
+    field_fcst = {"level": [level_fcst], "name": name_fcst, "set_attr_level": level_obs}
+    field_obs = {"level": [level_obs], "name": HRRR.varname(var.name)}
+    meta = _meta(c, varname)
+    if meta.cat_thresh:
+        for x in field_fcst, field_obs:
+            x["cat_thresh"] = [meta.cat_thresh]
+    if meta.cnt_thresh:
+        for x in field_fcst, field_obs:
+            x["cnt_thresh"] = [meta.cnt_thresh]
+    mask_grid = [] if polyfile else ["FULL"]
+    mask_poly = [polyfile.refs] if polyfile else []
+    config = {
+        "fcst": {"field": [field_fcst]},
+        "mask": {"grid": mask_grid, "poly": mask_poly},
+        "model": model,
+        "nc_pairs_flag": "FALSE",
+        "obs": {"field": [field_obs]},
+        "obtype": c.baseline.name,
+        "output_flag": {x: "BOTH" for x in meta.met_linetypes},
+        "output_prefix": f"{prefix}",
+        "regrid": {"to_grid": "FCST"},
+        "tmp_dir": rundir,
+    }
+    if nbrhd := {k: v for k, v in [("shape", meta.nbrhd_shape), ("width", meta.nbrhd_width)] if v}:
+        config["nbrhd"] = nbrhd
+    with atomic(path) as tmp:
+        tmp.write_text("%s\n" % render(config))
 
 
 def _meta(c: Config, varname: str) -> VarMeta:

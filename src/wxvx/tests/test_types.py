@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from pytest import fixture
+from pytest import fixture, raises
 
 from wxvx import types
 
@@ -88,3 +88,40 @@ def test_Config(baseline, config_data, cycles, forecast, leadtimes):
     assert obj == other
     other.variables = {}
     assert obj != other
+
+
+def test_VarMeta():
+    def fails(k, v):
+        with raises(AssertionError):
+            types.VarMeta(**{**kwargs, k: type(v)()})
+
+    kwargs: dict = dict(
+        cat_thresh=">=20, >=30, >=40",
+        cf_standard_name="unknown",
+        cnt_thresh=">15",
+        description="Composite Reflectivity",
+        level_type="atmosphere",
+        met_linetypes=["cts", "nbrcnt"],
+        met_stat="PODY",
+        name="refc",
+        nbrhd_shape="CIRCLE",
+        nbrhd_width="3, 5, 11",
+        units="dBZ",
+    )
+    x = types.VarMeta(**kwargs)
+    for k, v in kwargs.items():
+        assert getattr(x, k) == v
+    # Must not be empty:
+    for k, v in kwargs.items():
+        fails(k, type(v)())
+    # Must not have None values:
+    for k in ["cf_standard_name", "description", "level_type", "met_stat", "name", "units"]:
+        fails(k, None)
+    # Must not have unrecognized values:
+    for k, v in [
+        ("level_type", "intergalactic"),
+        ("met_linetypes", "foo"),
+        ("met_stat", "XYZ"),
+        ("nbrhd_shape", "TRIANGLE"),
+    ]:
+        fails(k, v)

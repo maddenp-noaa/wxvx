@@ -14,14 +14,21 @@ from wxvx import util
 
 
 def test_atomic(fakefs):
-    path = fakefs / "greeting"
-    assert not path.is_file()
-    msg = "hello"
-    with util.atomic(path) as tmp:
-        assert tmp.is_file()
-        tmp.write_text(msg)
-    assert not tmp.is_file()
-    assert path.read_text() == msg
+    greeting, recipient = [fakefs / f"out.{x}" for x in ("greeting", "recipient")]
+    assert not greeting.is_file()
+    assert not recipient.is_file()
+    s1, s2 = "hello", "world"
+    with util.atomic(greeting) as tmp1:
+        with util.atomic(recipient) as tmp2:
+            assert tmp2 != tmp1
+            tmp1.write_text(s1)
+            tmp2.write_text(s2)
+            assert tmp1.is_file()
+            assert tmp2.is_file()
+        assert not tmp2.is_file()
+    assert not tmp1.is_file()
+    assert greeting.read_text() == s1
+    assert recipient.read_text() == s2
 
 
 def test_fail(caplog):

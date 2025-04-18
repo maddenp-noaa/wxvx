@@ -35,6 +35,7 @@ ignore = [
   "ANN204",  # missing-return-type-special-method
   "ANN401",  # any-type
   "C408",    # unnecessary-collection-call
+  "C901",    # complex-structure
   "COM812",  # missing-trailing-comma
   "D100",    # undocumented-public-module
   "D101",    # undocumented-public-class
@@ -53,8 +54,11 @@ ignore = [
   "FBT002",  # boolean-default-value-positional-argument
   "FLY002",  # static-join-to-f-string
   "N813",    # camelcase-imported-as-lowercase
+  "PLR0911", # too-many-return-statements
+  "PLR0912", # too-many-branches
   "PLR0913", # too-many-arguments
   "S101",    # assert
+  "S603",    # subprocess-without-shell-equals-true
   "T201",    # print
   "UP031",   # printf-string-formatting
 ]
