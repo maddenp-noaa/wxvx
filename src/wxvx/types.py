@@ -92,20 +92,20 @@ class VarMeta:
     name: str
     units: str
     # Optional:
-    cat_thresh: str | None = None
-    cnt_thresh: str | None = None
+    cat_thresh: list[str] | None = None
+    cnt_thresh: list[str] | None = None
     nbrhd_shape: str | None = None
-    nbrhd_width: str | None = None
+    nbrhd_width: list[int] | None = None
 
     def __post_init__(self):
         for k, v in vars(self).items():
             match k:
                 case "cat_thresh":
-                    assert v is None or v
+                    assert v is None or (v and all(isinstance(x, str) for x in v))
                 case "cf_standard_name":
                     assert v
                 case "cnt_thresh":
-                    assert v is None or v
+                    assert v is None or (v and all(isinstance(x, str) for x in v))
                 case "description":
                     assert v
                 case "level_type":
@@ -121,7 +121,7 @@ class VarMeta:
                 case "nbrhd_shape":
                     assert v is None or v in ("CIRCLE", "SQUARE")
                 case "nbrhd_width":
-                    assert v is None or v
+                    assert v is None or (v and all(isinstance(x, int) for x in v))
                 case "units":
                     assert v
 

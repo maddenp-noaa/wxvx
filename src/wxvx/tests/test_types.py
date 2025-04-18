@@ -96,16 +96,16 @@ def test_VarMeta():
             types.VarMeta(**{**kwargs, k: type(v)()})
 
     kwargs: dict = dict(
-        cat_thresh=">=20, >=30, >=40",
+        cat_thresh=[">=20", ">=30", ">=40"],
         cf_standard_name="unknown",
-        cnt_thresh=">15",
+        cnt_thresh=[">15"],
         description="Composite Reflectivity",
         level_type="atmosphere",
         met_linetypes=["cts", "nbrcnt"],
         met_stat="PODY",
         name="refc",
         nbrhd_shape="CIRCLE",
-        nbrhd_width="3, 5, 11",
+        nbrhd_width=[3, 5, 11],
         units="dBZ",
     )
     x = types.VarMeta(**kwargs)

@@ -233,10 +233,10 @@ def _grid_stat_config(
     meta = _meta(c, varname)
     if meta.cat_thresh:
         for x in field_fcst, field_obs:
-            x["cat_thresh"] = [meta.cat_thresh]
+            x["cat_thresh"] = meta.cat_thresh
     if meta.cnt_thresh:
         for x in field_fcst, field_obs:
-            x["cnt_thresh"] = [meta.cnt_thresh]
+            x["cnt_thresh"] = meta.cnt_thresh
     mask_grid = [] if polyfile else ["FULL"]
     mask_poly = [polyfile.refs] if polyfile else []
     config = {
