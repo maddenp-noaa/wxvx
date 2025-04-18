@@ -239,7 +239,6 @@ def _grid_stat_config(
             x["cnt_thresh"] = meta.cnt_thresh
     mask_grid = [] if polyfile else ["FULL"]
     mask_poly = [polyfile.refs] if polyfile else []
-    linetypes = sorted({LINETYPE[x] for x in meta.met_stats})
     config = {
         "fcst": {"field": [field_fcst]},
         "mask": {"grid": mask_grid, "poly": mask_poly},
@@ -247,7 +246,7 @@ def _grid_stat_config(
         "nc_pairs_flag": "FALSE",
         "obs": {"field": [field_obs]},
         "obtype": c.baseline.name,
-        "output_flag": {x: "BOTH" for x in linetypes},
+        "output_flag": {x: "BOTH" for x in sorted({LINETYPE[x] for x in meta.met_stats})},
         "output_prefix": f"{prefix}",
         "regrid": {"to_grid": "FCST"},
         "tmp_dir": rundir,
