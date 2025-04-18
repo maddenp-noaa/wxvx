@@ -32,12 +32,12 @@ def test_workflow_grids(c, n_grids, noop):
 
 
 def test_workflow_grids_baseline(c, n_grids, noop):
-    with patch.object(workflow, "_grid_grib", noop), patch.object(workflow, "_grid_nc", noop):
+    with patch.object(workflow, "_grid_grib", noop):
         assert len(refs(workflow.grids_baseline(c=c))) == n_grids * 2
 
 
 def test_workflow_grids_forecast(c, n_grids, noop):
-    with patch.object(workflow, "_grid_grib", noop), patch.object(workflow, "_grid_nc", noop):
+    with patch.object(workflow, "_grid_nc", noop):
         assert len(refs(workflow.grids_forecast(c=c))) == n_grids
 
 
@@ -145,31 +145,14 @@ def test_workflow__grid_grib(c, tc):
 
 
 def test_workflow__grid_nc(c_real_fs, check_cf_metadata, da, tc):
-    var = variables.Var(name="gh", level_type="isobaricInhPa", level=900)
+    level = 900
+    var = variables.Var(name="gh", level_type="isobaricInhPa", level=level)
     path = Path(c_real_fs.paths.grids_forecast, "a.nc")
     da.to_netcdf(path)
     object.__setattr__(c_real_fs.forecast, "path", path)
     val = workflow._grid_nc(c=c_real_fs, varname="HGT", tc=tc, var=var)
     assert ready(val)
-    assert check_cf_metadata(ds=xr.open_dataset(refs(val), decode_timedelta=True), name="HGT")
-
-
-def test_workflow__grid_stat_config(c, fakefs):
-    var = variables.Var(name="refc", level_type="atmosphere")
-    basepath = fakefs / "refc.stat"
-    kwargs = dict(
-        c=c,
-        basepath=basepath,
-        varname="REFC",
-        rundir=fakefs,
-        var=var,
-        prefix="foo",
-        source=Source.FORECAST,
-    )
-    assert not ready(val := workflow._grid_stat_config(**kwargs, dry_run=True))
-    assert not refs(val).is_file()
-    assert ready(val := workflow._grid_stat_config(**kwargs))
-    assert refs(val).is_file()
+    check_cf_metadata(ds=xr.open_dataset(refs(val), decode_timedelta=True), name="HGT", level=level)
 
 
 def test_workflow__polyfile(fakefs):
@@ -279,40 +262,43 @@ def test_workflow__stat(c, fakefs, tc):
     taskname = "MET stats for baseline 2t-heightAboveGround-0002 at 19700101 00Z 000"
     var = variables.Var(name="2t", level_type="heightAboveGround", level=2)
     kwargs = dict(c=c, varname="T2M", tc=tc, var=var, prefix="foo", source=Source.BASELINE)
+    stat = refs(workflow._stat(**kwargs, dry_run=True))
+    cfgfile = (rundir / stat.stem).with_suffix(".config")
+    runscript = (rundir / stat.stem).with_suffix(".sh")
+    assert not stat.is_file()
+    assert not cfgfile.is_file()
+    assert not runscript.is_file()
     with (
         patch.object(workflow, "_grid_grib", mock),
         patch.object(workflow, "_grid_nc", mock),
-        patch.object(workflow, "_grid_stat_config", mock),
-        patch.object(workflow, "mpexec") as mpexec,
+        patch.object(workflow, "_grid_stat_config", side_effect=lambda *_: cfgfile.touch()),
+        patch.object(workflow, "mpexec", side_effect=lambda *_: stat.touch()) as mpexec,
     ):
-        stat = refs(workflow._stat(**kwargs, dry_run=True))
-        assert not stat.is_file()
-        mpexec.side_effect = lambda *_: stat.touch()
-        rundir.mkdir(parents=True)
+        stat.parent.mkdir(parents=True)
         workflow._stat(**kwargs)
-    runscript = str((rundir / stat.stem).with_suffix(".sh"))
-    mpexec.assert_called_once_with(runscript, rundir, taskname)
     assert stat.is_file()
-
-
-# def test_workflow__stat_links(c, fakefs):
-#     target = fakefs / "target" / "a.stats"
-
-#     @external
-#     def mock(*_args, **_kwargs):
-#         yield "mock"
-#         yield asset(target, lambda: True)
-
-#     rundir = c.paths.run / "plot"
-#     link = rundir / "a.stats"
-#     assert not link.exists()
-#     with patch.object(workflow, "_stat", mock):
-#         workflow._stat_links(c=c, varname="T2M", level=2, rundir=rundir)
-#     assert link.is_symlink()
-#     assert link.resolve() == target
+    assert cfgfile.is_file()
+    assert runscript.is_file()
+    mpexec.assert_called_once_with(str(runscript), rundir, taskname)
 
 
 # Support Tests
+
+
+def test_workflow__grid_stat_config(c, fakefs):
+    path = fakefs / "refc.config"
+    assert not path.is_file()
+    workflow._grid_stat_config(
+        c=c,
+        path=path,
+        varname="REFC",
+        rundir=fakefs,
+        var=variables.Var(name="refc", level_type="atmosphere"),
+        prefix="foo",
+        source=Source.FORECAST,
+        polyfile=None,
+    )
+    assert path.is_file()
 
 
 def test__meta(c):

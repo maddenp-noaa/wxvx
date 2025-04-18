@@ -87,17 +87,43 @@ class VarMeta:
     cf_standard_name: str
     description: str
     level_type: str
-    met_linetype: str
+    met_linetypes: list[str]
     met_stat: str
     name: str
     units: str
+    # Optional:
+    cat_thresh: str | None = None
+    cnt_thresh: str | None = None
+    nbrhd_shape: str | None = None
+    nbrhd_width: str | None = None
 
     def __post_init__(self):
-        for val in vars(self):
-            assert val  # i.e. no empty strings
-        assert self.level_type in ["atmosphere", "heightAboveGround", "isobaricInhPa", "surface"]
-        assert self.met_linetype in ["cnt", "cts"]
-        assert self.met_stat in ["RMSE", "PODY"]
+        for k, v in vars(self).items():
+            match k:
+                case "cat_thresh":
+                    assert v is None or v
+                case "cf_standard_name":
+                    assert v
+                case "cnt_thresh":
+                    assert v is None or v
+                case "description":
+                    assert v
+                case "level_type":
+                    assert v in ("atmosphere", "heightAboveGround", "isobaricInhPa", "surface")
+                case "met_linetypes":
+                    assert v
+                    for x in v:
+                        assert x in ("cnt", "cts", "nbrcnt")
+                case "met_stat":
+                    assert v in ("RMSE", "PODY")
+                case "name":
+                    assert v
+                case "nbrhd_shape":
+                    assert v is None or v in ("CIRCLE", "SQUARE")
+                case "nbrhd_width":
+                    assert v is None or v
+                case "units":
+                    assert v
 
 
 # Helpers

@@ -173,56 +173,10 @@ def _grid_nc(c: Config, varname: str, tc: TimeCoords, var: Var):
     yield fd
     src = da_select(fd.refs, c, varname, tc, var)
     da = da_construct(src)
-    ds = ds_construct(c, da, taskname)
+    ds = ds_construct(c, da, taskname, var.level)
     with atomic(path) as tmp:
         ds.to_netcdf(tmp, encoding={varname: {"zlib": True, "complevel": 9}})
     logging.info("%s: Wrote %s", taskname, path)
-
-
-@task
-def _grid_stat_config(
-    c: Config, basepath: Path, varname: str, rundir: Path, var: Var, prefix: str, source: Source
-):
-    base = basepath.parent / basepath.stem
-    path = base.with_suffix(".config")
-    taskname = "Verification config %s" % path
-    yield taskname
-    yield asset(path, path.is_file)
-    polyfile = None
-    if mask := c.forecast.mask:
-        polyfile = _polyfile(base.with_suffix(".poly"), mask)
-    yield polyfile
-    level_obs = metlevel(var.level_type, var.level)
-    attrs = {
-        Source.BASELINE: (level_obs, HRRR.varname(var.name), c.baseline.name),
-        Source.FORECAST: ("(0,0,*,*)", varname, c.forecast.name),
-    }
-    forecast_level, forecast_name, model = attrs[source]
-    field_fcst = {"level": [forecast_level], "name": forecast_name, "set_attr_level": level_obs}
-    field_obs = {"level": [level_obs], "name": HRRR.varname(var.name)}
-    meta = _meta(c, varname)
-    if meta.met_linetype == "cts":
-        thresholds = ">=20, >=30, >=40"
-        field_fcst["cat_thresh"] = [thresholds]
-        field_obs["cat_thresh"] = [thresholds]
-    mask_grid = [] if polyfile else ["FULL"]
-    mask_poly = [polyfile.refs] if polyfile else []
-    config = render(
-        {
-            "fcst": {"field": [field_fcst]},
-            "mask": {"grid": mask_grid, "poly": mask_poly},
-            "model": model,
-            "nc_pairs_flag": "FALSE",
-            "obs": {"field": [field_obs]},
-            "obtype": c.baseline.name,
-            "output_flag": {meta.met_linetype: "BOTH"},
-            "output_prefix": f"{prefix}",
-            "regrid": {"to_grid": "FCST"},
-            "tmp_dir": rundir,
-        }
-    )
-    with atomic(path) as tmp:
-        tmp.write_text(f"{config}\n")
 
 
 @task
@@ -421,37 +375,74 @@ def _stat(c: Config, varname: str, tc: TimeCoords, var: Var, prefix: str, source
     baseline = _grid_grib(c, TimeCoords(cycle=tc.validtime, leadtime=0), var)
     forecast = _grid_nc(c, varname, tc, var)
     toverify = _grid_grib(c, tc, var) if source == Source.BASELINE else forecast
-    cfgfile = _grid_stat_config(c, path, varname, rundir, var, prefix, source)
     log = f"{path.stem}.log"
-    content = f"""
-    export OMP_NUM_THREADS=1
-    grid_stat -v 4 {toverify.refs} {baseline.refs} {cfgfile.refs.name} >{log} 2>&1
-    """
-    script = _runscript(basepath=path, content=content)
-    reqs = [toverify, baseline, cfgfile, script]
+    reqs = [toverify, baseline]
     if source == Source.BASELINE:
         reqs.append(forecast)
+    polyfile = None
+    if mask := c.forecast.mask:
+        polyfile = _polyfile(c.paths.run / "stats" / "mask.poly", mask)
+        reqs.append(polyfile)
     yield reqs
-    mpexec(str(script.refs), rundir, taskname)
-
-
-# @task
-# def _stat_links(c: Config, varname: str, level: float | None, rundir: Path):
-#     taskname = "MET stats for %s " % _var(c, varname, level)
-#     yield taskname
-#     reqs = _statreqs(c, varname, level)
-#     files = [x.refs for x in reqs]
-#     links = [rundir / x.name for x in files]
-#     yield [asset(link, link.is_symlink) for link in links]
-#     yield reqs
-#     for target, link in zip(files, links):
-#         link.parent.mkdir(parents=True, exist_ok=True)
-#         logging.info("%s: Linking %s -> %s", taskname, link, target)
-#         if not link.exists():
-#             link.symlink_to(target)
+    cfgfile = path.with_suffix(".config")
+    _grid_stat_config(c, cfgfile, varname, rundir, var, prefix, source, polyfile)
+    runscript = path.with_suffix(".sh")
+    content = f"""
+    export OMP_NUM_THREADS=1
+    grid_stat -v 4 {toverify.refs} {baseline.refs} {cfgfile} >{log} 2>&1
+    """
+    with atomic(runscript) as tmp:
+        tmp.write_text("#!/usr/bin/env bash\n\n%s\n" % dedent(content).strip())
+    runscript.chmod(runscript.stat().st_mode | S_IEXEC)
+    mpexec(str(runscript), rundir, taskname)
 
 
 # Support
+
+
+def _grid_stat_config(
+    c: Config,
+    path: Path,
+    varname: str,
+    rundir: Path,
+    var: Var,
+    prefix: str,
+    source: Source,
+    polyfile: Node | None,
+):
+    level_obs = metlevel(var.level_type, var.level)
+    attrs = {
+        Source.BASELINE: (level_obs, HRRR.varname(var.name), c.baseline.name),
+        Source.FORECAST: ("(0,0,*,*)", varname, c.forecast.name),
+    }
+    level_fcst, name_fcst, model = attrs[source]
+    field_fcst = {"level": [level_fcst], "name": name_fcst, "set_attr_level": level_obs}
+    field_obs = {"level": [level_obs], "name": HRRR.varname(var.name)}
+    meta = _meta(c, varname)
+    if meta.cat_thresh:
+        for x in field_fcst, field_obs:
+            x["cat_thresh"] = [meta.cat_thresh]
+    if meta.cnt_thresh:
+        for x in field_fcst, field_obs:
+            x["cnt_thresh"] = [meta.cnt_thresh]
+    mask_grid = [] if polyfile else ["FULL"]
+    mask_poly = [polyfile.refs] if polyfile else []
+    config = {
+        "fcst": {"field": [field_fcst]},
+        "mask": {"grid": mask_grid, "poly": mask_poly},
+        "model": model,
+        "nc_pairs_flag": "FALSE",
+        "obs": {"field": [field_obs]},
+        "obtype": c.baseline.name,
+        "output_flag": {x: "BOTH" for x in meta.met_linetypes},
+        "output_prefix": f"{prefix}",
+        "regrid": {"to_grid": "FCST"},
+        "tmp_dir": rundir,
+    }
+    if nbrhd := {k: v for k, v in [("shape", meta.nbrhd_shape), ("width", meta.nbrhd_width)] if v}:
+        config["nbrhd"] = nbrhd
+    with atomic(path) as tmp:
+        tmp.write_text("%s\n" % render(config))
 
 
 def _meta(c: Config, varname: str) -> VarMeta:
