@@ -49,17 +49,9 @@ def tcinfo(tc: TimeCoords, leadtime_digits: int = 3) -> tuple[str, str, str]:
 
 
 def validtimes(cycles: Cycles | datetime, leadtimes: Leadtimes) -> Iterator[TimeCoords]:
-    # pairs = product(
-    #     [cycles]
-    #     if isinstance(cycles, datetime)
-    #     else _cycles(start=cycles.start, step=cycles.step, stop=cycles.stop),
-    #     _leadtimes(leadtimes.start, leadtimes.step, stop=leadtimes.stop),
-    # )
     for cycle, leadtime in product(
-        [cycles]
-        if isinstance(cycles, datetime)
-        else _cycles(start=cycles.start, step=cycles.step, stop=cycles.stop),
-        _leadtimes(leadtimes.start, leadtimes.step, stop=leadtimes.stop),
+        _cycles(start=cycles.start, step=cycles.step, stop=cycles.stop),
+        _leadtimes(leadtimes.start, leadtimes.step, leadtimes.stop),
     ):
         yield TimeCoords(cycle=cycle, leadtime=leadtime)
 
