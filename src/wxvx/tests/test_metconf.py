@@ -3,12 +3,14 @@ from pytest import raises
 from wxvx import metconf
 
 config = {
-    "fcst": {"field": [{"cat_thresh": [">0"], "level": ["(0,0,*,*)"], "name": "T2M"}]},
+    "fcst": {
+        "field": [{"cat_thresh": [">=20", ">=30", ">=40"], "level": ["(0,0,*,*)"], "name": "T2M"}]
+    },
     "mask": {"poly": ["a.nc"]},
     "model": "GraphHRRR",
-    "nbrhd": {"shape": "CIRCLE", "width": "3, 5, 11"},
+    "nbrhd": {"shape": "CIRCLE", "width": [3, 5, 11]},
     "nc_pairs_flag": "FALSE",
-    "obs": {"field": [{"cat_thresh": [">0"], "level": ["Z2"], "name": "TMP"}]},
+    "obs": {"field": [{"cat_thresh": [">=20", ">=30", ">=40"], "level": ["Z2"], "name": "TMP"}]},
     "obtype": "HRRR",
     "output_flag": {"cnt": "BOTH"},
     "output_prefix": "foo_bar",
@@ -21,7 +23,9 @@ fcst = {
   field = [
     {
       cat_thresh = [
-        >0
+        >=20,
+        >=30,
+        >=40
       ];
       level = [
         "(0,0,*,*)"
@@ -39,7 +43,9 @@ model = "GraphHRRR";
 nbrhd = {
   shape = CIRCLE;
   width = [
-    3, 5, 11
+    3,
+    5,
+    11
   ];
 }
 nc_pairs_flag = FALSE;
@@ -47,7 +53,9 @@ obs = {
   field = [
     {
       cat_thresh = [
-        >0
+        >=20,
+        >=30,
+        >=40
       ];
       level = [
         "Z2"

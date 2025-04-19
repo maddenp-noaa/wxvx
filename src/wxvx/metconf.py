@@ -96,7 +96,7 @@ def _nbrhd(k: str, v: Any, level: int) -> list[str]:
         case "shape":
             return _kvpair(k, _bare(v), level)
         case "width":
-            return _sequence(k, [v], _bare, level)
+            return _sequence(k, v, _bare, level)
     _fail(k)
 
 

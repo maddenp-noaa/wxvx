@@ -8,6 +8,8 @@ from enum import Enum, auto
 from pathlib import Path
 from typing import Any
 
+from wxvx.util import LINETYPE
+
 Source = Enum("Source", [("BASELINE", auto()), ("FORECAST", auto())])
 
 
@@ -87,41 +89,37 @@ class VarMeta:
     cf_standard_name: str
     description: str
     level_type: str
-    met_linetypes: list[str]
-    met_stat: str
+    met_stats: list[str]
     name: str
     units: str
     # Optional:
-    cat_thresh: str | None = None
-    cnt_thresh: str | None = None
+    cat_thresh: list[str] | None = None
+    cnt_thresh: list[str] | None = None
     nbrhd_shape: str | None = None
-    nbrhd_width: str | None = None
+    nbrhd_width: list[int] | None = None
 
     def __post_init__(self):
         for k, v in vars(self).items():
             match k:
                 case "cat_thresh":
-                    assert v is None or v
+                    assert v is None or (v and all(isinstance(x, str) for x in v))
                 case "cf_standard_name":
                     assert v
                 case "cnt_thresh":
-                    assert v is None or v
+                    assert v is None or (v and all(isinstance(x, str) for x in v))
                 case "description":
                     assert v
                 case "level_type":
                     assert v in ("atmosphere", "heightAboveGround", "isobaricInhPa", "surface")
-                case "met_linetypes":
+                case "met_stats":
                     assert v
-                    for x in v:
-                        assert x in ("cnt", "cts", "nbrcnt")
-                case "met_stat":
-                    assert v in ("RMSE", "PODY")
+                    assert all(x in LINETYPE for x in v)
                 case "name":
                     assert v
                 case "nbrhd_shape":
                     assert v is None or v in ("CIRCLE", "SQUARE")
                 case "nbrhd_width":
-                    assert v is None or v
+                    assert v is None or (v and all(isinstance(x, int) for x in v))
                 case "units":
                     assert v
 
