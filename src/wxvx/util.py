@@ -14,6 +14,13 @@ if TYPE_CHECKING:
 
 pkgname = __name__.split(".", maxsplit=1)[0]
 
+LINETYPE = {
+    "FSS": "nbrcnt",
+    "ME": "cnt",
+    "PODY": "cts",
+    "RMSE": "cnt",
+}
+
 
 class WXVXError(Exception): ...
 
