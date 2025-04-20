@@ -48,7 +48,7 @@ def tcinfo(tc: TimeCoords, leadtime_digits: int = 3) -> tuple[str, str, str]:
     return (yyyymmdd(dt=tc.cycle), hh(dt=tc.cycle), fmt % (tc.leadtime.total_seconds() // 3600))
 
 
-def validtimes(cycles: Cycles | datetime, leadtimes: Leadtimes) -> Iterator[TimeCoords]:
+def validtimes(cycles: Cycles, leadtimes: Leadtimes) -> Iterator[TimeCoords]:
     for cycle, leadtime in product(
         _cycles(start=cycles.start, step=cycles.step, stop=cycles.stop),
         _leadtimes(leadtimes.start, leadtimes.step, leadtimes.stop),

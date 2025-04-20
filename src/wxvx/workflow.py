@@ -20,7 +20,7 @@ from iotaa import Node, asset, external, refs, task, tasks
 from wxvx.metconf import render
 from wxvx.net import fetch
 from wxvx.times import TimeCoords, _cycles, _leadtimes, tcinfo, validtimes
-from wxvx.types import Source, Cycles
+from wxvx.types import Cycles, Source
 from wxvx.util import atomic, mpexec
 from wxvx.variables import HRRR, VARMETA, Var, da_construct, da_select, ds_construct, metlevel
 
@@ -67,9 +67,9 @@ def grids_forecast(c: Config):
 
 @tasks
 def plots(c: Config):
-    cycles = _cycles(start=c.cycles.start, step=c.cycles.step, stop=c.cycles.stop)
     taskname = "Plots for %s" % c.forecast.path
     yield taskname
+    cycles = _cycles(start=c.cycles.start, step=c.cycles.step, stop=c.cycles.stop)
     yield [
         _plot(c, cycle, varname, level)
         for cycle in cycles
@@ -194,7 +194,7 @@ def _plot(c: Config, cycle: datetime, varname: str, level: float | None):
     taskname = "Plot %s %s %s" % (varname, level, cycle)
     yield taskname
     var = _var(c, varname, level)
-    rundir = c.paths.run / "plot" / str(var) / cycle.strftime("%Y%m%dT%H")
+    rundir = c.paths.run / "plot" / str(var) / cycle.strftime("%Y%m%d") / cycle.strftime("%H")
     plot_fn = rundir / "plot.png"
     yield asset(plot_fn, plot_fn.is_file)
     reqs = _statreqs(c, varname, level, cycle)
@@ -202,7 +202,7 @@ def _plot(c: Config, cycle: datetime, varname: str, level: float | None):
     meta = _meta(c, varname)
     stat = meta.met_stat
     files = [refs(x) for x in reqs]
-    files = [str(file).replace(".stat", f"_{meta.met_linetype}.txt") for file in files]
+    files = [str(file).replace(".stat", f"_{meta.met_linetypes[0]}.txt") for file in files]
     leadtimes = [
         "%03d" % (td.total_seconds() // 3600)
         for td in _leadtimes(start=c.leadtimes.start, step=c.leadtimes.step, stop=c.leadtimes.stop)
@@ -219,11 +219,9 @@ def _plot(c: Config, cycle: datetime, varname: str, level: float | None):
     )
     df_combined["FCST_LEAD"] = df_combined["FCST_LEAD"].astype(int)
     plt.figure(figsize=(10, 6))
-    sns.set(style="whitegrid")
+    sns.set(style="darkgrid")
     sns.lineplot(data=df_combined, x="FCST_LEAD", y=stat, hue="MODEL", marker="o")
-    plt.title(
-        f"{varname} {level if level else ''} {stat}, {c.forecast.name} v {c.baseline.name}: {cyc}"
-    )
+    plt.title(f"{varname} {level} {stat}, {c.forecast.name} v {c.baseline.name}: {cyc}")
     plt.xlabel("Leadtime")
     plt.ylabel(f"{stat} ({meta.units})")
     plt.xticks(ticks=[int(lt) for lt in leadtimes], labels=leadtimes, rotation=90)
@@ -232,133 +230,6 @@ def _plot(c: Config, cycle: datetime, varname: str, level: float | None):
     plot_fn.parent.mkdir(parents=True, exist_ok=True)
     plt.savefig(plot_fn)
     plt.close()
-
-
-# @task
-# def _plot_config(c: Config, rundir: Path, varname: str, var: Var, plot_fn: str, stat_fn: str):
-#     path = rundir / "plot.yaml"
-#     taskname = "Plot config %s" % path
-#     yield taskname
-#     yield asset(path, path.is_file)
-#     yield None
-#     meta = _meta(c, varname)
-#     stat = meta.met_stat
-#     vts = validtimes(c.cycles, c.leadtimes)
-#     x_axis_labels = [
-#         vt.validtime.strftime("%Y%m%d %HZ") if i % 10 == 0 else "" for i, vt in enumerate(vts)
-#     ]
-#     title = "%s %s vs %s" % (
-#         meta.description.format(level=var.level),
-#         stat,
-#         c.baseline.name,
-#     )
-#     config = dict(
-#         colors=["#CC6677"],
-#         con_series=[1],
-#         fcst_var_val_1={varname: [stat]},
-#         grid_col="#cccccc",
-#         indy_label=x_axis_labels,
-#         indy_vals=[vt.validtime.strftime("%Y-%m-%d %H:%M:%S") for vt in vts],
-#         indy_var="fcst_init_beg",
-#         legend_box="n",
-#         list_stat_1=[stat],
-#         log_level="DEBUG",
-#         met_linetype=meta.met_linetype,
-#         plot_caption="",
-#         plot_ci=["none"],
-#         plot_disp=[True],
-#         plot_filename=plot_fn,
-#         plot_height=10,
-#         plot_width=13,
-#         series_line_style=["-"],
-#         series_line_width=[1],
-#         series_order=[1],
-#         series_symbols=["."],
-#         series_type=["b"],
-#         series_val_1={"model": [c.forecast.name]},
-#         show_legend=[True],
-#         stat_input=stat_fn,
-#         title=title,
-#         xaxis="Cycle",
-#         xlab_offset=20,
-#         xtlab_orient=270,
-#         yaxis_1=stat,
-#         ylab_offset=10,
-#     )
-#     if c.baseline.plot:
-#         update = dict(
-#             fcst_var_val_2={HRRR.varname(var.name): [stat]},
-#             list_stat_2=[stat],
-#             series_val_2={"model": [c.baseline.name]},
-#         )
-#         config.update(update)
-#         for k, v in [
-#             ("colors", "#44AA99"),
-#             ("con_series", 1),
-#             ("plot_ci", "none"),
-#             ("plot_disp", True),
-#             ("series_line_style", "-"),
-#             ("series_line_width", 1),
-#             ("series_order", 2),
-#             ("series_symbols", "."),
-#             ("series_type", "b"),
-#             ("show_legend", True),
-#         ]:
-#             config[k].append(v)  # type: ignore[attr-defined]
-#     path.parent.mkdir(parents=True, exist_ok=True)
-#     with path.open("w") as f:
-#         yaml.dump(config, f)
-
-
-# @task
-# def _reformat(c: Config, varname: str, level: float | None, rundir: Path):
-#     path = rundir / "reformat.data"
-#     taskname = "Reformatted stats %s" % path
-#     yield taskname
-#     yield asset(path, path.is_file)
-#     cfgfile = _reformat_config(c, varname, rundir)
-#     content = f"""
-#     export PYTHONWARNINGS=ignore::FutureWarning
-#     write_stat_ascii.py {refs(cfgfile).name} >reformat.log 2>&1
-#     """
-#     script = _runscript(basepath=path, content=content)
-#     yield [cfgfile, script, _stat_links(c, varname, level, rundir)]
-#     mpexec(str(refs(script)), rundir, taskname)
-
-
-# @task
-# def _reformat_config(c: Config, varname: str, rundir: Path):
-#     path = rundir / "reformat.yaml"
-#     taskname = "Reformat config %s" % path
-#     yield taskname
-#     yield asset(path, path.is_file)
-#     yield None
-#     meta = _meta(c, varname)
-#     config = dict(
-#         input_data_dir=".",
-#         input_stats_aggregated=True,
-#         line_type=meta.met_linetype.upper(),
-#         log_directory=".",
-#         log_filename="/dev/stdout",
-#         log_level="debug",
-#         output_dir=".",
-#         output_filename="reformat.data",
-#     )
-#     path.parent.mkdir(parents=True, exist_ok=True)
-#     with path.open("w") as f:
-#         yaml.dump(config, f)
-
-
-@task
-def _runscript(basepath: Path, content: str):
-    path = (basepath.parent / basepath.stem).with_suffix(".sh")
-    yield "Runscript %s" % path
-    yield asset(path, path.is_file)
-    yield None
-    content = dedent(content).strip()
-    with atomic(path) as tmp:
-        tmp.write_text(f"#!/usr/bin/env bash\n\n{content}\n")
-    path.chmod(path.stat().st_mode | S_IEXEC)
 
 
 @task
@@ -453,7 +324,11 @@ def _statargs(
     c: Config, varname: str, level: float | None, source: Source, cycle: datetime | None = None
 ) -> Iterator:
     if isinstance(cycle, datetime):
-        ctc = Cycles(start=cycle.strftime("%Y-%m-%dT%H:%M:%S"), step="01:00:00", stop=cycle.strftime("%Y-%m-%dT%H:%M:%S"))
+        ctc = Cycles(
+            start=cycle.strftime("%Y-%m-%dT%H:%M:%S"),
+            step="01:00:00",
+            stop=cycle.strftime("%Y-%m-%dT%H:%M:%S"),
+        )
     else:
         ctc = c.cycles
     name = (c.baseline if source == Source.BASELINE else c.forecast).name.lower()
@@ -474,23 +349,6 @@ def _statreqs(
     if c.baseline.compare:
         reqs = [*reqs, *genreqs(Source.BASELINE)]
     return reqs
-
-# def _statcycle(c: Config, varname: str, level: float | None, source: Source, cycle: datetime) -> Iterator:
-#     ctc = Cycles(start=cycle.strftime("%Y-%m-%dT%H:%M:%S"), step="01:00:00", stop=cycle.strftime("%Y-%m-%dT%H:%M:%S"))
-#     name = (c.baseline if source == Source.BASELINE else c.forecast).name.lower()
-#     prefix = lambda var: "%s_%s" % (name, str(var).replace("-", "_"))
-#     args = [
-#         (c, vn, tc, var, prefix(var), source)
-#         for (var, vn), tc in product(_vxvars(c).items(), validtimes(ctc, c.leadtimes))
-#         if vn == varname and var.level == level
-#     ]
-#     # iter(sorted(args))
-#     # genreqs = lambda source: [_stat(*args) for args in _statargs(c, varname, level, source, cycle)]
-#     genreqs = lambda source: [_stat(*args) for args in iter(sorted(args))]
-#     reqs: Sequence[Node] = genreqs(Source.FORECAST)
-#     if c.baseline.compare:
-#         reqs = [*reqs, *genreqs(Source.BASELINE)]
-#     return reqs
 
 
 def _var(c: Config, varname: str, level: float | None) -> Var:
