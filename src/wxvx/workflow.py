@@ -221,7 +221,7 @@ def _plot(c: Config, cycle: datetime, varname: str, level: float | None):
     sns.set(style="darkgrid")
     if stat == "PODY":
         plot_data["LABEL"] = plot_data.apply(
-            lambda row: f"{row['MODEL']} {row['FCST_THRESH']}", axis=1
+            lambda row: f"{row['MODEL']}, {row['FCST_THRESH']}", axis=1
         )
     sns.lineplot(
         data=plot_data,
