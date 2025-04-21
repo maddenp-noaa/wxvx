@@ -335,19 +335,20 @@ def _meta(c: Config, varname: str) -> VarMeta:
 def _statargs(
     c: Config, varname: str, level: float | None, source: Source, cycle: datetime | None = None
 ) -> Iterator:
-    if isinstance(cycle, datetime):
-        ctc = Cycles(
+    cycles = (
+        Cycles(
             start=cycle.strftime("%Y-%m-%dT%H:%M:%S"),
             step="01:00:00",
             stop=cycle.strftime("%Y-%m-%dT%H:%M:%S"),
         )
-    else:
-        ctc = c.cycles
+        if isinstance(cycle, datetime)
+        else c.cycles
+    )
     name = (c.baseline if source == Source.BASELINE else c.forecast).name.lower()
     prefix = lambda var: "%s_%s" % (name, str(var).replace("-", "_"))
     args = [
         (c, vn, tc, var, prefix(var), source)
-        for (var, vn), tc in product(_vxvars(c).items(), validtimes(ctc, c.leadtimes))
+        for (var, vn), tc in product(_vxvars(c).items(), validtimes(cycles, c.leadtimes))
         if vn == varname and var.level == level
     ]
     return iter(sorted(args))
