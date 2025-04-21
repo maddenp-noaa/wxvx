@@ -225,13 +225,13 @@ def _plot(c: Config, cycle: datetime, varname: str, level: float | None):
         marker="o",
     )
     plt.title(
-        "%s %s %s vs %s %s"
+        "%s %s %s vs %s at %s"
         % (
             meta.description.format(level=var.level),
             stat,
             c.forecast.name,
             c.baseline.name,
-            cycle.strftime("%Y-%m-%d %H:%M:%S"),
+            cycle.strftime("%Y%m%d %HZ"),
         )
     )
     plt.xlabel("Leadtime")

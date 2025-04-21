@@ -179,8 +179,17 @@ def test_workflow__polyfile(fakefs):
             "T2M",
             2,
             [
-                pd.DataFrame({"MODEL": ["HRRR"], "FCST_LEAD": [60000], "RMSE": [0.5]}),
-                pd.DataFrame({"MODEL": ["GraphHRRR"], "FCST_LEAD": [60000], "RMSE": [0.4]}),
+                pd.DataFrame(
+                    {"MODEL": ["HRRR"], "FCST_LEAD": [60000], "FCST_THRESH": None, "RMSE": [0.5]}
+                ),
+                pd.DataFrame(
+                    {
+                        "MODEL": ["GraphHRRR"],
+                        "FCST_LEAD": [60000],
+                        "FCST_THRESH": None,
+                        "RMSE": [0.4],
+                    }
+                ),
             ],
         ),
         (
@@ -281,21 +290,8 @@ def test__meta(c):
     assert meta.level_type == "isobaricInhPa"
 
 
-def test__statargs(c, statkit):
-    with (
-        patch.object(workflow, "_vxvars", return_value={statkit.var: statkit.varname}),
-        patch.object(workflow, "validtimes", return_value=[statkit.tc]),
-    ):
-        statargs = workflow._statargs(
-            c=c, varname=statkit.varname, level=statkit.level, source=statkit.source
-        )
-    assert list(statargs) == [
-        (c, statkit.varname, statkit.tc, statkit.var, statkit.prefix, statkit.source)
-    ]
-
-
-def test__statargs_with_cycle(c, statkit):
-    cycle = datetime(2024, 12, 19, 18, tzinfo=timezone.utc)
+@mark.parametrize("cycle", [datetime(2024, 12, 19, 18, tzinfo=timezone.utc), None])
+def test__statargs(c, statkit, cycle):
     with (
         patch.object(workflow, "_vxvars", return_value={statkit.var: statkit.varname}),
         patch.object(workflow, "validtimes", return_value=[statkit.tc]),
@@ -312,41 +308,14 @@ def test__statargs_with_cycle(c, statkit):
     ]
 
 
-def test__statreqs(c, statkit):
+@mark.parametrize("cycle", [datetime(2024, 12, 19, 18, tzinfo=timezone.utc), None])
+def test__statreqs(c, statkit, cycle):
     with (
         patch.object(workflow, "_stat") as _stat,
         patch.object(workflow, "_vxvars", return_value={statkit.var: statkit.varname}),
         patch.object(workflow, "validtimes", return_value=[statkit.tc]),
     ):
-        reqs = workflow._statreqs(c=c, varname=statkit.varname, level=statkit.level)
-    assert len(reqs) == 2
-    assert _stat.call_count == 2
-    args = (c, statkit.varname, statkit.tc, statkit.var)
-    assert _stat.call_args_list[0].args == (
-        *args,
-        f"forecast_gh_{statkit.level_type}_{statkit.level:04d}",
-        Source.FORECAST,
-    )
-    assert _stat.call_args_list[1].args == (
-        *args,
-        f"baseline_gh_{statkit.level_type}_{statkit.level:04d}",
-        Source.BASELINE,
-    )
-
-
-def test__statreqs_with_cycle(c, statkit):
-    cycle = datetime(2024, 12, 19, 18, tzinfo=timezone.utc)
-    with (
-        patch.object(workflow, "_stat") as _stat,
-        patch.object(workflow, "_vxvars", return_value={statkit.var: statkit.varname}),
-        patch.object(workflow, "validtimes", return_value=[statkit.tc]),
-    ):
-        reqs = workflow._statreqs(
-            c=c,
-            varname=statkit.varname,
-            level=statkit.level,
-            cycle=cycle,
-        )
+        reqs = workflow._statreqs(c=c, varname=statkit.varname, level=statkit.level, cycle=cycle)
     assert len(reqs) == 2
     assert _stat.call_count == 2
     args = (c, statkit.varname, statkit.tc, statkit.var)
