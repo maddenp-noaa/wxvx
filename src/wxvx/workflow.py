@@ -191,15 +191,15 @@ def _polyfile(path: Path, mask: tuple[tuple[float, float]]):
 
 @task
 def _plot(c: Config, cycle: datetime, varname: str, level: float | None):
-    taskname = "Plot %s %s %s" % (varname, level, cycle)
-    yield taskname
+    meta = _meta(c, varname)
     var = _var(c, varname, level)
+    taskname = "Plot %s %s" % (meta.description.format(level=var.level), cycle)
+    yield taskname
     rundir = c.paths.run / "plot" / str(var) / cycle.strftime("%Y%m%d") / cycle.strftime("%H")
     plot_fn = rundir / "plot.png"
     yield asset(plot_fn, plot_fn.is_file)
     reqs = _statreqs(c, varname, level, cycle)
     yield reqs
-    meta = _meta(c, varname)
     stat = "RMSE" if "RMSE" in meta.met_stats else "PODY"
     files = [str(refs(x)).replace(".stat", f"_{LINETYPE[stat]}.txt") for x in reqs]
     leadtimes = [
