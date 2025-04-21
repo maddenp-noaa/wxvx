@@ -196,12 +196,7 @@ def _plot(c: Config, cycle: datetime, varname: str, level: float | None):
     taskname = "Plot %s %s" % (meta.description.format(level=var.level), cycle)
     yield taskname
     plot_fn = (
-        c.paths.run
-        / "plot"
-        / str(var)
-        / cycle.strftime("%Y%m%d")
-        / cycle.strftime("%H")
-        / "plot.png"
+        c.paths.run / "plots" / cycle.strftime("%Y%m%d") / cycle.strftime("%H") / f"{var}_plot.png"
     )
     yield asset(plot_fn, plot_fn.is_file)
     reqs = _statreqs(c, varname, level, cycle)
@@ -342,11 +337,7 @@ def _statargs(
     c: Config, varname: str, level: float | None, source: Source, cycle: datetime | None = None
 ) -> Iterator:
     cycles = (
-        Cycles(
-            start=cycle.strftime("%Y-%m-%dT%H:%M:%S"),
-            step="01:00:00",
-            stop=cycle.strftime("%Y-%m-%dT%H:%M:%S"),
-        )
+        Cycles(start := cycle.strftime("%Y-%m-%dT%H:%M:%S"), step="00:00:00", stop=start)
         if isinstance(cycle, datetime)
         else c.cycles
     )

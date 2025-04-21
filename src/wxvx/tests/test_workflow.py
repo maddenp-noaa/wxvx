@@ -20,6 +20,33 @@ from wxvx.times import TimeCoords, _cycles, validtimes
 from wxvx.types import Source
 from wxvx.variables import Var
 
+DF = {
+    "foo": (
+        "T2M",
+        2,
+        [
+            pd.DataFrame(
+                {"MODEL": ["foo"], "FCST_LEAD": [60000], "FCST_THRESH": None, "RMSE": [0.5]}
+            ),
+            pd.DataFrame(
+                {"MODEL": ["bar"], "FCST_LEAD": [60000], "FCST_THRESH": None, "RMSE": [0.4]}
+            ),
+        ],
+    ),
+    "bar": (
+        "REFC",
+        None,
+        [
+            pd.DataFrame(
+                {"MODEL": ["foo"], "FCST_LEAD": [60000], "FCST_THRESH": ">=20", "PODY": [0.5]}
+            ),
+            pd.DataFrame(
+                {"MODEL": ["bar"], "FCST_LEAD": [60000], "FCST_THRESH": ">=30", "PODY": [0.4]}
+            ),
+        ],
+    ),
+}
+
 # Task Tests
 
 
@@ -172,46 +199,8 @@ def test_workflow__polyfile(fakefs):
     assert path.read_text().strip() == dedent(expected).strip()
 
 
-@mark.parametrize(
-    ("varname", "level", "df"),
-    [
-        (
-            "T2M",
-            2,
-            [
-                pd.DataFrame(
-                    {"MODEL": ["HRRR"], "FCST_LEAD": [60000], "FCST_THRESH": None, "RMSE": [0.5]}
-                ),
-                pd.DataFrame(
-                    {
-                        "MODEL": ["GraphHRRR"],
-                        "FCST_LEAD": [60000],
-                        "FCST_THRESH": None,
-                        "RMSE": [0.4],
-                    }
-                ),
-            ],
-        ),
-        (
-            "REFC",
-            None,
-            [
-                pd.DataFrame(
-                    {"MODEL": ["HRRR"], "FCST_LEAD": [60000], "FCST_THRESH": ">=20", "PODY": [0.5]}
-                ),
-                pd.DataFrame(
-                    {
-                        "MODEL": ["GraphHRRR"],
-                        "FCST_LEAD": [60000],
-                        "FCST_THRESH": ">=30",
-                        "PODY": [0.4],
-                    }
-                ),
-            ],
-        ),
-    ],
-)
-def test_workflow__plot(c, fakefs, fs, varname, level, df):
+@mark.parametrize("dictkey", ["foo", "bar"])
+def test_workflow__plot(c, dictkey, fakefs, fs):
     @external
     def _stat(x: str):
         yield x
@@ -219,6 +208,7 @@ def test_workflow__plot(c, fakefs, fs, varname, level, df):
 
     fs.add_real_directory(os.environ["CONDA_PREFIX"])
     cycles = _cycles(start=c.cycles.start, step=c.cycles.step, stop=c.cycles.stop)
+    varname, level, df = DF[dictkey]
     with (
         patch.object(workflow, "_statreqs") as _statreqs,
         patch.object(workflow.pd, "read_csv") as read_csv,
