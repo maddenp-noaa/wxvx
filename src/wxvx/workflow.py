@@ -195,8 +195,14 @@ def _plot(c: Config, cycle: datetime, varname: str, level: float | None):
     var = _var(c, varname, level)
     taskname = "Plot %s %s" % (meta.description.format(level=var.level), cycle)
     yield taskname
-    rundir = c.paths.run / "plot" / str(var) / cycle.strftime("%Y%m%d") / cycle.strftime("%H")
-    plot_fn = rundir / "plot.png"
+    plot_fn = (
+        c.paths.run
+        / "plot"
+        / str(var)
+        / cycle.strftime("%Y%m%d")
+        / cycle.strftime("%H")
+        / "plot.png"
+    )
     yield asset(plot_fn, plot_fn.is_file)
     reqs = _statreqs(c, varname, level, cycle)
     yield reqs
