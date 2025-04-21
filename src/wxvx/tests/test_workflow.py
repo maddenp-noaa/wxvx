@@ -3,6 +3,7 @@ Tests for wxvx.workflow.
 """
 
 import os
+from datetime import datetime, timezone
 from pathlib import Path
 from textwrap import dedent
 from threading import Event
@@ -12,7 +13,7 @@ from unittest.mock import ANY, patch
 import pandas as pd
 import xarray as xr
 from iotaa import asset, external, ready, refs
-from pytest import fixture
+from pytest import fixture, mark
 
 from wxvx import variables, workflow
 from wxvx.times import TimeCoords, _cycles, validtimes
@@ -45,9 +46,7 @@ def test_workflow_plots(c, noop):
     cycles = _cycles(start=c.cycles.start, step=c.cycles.step, stop=c.cycles.stop)
     with patch.object(workflow, "_plot", noop):
         val = workflow.plots(c=c)
-    assert len(refs(val)) == len(cycles) * len(
-        list(workflow._varnames_and_levels(c))
-    )  # for 2x SPFH levels
+    assert len(refs(val)) == len(cycles) * len(list(workflow._varnames_and_levels(c)))
 
 
 def test_workflow_stats(c, noop):
@@ -173,7 +172,37 @@ def test_workflow__polyfile(fakefs):
     assert path.read_text().strip() == dedent(expected).strip()
 
 
-def test_workflow__plot(c, fakefs, fs):
+@mark.parametrize(
+    ("varname", "level", "df"),
+    [
+        (
+            "T2M",
+            2,
+            [
+                pd.DataFrame({"MODEL": ["HRRR"], "FCST_LEAD": [60000], "RMSE": [0.5]}),
+                pd.DataFrame({"MODEL": ["GraphHRRR"], "FCST_LEAD": [60000], "RMSE": [0.4]}),
+            ],
+        ),
+        (
+            "REFC",
+            None,
+            [
+                pd.DataFrame(
+                    {"MODEL": ["HRRR"], "FCST_LEAD": [60000], "FCST_THRESH": ">=20", "PODY": [0.5]}
+                ),
+                pd.DataFrame(
+                    {
+                        "MODEL": ["GraphHRRR"],
+                        "FCST_LEAD": [60000],
+                        "FCST_THRESH": ">=30",
+                        "PODY": [0.4],
+                    }
+                ),
+            ],
+        ),
+    ],
+)
+def test_workflow__plot(c, fakefs, fs, varname, level, df):
     @external
     def _stat(x: str):
         yield x
@@ -181,77 +210,20 @@ def test_workflow__plot(c, fakefs, fs):
 
     fs.add_real_directory(os.environ["CONDA_PREFIX"])
     cycles = _cycles(start=c.cycles.start, step=c.cycles.step, stop=c.cycles.stop)
-    varname, level = "T2M", 2
     with (
         patch.object(workflow, "_statreqs") as _statreqs,
         patch.object(workflow.pd, "read_csv") as read_csv,
+        patch("matplotlib.pyplot.xticks") as xticks,
     ):
         _statreqs.return_value = [_stat("foo"), _stat("bar")]
-        read_csv.side_effect = [
-            pd.DataFrame({"MODEL": ["HRRR"], "FCST_LEAD": [60000], "RMSE": [0.5]}),
-            pd.DataFrame({"MODEL": ["GraphHRRR"], "FCST_LEAD": [60000], "RMSE": [0.4]}),
-        ]
+        read_csv.side_effect = df
         os.environ["MPLCONFIGDIR"] = str(fakefs)
         val = workflow._plot(c=c, varname=varname, level=level, cycle=cycles[0])
     path = val.refs
     assert ready(val)
     assert path.is_file()
-
-
-# def test_workflow__plot_config(c, fakefs):
-#     var = variables.Var(name="2t", level_type="heightAboveGround", level=2)
-#     varname, plot_fn, stat_fn = "T2M", f"plot-{var}.png", f"{var}.stat"
-#     kwargs = dict(c=c, rundir=fakefs, varname=varname, var=var, plot_fn=plot_fn, stat_fn=stat_fn)
-#     assert not ready(val := workflow._plot_config(**kwargs, dry_run=True))
-#     assert not refs(val).is_file()
-#     val = workflow._plot_config(**kwargs)
-#     assert ready(val)
-#     config_data = yaml.safe_load(refs(val).read_text())
-#     assert config_data["fcst_var_val_1"] == {varname: ["RMSE"]}
-#     assert config_data["plot_filename"] == plot_fn
-#     assert config_data["stat_input"] == stat_fn
-
-
-# def test_workflow__reformat(c, fakefs, testvars):
-#     @external
-#     def mock(*_args, **_kwargs):
-#         yield "mock"
-#         yield asset(Path("/some/file"), lambda: True)
-
-#     varname = "HGT"
-#     var = testvars[varname]
-#     rundir = fakefs / "run" / "plot" / str(var)
-#     path = rundir / "reformat.data"
-#     taskname = f"Reformatted stats {path}"
-#     with (
-#         patch.object(workflow, "_reformat_config", mock),
-#         patch.object(workflow, "_stat_links", mock),
-#         patch.object(workflow, "mpexec", side_effect=lambda *_: path.touch()) as mpexec,
-#     ):
-#         rundir.mkdir(parents=True)
-#         val = workflow._reformat(c=c, varname=varname, level=900, rundir=rundir)
-#     runscript = str((rundir / refs(val).stem).with_suffix(".sh"))
-#     mpexec.assert_called_once_with(runscript, rundir, taskname)
-#     assert ready(val)
-#     assert path.is_file()
-
-
-# def test_workflow__reformat_config(c, fakefs):
-#     val = workflow._reformat_config(c=c, varname="HGT", rundir=fakefs, dry_run=True)
-#     assert not ready(val)
-#     assert not refs(val).is_file()
-#     val = workflow._reformat_config(c, varname="HGT", rundir=fakefs)
-#     assert ready(val)
-#     assert refs(val).is_file()
-
-
-# def test_workflow__runscript(fakefs):
-#     expected = fakefs / "foo.sh"
-#     assert not expected.is_file()
-#     val = workflow._runscript(basepath=fakefs / "foo.png", content="commands")
-#     assert ready(val)
-#     assert refs(val) == expected
-#     assert expected.is_file()
+    assert read_csv.call_count == 2
+    xticks.assert_called_once_with(ticks=[0, 6, 12], labels=["000", "006", "012"], rotation=90)
 
 
 def test_workflow__stat(c, fakefs, tc):
@@ -322,6 +294,24 @@ def test__statargs(c, statkit):
     ]
 
 
+def test__statargs_with_cycle(c, statkit):
+    cycle = datetime(2024, 12, 19, 18, tzinfo=timezone.utc)
+    with (
+        patch.object(workflow, "_vxvars", return_value={statkit.var: statkit.varname}),
+        patch.object(workflow, "validtimes", return_value=[statkit.tc]),
+    ):
+        statargs = workflow._statargs(
+            c=c,
+            varname=statkit.varname,
+            level=statkit.level,
+            source=statkit.source,
+            cycle=cycle,
+        )
+    assert list(statargs) == [
+        (c, statkit.varname, statkit.tc, statkit.var, statkit.prefix, statkit.source)
+    ]
+
+
 def test__statreqs(c, statkit):
     with (
         patch.object(workflow, "_stat") as _stat,
@@ -329,6 +319,34 @@ def test__statreqs(c, statkit):
         patch.object(workflow, "validtimes", return_value=[statkit.tc]),
     ):
         reqs = workflow._statreqs(c=c, varname=statkit.varname, level=statkit.level)
+    assert len(reqs) == 2
+    assert _stat.call_count == 2
+    args = (c, statkit.varname, statkit.tc, statkit.var)
+    assert _stat.call_args_list[0].args == (
+        *args,
+        f"forecast_gh_{statkit.level_type}_{statkit.level:04d}",
+        Source.FORECAST,
+    )
+    assert _stat.call_args_list[1].args == (
+        *args,
+        f"baseline_gh_{statkit.level_type}_{statkit.level:04d}",
+        Source.BASELINE,
+    )
+
+
+def test__statreqs_with_cycle(c, statkit):
+    cycle = datetime(2024, 12, 19, 18, tzinfo=timezone.utc)
+    with (
+        patch.object(workflow, "_stat") as _stat,
+        patch.object(workflow, "_vxvars", return_value={statkit.var: statkit.varname}),
+        patch.object(workflow, "validtimes", return_value=[statkit.tc]),
+    ):
+        reqs = workflow._statreqs(
+            c=c,
+            varname=statkit.varname,
+            level=statkit.level,
+            cycle=cycle,
+        )
     assert len(reqs) == 2
     assert _stat.call_count == 2
     args = (c, statkit.varname, statkit.tc, statkit.var)

@@ -200,28 +200,40 @@ def _plot(c: Config, cycle: datetime, varname: str, level: float | None):
     reqs = _statreqs(c, varname, level, cycle)
     yield reqs
     meta = _meta(c, varname)
-    stat = meta.met_stat
-    files = [refs(x) for x in reqs]
-    files = [str(file).replace(".stat", f"_{meta.met_linetypes[0]}.txt") for file in files]
+    stat = "RMSE" if "RMSE" in meta.met_stats else "PODY"
+    files = [str(refs(x)).replace(".stat", f"_{LINETYPE[stat]}.txt") for x in reqs]
     leadtimes = [
         "%03d" % (td.total_seconds() // 3600)
         for td in _leadtimes(start=c.leadtimes.start, step=c.leadtimes.step, stop=c.leadtimes.stop)
     ]
-    df_list = []
-    for file in files:
-        tdf = pd.read_csv(file, sep=r"\s+")
-        store = tdf[["MODEL", "FCST_LEAD", stat]]
-        df_list.append(store.tail(1))
-    df_combined = pd.concat(df_list)
-    cyc = cycle.strftime("%Y-%m-%d %H:%M:%S")
-    df_combined["FCST_LEAD"] = df_combined["FCST_LEAD"].apply(
-        lambda x: str(int(x // 10000)).zfill(3)
-    )
-    df_combined["FCST_LEAD"] = df_combined["FCST_LEAD"].astype(int)
+    plot_rows = [
+        pd.read_csv(file, sep=r"\s+")[["MODEL", "FCST_LEAD", "FCST_THRESH", stat]] for file in files
+    ]
+    plot_data = pd.concat(plot_rows)
+    plot_data["FCST_LEAD"] = plot_data["FCST_LEAD"] // 10000
     plt.figure(figsize=(10, 6))
     sns.set(style="darkgrid")
-    sns.lineplot(data=df_combined, x="FCST_LEAD", y=stat, hue="MODEL", marker="o")
-    plt.title(f"{varname} {level} {stat}, {c.forecast.name} v {c.baseline.name}: {cyc}")
+    if stat == "PODY":
+        plot_data["LABEL"] = plot_data.apply(
+            lambda row: f"{row['MODEL']} {row['FCST_THRESH']}", axis=1
+        )
+    sns.lineplot(
+        data=plot_data,
+        x="FCST_LEAD",
+        y=stat,
+        hue="MODEL" if stat == "RMSE" else "LABEL",
+        marker="o",
+    )
+    plt.title(
+        "%s %s %s vs %s %s"
+        % (
+            meta.description.format(level=var.level),
+            stat,
+            c.forecast.name,
+            c.baseline.name,
+            cycle.strftime("%Y-%m-%d %H:%M:%S"),
+        )
+    )
     plt.xlabel("Leadtime")
     plt.ylabel(f"{stat} ({meta.units})")
     plt.xticks(ticks=[int(lt) for lt in leadtimes], labels=leadtimes, rotation=90)
