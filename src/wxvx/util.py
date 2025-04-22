@@ -4,8 +4,9 @@ import logging
 import sys
 from contextlib import contextmanager
 from importlib import resources
-from multiprocessing import Process
+from multiprocessing.pool import Pool
 from pathlib import Path
+from signal import SIG_IGN, SIGINT, signal
 from subprocess import run
 from typing import TYPE_CHECKING, NoReturn, cast
 
@@ -20,6 +21,8 @@ LINETYPE = {
     "PODY": "cts",
     "RMSE": "cnt",
 }
+
+POOL = Pool(initializer=signal, initargs=(SIGINT, SIG_IGN))
 
 
 class WXVXError(Exception): ...
@@ -45,9 +48,7 @@ def mpexec(cmd: str, rundir: Path, taskname: str, env: dict | None = None) -> No
     kwargs = {"check": False, "cwd": rundir, "shell": True}
     if env:
         kwargs["env"] = env
-    p = Process(target=run, args=[cmd], kwargs=kwargs)
-    p.start()
-    p.join()
+    POOL.apply(run, [cmd], kwargs)
 
 
 def resource(relpath: str | Path) -> str:

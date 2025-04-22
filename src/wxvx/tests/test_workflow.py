@@ -199,6 +199,7 @@ def test_workflow__polyfile(fakefs):
     assert path.read_text().strip() == dedent(expected).strip()
 
 
+@mark.filterwarnings("ignore:Starting a Matplotlib GUI")
 @mark.parametrize("dictkey", ["foo", "bar"])
 def test_workflow__plot(c, dictkey, fakefs, fs):
     @external
