@@ -4,8 +4,9 @@ import logging
 import sys
 from contextlib import contextmanager
 from importlib import resources
-from multiprocessing import Process
+from multiprocessing import Pool
 from pathlib import Path
+from signal import SIG_IGN, SIGINT, signal
 from subprocess import run
 from typing import TYPE_CHECKING, NoReturn, cast
 
@@ -45,9 +46,8 @@ def mpexec(cmd: str, rundir: Path, taskname: str, env: dict | None = None) -> No
     kwargs = {"check": False, "cwd": rundir, "shell": True}
     if env:
         kwargs["env"] = env
-    p = Process(target=run, args=[cmd], kwargs=kwargs)
-    p.start()
-    p.join()
+    with Pool(initializer=signal, initargs=(SIGINT, SIG_IGN)) as pool:
+        pool.apply(run, [cmd], kwargs)
 
 
 def resource(relpath: str | Path) -> str:
