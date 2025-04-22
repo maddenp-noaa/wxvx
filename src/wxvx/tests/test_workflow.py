@@ -2,20 +2,50 @@
 Tests for wxvx.workflow.
 """
 
+import os
+from datetime import datetime, timezone
 from pathlib import Path
 from textwrap import dedent
 from threading import Event
 from types import SimpleNamespace as ns
 from unittest.mock import ANY, patch
 
+import pandas as pd
 import xarray as xr
 from iotaa import asset, external, ready, refs
-from pytest import fixture
+from pytest import fixture, mark
 
 from wxvx import variables, workflow
-from wxvx.times import TimeCoords, validtimes
+from wxvx.times import TimeCoords, _cycles, validtimes
 from wxvx.types import Source
 from wxvx.variables import Var
+
+DF = {
+    "foo": (
+        "T2M",
+        2,
+        [
+            pd.DataFrame(
+                {"MODEL": ["foo"], "FCST_LEAD": [60000], "FCST_THRESH": None, "RMSE": [0.5]}
+            ),
+            pd.DataFrame(
+                {"MODEL": ["bar"], "FCST_LEAD": [60000], "FCST_THRESH": None, "RMSE": [0.4]}
+            ),
+        ],
+    ),
+    "bar": (
+        "REFC",
+        None,
+        [
+            pd.DataFrame(
+                {"MODEL": ["foo"], "FCST_LEAD": [60000], "FCST_THRESH": ">=20", "PODY": [0.5]}
+            ),
+            pd.DataFrame(
+                {"MODEL": ["bar"], "FCST_LEAD": [60000], "FCST_THRESH": ">=30", "PODY": [0.4]}
+            ),
+        ],
+    ),
+}
 
 # Task Tests
 
@@ -37,6 +67,13 @@ def test_workflow_grids_baseline(c, n_grids, noop):
 def test_workflow_grids_forecast(c, n_grids, noop):
     with patch.object(workflow, "_grid_nc", noop):
         assert len(refs(workflow.grids_forecast(c=c))) == n_grids
+
+
+def test_workflow_plots(c, noop):
+    cycles = _cycles(start=c.cycles.start, step=c.cycles.step, stop=c.cycles.stop)
+    with patch.object(workflow, "_plot", noop):
+        val = workflow.plots(c=c)
+    assert len(refs(val)) == len(cycles) * len(list(workflow._varnames_and_levels(c)))
 
 
 def test_workflow_stats(c, noop):
@@ -162,6 +199,32 @@ def test_workflow__polyfile(fakefs):
     assert path.read_text().strip() == dedent(expected).strip()
 
 
+@mark.parametrize("dictkey", ["foo", "bar"])
+def test_workflow__plot(c, dictkey, fakefs, fs):
+    @external
+    def _stat(x: str):
+        yield x
+        yield asset(fakefs / f"{x}.stat", lambda: True)
+
+    fs.add_real_directory(os.environ["CONDA_PREFIX"])
+    cycles = _cycles(start=c.cycles.start, step=c.cycles.step, stop=c.cycles.stop)
+    varname, level, df = DF[dictkey]
+    with (
+        patch.object(workflow, "_statreqs") as _statreqs,
+        patch.object(workflow.pd, "read_csv") as read_csv,
+        patch("matplotlib.pyplot.xticks") as xticks,
+    ):
+        _statreqs.return_value = [_stat("foo"), _stat("bar")]
+        read_csv.side_effect = df
+        os.environ["MPLCONFIGDIR"] = str(fakefs)
+        val = workflow._plot(c=c, varname=varname, level=level, cycle=cycles[0])
+    path = val.refs
+    assert ready(val)
+    assert path.is_file()
+    assert read_csv.call_count == 2
+    xticks.assert_called_once_with(ticks=[0, 6, 12], labels=["000", "006", "012"], rotation=90)
+
+
 def test_workflow__stat(c, fakefs, tc):
     @external
     def mock(*_args, **_kwargs):
@@ -217,26 +280,32 @@ def test__meta(c):
     assert meta.level_type == "isobaricInhPa"
 
 
-def test__statargs(c, statkit):
+@mark.parametrize("cycle", [datetime(2024, 12, 19, 18, tzinfo=timezone.utc), None])
+def test__statargs(c, statkit, cycle):
     with (
         patch.object(workflow, "_vxvars", return_value={statkit.var: statkit.varname}),
         patch.object(workflow, "validtimes", return_value=[statkit.tc]),
     ):
         statargs = workflow._statargs(
-            c=c, varname=statkit.varname, level=statkit.level, source=statkit.source
+            c=c,
+            varname=statkit.varname,
+            level=statkit.level,
+            source=statkit.source,
+            cycle=cycle,
         )
     assert list(statargs) == [
         (c, statkit.varname, statkit.tc, statkit.var, statkit.prefix, statkit.source)
     ]
 
 
-def test__statreqs(c, statkit):
+@mark.parametrize("cycle", [datetime(2024, 12, 19, 18, tzinfo=timezone.utc), None])
+def test__statreqs(c, statkit, cycle):
     with (
         patch.object(workflow, "_stat") as _stat,
         patch.object(workflow, "_vxvars", return_value={statkit.var: statkit.varname}),
         patch.object(workflow, "validtimes", return_value=[statkit.tc]),
     ):
-        reqs = workflow._statreqs(c=c, varname=statkit.varname, level=statkit.level)
+        reqs = workflow._statreqs(c=c, varname=statkit.varname, level=statkit.level, cycle=cycle)
     assert len(reqs) == 2
     assert _stat.call_count == 2
     args = (c, statkit.varname, statkit.tc, statkit.var)

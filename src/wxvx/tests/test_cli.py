@@ -79,6 +79,7 @@ def test_cli_main_task_list(caplog):
           grids
           grids_baseline
           grids_forecast
+          plots
           stats
         """
         for line in dedent(expected).strip().split("\n"):

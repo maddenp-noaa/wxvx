@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 from functools import cache
 from itertools import pairwise, product
 from pathlib import Path
@@ -10,13 +11,16 @@ from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 from warnings import catch_warnings, simplefilter
 
+import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
 import xarray as xr
-from iotaa import Node, asset, external, task, tasks
+from iotaa import Node, asset, external, refs, task, tasks
 
 from wxvx.metconf import render
 from wxvx.net import fetch
-from wxvx.times import TimeCoords, tcinfo, validtimes
-from wxvx.types import Source
+from wxvx.times import TimeCoords, _cycles, _leadtimes, tcinfo, validtimes
+from wxvx.types import Cycles, Source
 from wxvx.util import LINETYPE, atomic, mpexec
 from wxvx.variables import HRRR, VARMETA, Var, da_construct, da_select, ds_construct, metlevel
 
@@ -59,6 +63,18 @@ def grids_forecast(c: Config):
     taskname = "Forecast grids for %s" % c.forecast.path
     yield taskname
     yield grids(c, baseline=False, forecast=True)
+
+
+@tasks
+def plots(c: Config):
+    taskname = "Plots for %s" % c.forecast.path
+    yield taskname
+    cycles = _cycles(start=c.cycles.start, step=c.cycles.step, stop=c.cycles.stop)
+    yield [
+        _plot(c, cycle, varname, level)
+        for cycle in cycles
+        for varname, level in _varnames_and_levels(c)
+    ]
 
 
 @tasks
@@ -174,6 +190,62 @@ def _polyfile(path: Path, mask: tuple[tuple[float, float]]):
 
 
 @task
+def _plot(c: Config, cycle: datetime, varname: str, level: float | None):
+    meta = _meta(c, varname)
+    var = _var(c, varname, level)
+    taskname = "Plot %s %s" % (meta.description.format(level=var.level), cycle)
+    yield taskname
+    plot_fn = (
+        c.paths.run / "plots" / cycle.strftime("%Y%m%d") / cycle.strftime("%H") / f"{var}_plot.png"
+    )
+    yield asset(plot_fn, plot_fn.is_file)
+    reqs = _statreqs(c, varname, level, cycle)
+    yield reqs
+    stat = "RMSE" if "RMSE" in meta.met_stats else "PODY"
+    files = [str(refs(x)).replace(".stat", f"_{LINETYPE[stat]}.txt") for x in reqs]
+    leadtimes = [
+        "%03d" % (td.total_seconds() // 3600)
+        for td in _leadtimes(start=c.leadtimes.start, step=c.leadtimes.step, stop=c.leadtimes.stop)
+    ]
+    plot_rows = [
+        pd.read_csv(file, sep=r"\s+")[["MODEL", "FCST_LEAD", "FCST_THRESH", stat]] for file in files
+    ]
+    plot_data = pd.concat(plot_rows)
+    plot_data["FCST_LEAD"] = plot_data["FCST_LEAD"] // 10000
+    plt.figure(figsize=(10, 6))
+    sns.set(style="darkgrid")
+    if stat == "PODY":
+        plot_data["LABEL"] = plot_data.apply(
+            lambda row: f"{row['MODEL']}, {row['FCST_THRESH']}", axis=1
+        )
+    sns.lineplot(
+        data=plot_data,
+        x="FCST_LEAD",
+        y=stat,
+        hue="MODEL" if stat == "RMSE" else "LABEL",
+        marker="o",
+    )
+    plt.title(
+        "%s %s %s vs %s at %s"
+        % (
+            meta.description.format(level=var.level),
+            stat,
+            c.forecast.name,
+            c.baseline.name,
+            cycle.strftime("%Y%m%d %HZ"),
+        )
+    )
+    plt.xlabel("Leadtime")
+    plt.ylabel(f"{stat} ({meta.units})")
+    plt.xticks(ticks=[int(lt) for lt in leadtimes], labels=leadtimes, rotation=90)
+    plt.legend(title="Model")
+    plt.tight_layout()
+    plot_fn.parent.mkdir(parents=True, exist_ok=True)
+    plt.savefig(plot_fn)
+    plt.close()
+
+
+@task
 def _stat(c: Config, varname: str, tc: TimeCoords, var: Var, prefix: str, source: Source):
     yyyymmdd, hh, leadtime = tcinfo(tc)
     source_name = {Source.BASELINE: "baseline", Source.FORECAST: "forecast"}[source]
@@ -261,19 +333,28 @@ def _meta(c: Config, varname: str) -> VarMeta:
     return VARMETA[c.variables[varname]["name"]]
 
 
-def _statargs(c: Config, varname: str, level: float | None, source: Source) -> Iterator:
+def _statargs(
+    c: Config, varname: str, level: float | None, source: Source, cycle: datetime | None = None
+) -> Iterator:
+    cycles = (
+        Cycles(start := cycle.strftime("%Y-%m-%dT%H:%M:%S"), step="00:00:00", stop=start)
+        if isinstance(cycle, datetime)
+        else c.cycles
+    )
     name = (c.baseline if source == Source.BASELINE else c.forecast).name.lower()
     prefix = lambda var: "%s_%s" % (name, str(var).replace("-", "_"))
     args = [
         (c, vn, tc, var, prefix(var), source)
-        for (var, vn), tc in product(_vxvars(c).items(), validtimes(c.cycles, c.leadtimes))
+        for (var, vn), tc in product(_vxvars(c).items(), validtimes(cycles, c.leadtimes))
         if vn == varname and var.level == level
     ]
     return iter(sorted(args))
 
 
-def _statreqs(c: Config, varname: str, level: float | None) -> Sequence[Node]:
-    genreqs = lambda source: [_stat(*args) for args in _statargs(c, varname, level, source)]
+def _statreqs(
+    c: Config, varname: str, level: float | None, cycle: datetime | None = None
+) -> Sequence[Node]:
+    genreqs = lambda source: [_stat(*args) for args in _statargs(c, varname, level, source, cycle)]
     reqs: Sequence[Node] = genreqs(Source.FORECAST)
     if c.baseline.compare:
         reqs = [*reqs, *genreqs(Source.BASELINE)]
