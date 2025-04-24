@@ -26,24 +26,78 @@ DF = {
         2,
         [
             pd.DataFrame(
-                {"MODEL": ["foo"], "FCST_LEAD": [60000], "FCST_THRESH": None, "RMSE": [0.5]}
+                {
+                    "MODEL": ["foo"],
+                    "FCST_LEAD": [60000],
+                    "FCST_THRESH": None,
+                    "INTERP_PNTS": 1,
+                    "RMSE": [0.5],
+                }
             ),
             pd.DataFrame(
-                {"MODEL": ["bar"], "FCST_LEAD": [60000], "FCST_THRESH": None, "RMSE": [0.4]}
+                {
+                    "MODEL": ["bar"],
+                    "FCST_LEAD": [60000],
+                    "FCST_THRESH": None,
+                    "INTERP_PNTS": 1,
+                    "RMSE": [0.4],
+                }
             ),
         ],
+        "RMSE",
+        None,
     ),
     "bar": (
         "REFC",
         None,
         [
             pd.DataFrame(
-                {"MODEL": ["foo"], "FCST_LEAD": [60000], "FCST_THRESH": ">=20", "PODY": [0.5]}
+                {
+                    "MODEL": ["foo"],
+                    "FCST_LEAD": [60000],
+                    "FCST_THRESH": ">=20",
+                    "INTERP_PNTS": 1,
+                    "PODY": [0.5],
+                }
             ),
             pd.DataFrame(
-                {"MODEL": ["bar"], "FCST_LEAD": [60000], "FCST_THRESH": ">=30", "PODY": [0.4]}
+                {
+                    "MODEL": ["bar"],
+                    "FCST_LEAD": [60000],
+                    "FCST_THRESH": ">=30",
+                    "INTERP_PNTS": 1,
+                    "PODY": [0.4],
+                }
             ),
         ],
+        "PODY",
+        None,
+    ),
+    "baz": (
+        "REFC",
+        None,
+        [
+            pd.DataFrame(
+                {
+                    "MODEL": ["foo"],
+                    "FCST_LEAD": [60000],
+                    "FCST_THRESH": ">=20",
+                    "INTERP_PNTS": 9,
+                    "FSS": [0.5],
+                }
+            ),
+            pd.DataFrame(
+                {
+                    "MODEL": ["bar"],
+                    "FCST_LEAD": [60000],
+                    "FCST_THRESH": ">=30",
+                    "INTERP_PNTS": 9,
+                    "FSS": [0.4],
+                }
+            ),
+        ],
+        "FSS",
+        9,
     ),
 }
 
@@ -73,7 +127,10 @@ def test_workflow_plots(c, noop):
     cycles = _cycles(start=c.cycles.start, step=c.cycles.step, stop=c.cycles.stop)
     with patch.object(workflow, "_plot", noop):
         val = workflow.plots(c=c)
-    assert len(refs(val)) == len(cycles) * len(list(workflow._varnames_and_levels(c)))
+    assert len(refs(val)) == len(cycles) * sum(
+        len(list(workflow._stats_and_widths(c, varname)))
+        for varname, _ in workflow._varnames_and_levels(c)
+    )
 
 
 def test_workflow_stats(c, noop):
@@ -200,7 +257,7 @@ def test_workflow__polyfile(fakefs):
 
 
 @mark.filterwarnings("ignore:Starting a Matplotlib GUI")
-@mark.parametrize("dictkey", ["foo", "bar"])
+@mark.parametrize("dictkey", ["foo", "bar", "baz"])
 def test_workflow__plot(c, dictkey, fakefs, fs):
     @external
     def _stat(x: str):
@@ -209,7 +266,7 @@ def test_workflow__plot(c, dictkey, fakefs, fs):
 
     fs.add_real_directory(os.environ["CONDA_PREFIX"])
     cycles = _cycles(start=c.cycles.start, step=c.cycles.step, stop=c.cycles.stop)
-    varname, level, df = DF[dictkey]
+    varname, level, df, stat, width = DF[dictkey]
     with (
         patch.object(workflow, "_statreqs") as _statreqs,
         patch.object(workflow.pd, "read_csv") as read_csv,
@@ -218,7 +275,9 @@ def test_workflow__plot(c, dictkey, fakefs, fs):
         _statreqs.return_value = [_stat("foo"), _stat("bar")]
         read_csv.side_effect = df
         os.environ["MPLCONFIGDIR"] = str(fakefs)
-        val = workflow._plot(c=c, varname=varname, level=level, cycle=cycles[0])
+        val = workflow._plot(
+            c=c, varname=varname, level=level, cycle=cycles[0], stat=stat, width=width
+        )
     path = val.refs
     assert ready(val)
     assert path.is_file()

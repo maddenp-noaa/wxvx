@@ -71,9 +71,10 @@ def plots(c: Config):
     yield taskname
     cycles = _cycles(start=c.cycles.start, step=c.cycles.step, stop=c.cycles.stop)
     yield [
-        _plot(c, cycle, varname, level)
+        _plot(c, cycle, varname, level, stat, width)
         for cycle in cycles
         for varname, level in _varnames_and_levels(c)
+        for stat, width in _stats_and_widths(c, varname)
     ]
 
 
@@ -190,46 +191,75 @@ def _polyfile(path: Path, mask: tuple[tuple[float, float]]):
 
 
 @task
-def _plot(c: Config, cycle: datetime, varname: str, level: float | None):
+def _plot(
+    c: Config, cycle: datetime, varname: str, level: float | None, stat: str, width: int | None
+):
     meta = _meta(c, varname)
     var = _var(c, varname, level)
-    taskname = "Plot %s %s" % (meta.description.format(level=var.level), cycle)
-    yield taskname
-    plot_fn = (
-        c.paths.run / "plots" / cycle.strftime("%Y%m%d") / cycle.strftime("%H") / f"{var}_plot.png"
+    taskname = "Plot %s width %s %s %s" % (
+        meta.description.format(level=var.level),
+        width,
+        stat,
+        cycle,
     )
+    yield taskname
+    if width is None:
+        plot_fn = (
+            c.paths.run
+            / "plots"
+            / cycle.strftime("%Y%m%d")
+            / cycle.strftime("%H")
+            / f"{var}_{stat}_plot.png"
+        )
+    else:
+        plot_fn = (
+            c.paths.run
+            / "plots"
+            / cycle.strftime("%Y%m%d")
+            / cycle.strftime("%H")
+            / f"{var}_{stat}_width{width}_plot.png"
+        )
     yield asset(plot_fn, plot_fn.is_file)
     reqs = _statreqs(c, varname, level, cycle)
     yield reqs
-    stat = "RMSE" if "RMSE" in meta.met_stats else "PODY"
     files = [str(refs(x)).replace(".stat", f"_{LINETYPE[stat]}.txt") for x in reqs]
     leadtimes = [
         "%03d" % (td.total_seconds() // 3600)
         for td in _leadtimes(start=c.leadtimes.start, step=c.leadtimes.step, stop=c.leadtimes.stop)
     ]
     plot_rows = [
-        pd.read_csv(file, sep=r"\s+")[["MODEL", "FCST_LEAD", "FCST_THRESH", stat]] for file in files
+        pd.read_csv(file, sep=r"\s+")[["MODEL", "FCST_LEAD", "FCST_THRESH", "INTERP_PNTS", stat]]
+        for file in files
     ]
     plot_data = pd.concat(plot_rows)
     plot_data["FCST_LEAD"] = plot_data["FCST_LEAD"] // 10000
-    plt.figure(figsize=(10, 6))
+    plot_data["INTERP_PNTS"] = plot_data["INTERP_PNTS"].astype(int)
+    if width:
+        plot_data = plot_data[plot_data["INTERP_PNTS"] == width**2]
     sns.set(style="darkgrid")
-    if stat == "PODY":
+    fig, ax = plt.subplots(figsize=(10, 6), constrained_layout=True)
+    if LINETYPE[stat] in ["cts", "nbrcnt"]:
         plot_data["LABEL"] = plot_data.apply(
-            lambda row: f"{row['MODEL']}, {row['FCST_THRESH']}", axis=1
+            lambda row: f"{row['MODEL']}, threshold: {row['FCST_THRESH']}", axis=1
         )
+    hue_values = (
+        plot_data["MODEL"].unique() if LINETYPE[stat] == "cnt" else plot_data["LABEL"].unique()
+    )
     sns.lineplot(
         data=plot_data,
         x="FCST_LEAD",
         y=stat,
-        hue="MODEL" if stat == "RMSE" else "LABEL",
+        hue="MODEL" if LINETYPE[stat] == "cnt" else "LABEL",
         marker="o",
+        palette=sns.color_palette("hls", len(hue_values)),
+        ax=ax,
     )
     plt.title(
-        "%s %s %s vs %s at %s"
+        "%s %s %s %s vs %s at %s"
         % (
             meta.description.format(level=var.level),
             stat,
+            f"(width={width})" if width else "",
             c.forecast.name,
             c.baseline.name,
             cycle.strftime("%Y%m%d %HZ"),
@@ -238,10 +268,17 @@ def _plot(c: Config, cycle: datetime, varname: str, level: float | None):
     plt.xlabel("Leadtime")
     plt.ylabel(f"{stat} ({meta.units})")
     plt.xticks(ticks=[int(lt) for lt in leadtimes], labels=leadtimes, rotation=90)
-    plt.legend(title="Model")
-    plt.tight_layout()
+    ax.legend(
+        title="Model",
+        bbox_to_anchor=(1.02, 0.9),
+        loc="upper left",
+        borderaxespad=0.0,
+        frameon=True,
+    )
+    # plt.tight_layout(rect=(0, 0, 0.85, 1))
+    # plt.tight_layout()
     plot_fn.parent.mkdir(parents=True, exist_ok=True)
-    plt.savefig(plot_fn)
+    plt.savefig(plot_fn, bbox_inches="tight")
     plt.close()
 
 
@@ -373,6 +410,24 @@ def _varnames_and_levels(c: Config) -> Iterator[tuple[str, float | None]]:
         for level in attrs.get("levels", [None])
     )
 
+
+# def _stats_and_widths(c: Config, varname) -> Iterator[tuple[str, int | None]]:
+#     meta = _meta(c, varname)
+#     nbrhd_widths = meta.nbrhd_width if LINETYPE[stat] == "nbrcnt" else [None]
+#     return iter(
+#         (stat, width)
+#         for stat in meta.met_stats
+#         for width in (nbrhd_widths if isinstance(nbrhd_widths, list) else [None])
+#     )
+
+
+def _stats_and_widths(c: Config, varname) -> Iterator[tuple[str, int | None]]:
+    meta = _meta(c, varname)
+    return iter(
+        (stat, width)
+        for stat in meta.met_stats
+        for width in (meta.nbrhd_width if LINETYPE[stat] == "nbrcnt" else [None])
+    )
 
 @cache
 def _vxvars(c: Config) -> dict[Var, str]:
