@@ -8,7 +8,7 @@ from pathlib import Path
 from textwrap import dedent
 from threading import Event
 from types import SimpleNamespace as ns
-from unittest.mock import ANY, patch
+from unittest.mock import ANY, MagicMock, patch
 
 import pandas as pd
 import xarray as xr
@@ -25,24 +25,8 @@ DF = {
         "T2M",
         2,
         [
-            pd.DataFrame(
-                {
-                    "MODEL": ["foo"],
-                    "FCST_LEAD": [60000],
-                    "FCST_THRESH": None,
-                    "INTERP_PNTS": 1,
-                    "RMSE": [0.5],
-                }
-            ),
-            pd.DataFrame(
-                {
-                    "MODEL": ["bar"],
-                    "FCST_LEAD": [60000],
-                    "FCST_THRESH": None,
-                    "INTERP_PNTS": 1,
-                    "RMSE": [0.4],
-                }
-            ),
+            pd.DataFrame({"MODEL": "foo", "FCST_LEAD": [60000], "RMSE": [0.5]}),
+            pd.DataFrame({"MODEL": "bar", "FCST_LEAD": [60000], "RMSE": [0.4]}),
         ],
         "RMSE",
         None,
@@ -52,22 +36,10 @@ DF = {
         None,
         [
             pd.DataFrame(
-                {
-                    "MODEL": ["foo"],
-                    "FCST_LEAD": [60000],
-                    "FCST_THRESH": ">=20",
-                    "INTERP_PNTS": 1,
-                    "PODY": [0.5],
-                }
+                {"MODEL": "foo", "FCST_LEAD": [60000], "PODY": [0.5], "FCST_THRESH": ">=20"}
             ),
             pd.DataFrame(
-                {
-                    "MODEL": ["bar"],
-                    "FCST_LEAD": [60000],
-                    "FCST_THRESH": ">=30",
-                    "INTERP_PNTS": 1,
-                    "PODY": [0.4],
-                }
+                {"MODEL": "bar", "FCST_LEAD": [60000], "PODY": [0.4], "FCST_THRESH": ">=30"}
             ),
         ],
         "PODY",
@@ -79,25 +51,25 @@ DF = {
         [
             pd.DataFrame(
                 {
-                    "MODEL": ["foo"],
+                    "MODEL": "foo",
                     "FCST_LEAD": [60000],
+                    "FSS": [0.5],
                     "FCST_THRESH": ">=20",
                     "INTERP_PNTS": 9,
-                    "FSS": [0.5],
                 }
             ),
             pd.DataFrame(
                 {
-                    "MODEL": ["bar"],
+                    "MODEL": "bar",
                     "FCST_LEAD": [60000],
+                    "FSS": [0.4],
                     "FCST_THRESH": ">=30",
                     "INTERP_PNTS": 9,
-                    "FSS": [0.4],
                 }
             ),
         ],
         "FSS",
-        9,
+        3,
     ),
 }
 
@@ -256,7 +228,6 @@ def test_workflow__polyfile(fakefs):
     assert path.read_text().strip() == dedent(expected).strip()
 
 
-@mark.filterwarnings("ignore:Starting a Matplotlib GUI")
 @mark.parametrize("dictkey", ["foo", "bar", "baz"])
 def test_workflow__plot(c, dictkey, fakefs, fs):
     @external
@@ -340,6 +311,28 @@ def test__meta(c):
     assert meta.level_type == "isobaricInhPa"
 
 
+@mark.parametrize("dictkey", ["foo", "bar", "baz"])
+def test_workflow__prepare_plot_data(dictkey):
+    varname, level, dfs, stat, width = DF[dictkey]
+    reqs = [MagicMock(), MagicMock()]
+    with (
+        patch("iotaa.refs", side_effect=lambda x: f"{x}.stat"),
+        patch("wxvx.workflow.pd.read_csv", side_effect=dfs),
+    ):
+        tdf = workflow._prepare_plot_data(reqs=reqs, stat=stat, width=width)
+    assert isinstance(tdf, pd.DataFrame)
+    assert stat in tdf.columns
+    assert "FCST_LEAD" in tdf.columns
+    assert all(tdf["FCST_LEAD"] == 6)
+    if stat == "PODY":
+        assert "FCST_THRESH" in tdf.columns
+        assert "LABEL" in tdf.columns
+    if stat == "REFC":
+        assert width is not None
+        assert "INTERP_PNTS" in tdf.columns
+        assert tdf["INTERP_PNTS"].eq(width**2).all()
+
+
 @mark.parametrize("cycle", [datetime(2024, 12, 19, 18, tzinfo=timezone.utc), None])
 def test__statargs(c, statkit, cycle):
     with (
@@ -379,6 +372,19 @@ def test__statreqs(c, statkit, cycle):
         f"baseline_gh_{statkit.level_type}_{statkit.level:04d}",
         Source.BASELINE,
     )
+
+
+def test__stats_and_widths(c):
+    assert list(workflow._stats_and_widths(c=c, varname="REFC")) == [
+        ("FSS", 3),
+        ("FSS", 5),
+        ("FSS", 11),
+        ("PODY", None),
+    ]
+    assert list(workflow._stats_and_widths(c=c, varname="SPFH")) == [
+        ("ME", None),
+        ("RMSE", None),
+    ]
 
 
 def test__var(c):
