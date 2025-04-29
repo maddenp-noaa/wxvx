@@ -23,7 +23,7 @@ from iotaa import Node, asset, external, refs, task, tasks
 
 from wxvx.metconf import render
 from wxvx.net import fetch
-from wxvx.times import TimeCoords, _cycles, _leadtimes, hh, tcinfo, validtimes, yyyymmdd
+from wxvx.times import TimeCoords, gen_cycles, gen_leadtimes, gen_validtimes, hh, tcinfo, yyyymmdd
 from wxvx.types import Cycles, Source
 from wxvx.util import LINETYPE, atomic, mpexec
 from wxvx.variables import HRRR, VARMETA, Var, da_construct, da_select, ds_construct, metlevel
@@ -42,7 +42,7 @@ def grids(c: Config, baseline: bool = True, forecast: bool = True):
     yield taskname
     reqs: list[Node] = []
     for var, varname in _vxvars(c).items():
-        for tc in validtimes(c.cycles, c.leadtimes):
+        for tc in gen_validtimes(c.cycles, c.leadtimes):
             if forecast:
                 forecast_grid = _grid_nc(c, varname, tc, var)
                 reqs.append(forecast_grid)
@@ -73,10 +73,9 @@ def grids_forecast(c: Config):
 def plots(c: Config):
     taskname = "Plots for %s" % c.forecast.path
     yield taskname
-    cycles = _cycles(start=c.cycles.start, step=c.cycles.step, stop=c.cycles.stop)
     yield [
         _plot(c, cycle, varname, level, stat, width)
-        for cycle in cycles
+        for cycle in gen_cycles(start=c.cycles.start, step=c.cycles.step, stop=c.cycles.stop)
         for varname, level in _varnames_and_levels(c)
         for stat, width in _stats_and_widths(c, varname)
     ]
@@ -211,7 +210,9 @@ def _plot(
     yield reqs
     leadtimes = [
         "%03d" % (td.total_seconds() // 3600)
-        for td in _leadtimes(start=c.leadtimes.start, step=c.leadtimes.step, stop=c.leadtimes.stop)
+        for td in gen_leadtimes(
+            start=c.leadtimes.start, step=c.leadtimes.step, stop=c.leadtimes.stop
+        )
     ]
     plot_data = _prepare_plot_data(reqs, stat, width)
     sns.set(style="darkgrid")
@@ -351,7 +352,7 @@ def _statargs(
     prefix = lambda var: "%s_%s" % (name, str(var).replace("-", "_"))
     args = [
         (c, vn, tc, var, prefix(var), source)
-        for (var, vn), tc in product(_vxvars(c).items(), validtimes(cycles, c.leadtimes))
+        for (var, vn), tc in product(_vxvars(c).items(), gen_validtimes(cycles, c.leadtimes))
         if vn == varname and var.level == level
     ]
     return iter(sorted(args))
