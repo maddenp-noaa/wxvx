@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterator
 from datetime import datetime
 from functools import cache
-from itertools import pairwise, product
+from itertools import chain, pairwise, product
 from pathlib import Path
 from stat import S_IEXEC
 from textwrap import dedent
@@ -11,6 +12,9 @@ from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 from warnings import catch_warnings, simplefilter
 
+import matplotlib as mpl
+
+mpl.use("Agg")
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
@@ -19,7 +23,7 @@ from iotaa import Node, asset, external, refs, task, tasks
 
 from wxvx.metconf import render
 from wxvx.net import fetch
-from wxvx.times import TimeCoords, _cycles, _leadtimes, tcinfo, validtimes
+from wxvx.times import TimeCoords, _cycles, _leadtimes, hh, tcinfo, validtimes, yyyymmdd
 from wxvx.types import Cycles, Source
 from wxvx.util import LINETYPE, atomic, mpexec
 from wxvx.variables import HRRR, VARMETA, Var, da_construct, da_select, ds_construct, metlevel
@@ -71,9 +75,10 @@ def plots(c: Config):
     yield taskname
     cycles = _cycles(start=c.cycles.start, step=c.cycles.step, stop=c.cycles.stop)
     yield [
-        _plot(c, cycle, varname, level)
+        _plot(c, cycle, varname, level, stat, width)
         for cycle in cycles
         for varname, level in _varnames_and_levels(c)
+        for stat, width in _stats_and_widths(c, varname)
     ]
 
 
@@ -190,58 +195,39 @@ def _polyfile(path: Path, mask: tuple[tuple[float, float]]):
 
 
 @task
-def _plot(c: Config, cycle: datetime, varname: str, level: float | None):
+def _plot(
+    c: Config, cycle: datetime, varname: str, level: float | None, stat: str, width: int | None
+):
     meta = _meta(c, varname)
     var = _var(c, varname, level)
-    taskname = "Plot %s %s" % (meta.description.format(level=var.level), cycle)
+    desc = meta.description.format(level=var.level)
+    cyclestr = f"{yyyymmdd(cycle)} {hh(cycle)}Z"
+    taskname = f"Plot {desc}{' width ' + str(width) if width else ''} {stat} at {cyclestr}"
     yield taskname
-    plot_fn = (
-        c.paths.run / "plots" / cycle.strftime("%Y%m%d") / cycle.strftime("%H") / f"{var}_plot.png"
-    )
+    rundir = c.paths.run / "plots" / yyyymmdd(cycle) / hh(cycle)
+    plot_fn = rundir / f"{var}_{stat}{'_width_' + str(width) if width else ''}_plot.png"
     yield asset(plot_fn, plot_fn.is_file)
     reqs = _statreqs(c, varname, level, cycle)
     yield reqs
-    stat = "RMSE" if "RMSE" in meta.met_stats else "PODY"
-    files = [str(refs(x)).replace(".stat", f"_{LINETYPE[stat]}.txt") for x in reqs]
     leadtimes = [
         "%03d" % (td.total_seconds() // 3600)
         for td in _leadtimes(start=c.leadtimes.start, step=c.leadtimes.step, stop=c.leadtimes.stop)
     ]
-    plot_rows = [
-        pd.read_csv(file, sep=r"\s+")[["MODEL", "FCST_LEAD", "FCST_THRESH", stat]] for file in files
-    ]
-    plot_data = pd.concat(plot_rows)
-    plot_data["FCST_LEAD"] = plot_data["FCST_LEAD"] // 10000
-    plt.figure(figsize=(10, 6))
+    plot_data = _prepare_plot_data(reqs, stat, width)
     sns.set(style="darkgrid")
-    if stat == "PODY":
-        plot_data["LABEL"] = plot_data.apply(
-            lambda row: f"{row['MODEL']}, {row['FCST_THRESH']}", axis=1
-        )
-    sns.lineplot(
-        data=plot_data,
-        x="FCST_LEAD",
-        y=stat,
-        hue="MODEL" if stat == "RMSE" else "LABEL",
-        marker="o",
-    )
+    plt.figure(figsize=(10, 6), constrained_layout=True)
+    hue = "LABEL" if "LABEL" in plot_data.columns else "MODEL"
+    sns.lineplot(data=plot_data, x="FCST_LEAD", y=stat, hue=hue, marker="o", linewidth=2)
+    w = f"(width={width}) " if width else ""
     plt.title(
-        "%s %s %s vs %s at %s"
-        % (
-            meta.description.format(level=var.level),
-            stat,
-            c.forecast.name,
-            c.baseline.name,
-            cycle.strftime("%Y%m%d %HZ"),
-        )
+        "%s %s %s%s vs %s at %s" % (desc, stat, w, c.forecast.name, c.baseline.name, cyclestr)
     )
     plt.xlabel("Leadtime")
     plt.ylabel(f"{stat} ({meta.units})")
     plt.xticks(ticks=[int(lt) for lt in leadtimes], labels=leadtimes, rotation=90)
-    plt.legend(title="Model")
-    plt.tight_layout()
+    plt.legend(title="Model", bbox_to_anchor=(1.02, 1), loc="upper left")
     plot_fn.parent.mkdir(parents=True, exist_ok=True)
-    plt.savefig(plot_fn)
+    plt.savefig(plot_fn, bbox_inches="tight")
     plt.close()
 
 
@@ -333,6 +319,26 @@ def _meta(c: Config, varname: str) -> VarMeta:
     return VARMETA[c.variables[varname]["name"]]
 
 
+def _prepare_plot_data(reqs: Sequence[Node], stat: str, width: int | None) -> pd.DataFrame:
+    linetype = LINETYPE[stat]
+    files = [str(refs(x)).replace(".stat", f"_{linetype}.txt") for x in reqs]
+    columns = ["MODEL", "FCST_LEAD", stat]
+    if linetype in ["cts", "nbrcnt"]:
+        columns.append("FCST_THRESH")
+    if linetype == "nbrcnt":
+        columns.append("INTERP_PNTS")
+    plot_rows = [pd.read_csv(file, sep=r"\s+")[columns] for file in files]
+    plot_data = pd.concat(plot_rows)
+    plot_data["FCST_LEAD"] = plot_data["FCST_LEAD"] // 10000
+    if "FCST_THRESH" in columns:
+        plot_data["LABEL"] = plot_data.apply(
+            lambda row: f"{row['MODEL']}, threshold: {row['FCST_THRESH']}", axis=1
+        )
+    if "INTERP_PNTS" in columns and width is not None:
+        plot_data = plot_data[plot_data["INTERP_PNTS"] == width**2]
+    return plot_data
+
+
 def _statargs(
     c: Config, varname: str, level: float | None, source: Source, cycle: datetime | None = None
 ) -> Iterator:
@@ -359,6 +365,16 @@ def _statreqs(
     if c.baseline.compare:
         reqs = [*reqs, *genreqs(Source.BASELINE)]
     return reqs
+
+
+def _stats_and_widths(c: Config, varname) -> Iterator[tuple[str, int | None]]:
+    meta = _meta(c, varname)
+    return chain.from_iterable(
+        ((stat, width) for width in (meta.nbrhd_width or []))
+        if LINETYPE[stat] == "nbrcnt"
+        else [(stat, None)]
+        for stat in meta.met_stats
+    )
 
 
 def _var(c: Config, varname: str, level: float | None) -> Var:

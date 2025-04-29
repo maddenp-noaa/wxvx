@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import sys
 from contextlib import contextmanager
+from functools import cache
 from importlib import resources
 from multiprocessing.pool import Pool
 from pathlib import Path
@@ -22,7 +23,10 @@ LINETYPE = {
     "RMSE": "cnt",
 }
 
-POOL = Pool(initializer=signal, initargs=(SIGINT, SIG_IGN))
+
+@cache
+def get_pool():
+    return Pool(initializer=signal, initargs=(SIGINT, SIG_IGN))
 
 
 class WXVXError(Exception): ...
@@ -48,7 +52,7 @@ def mpexec(cmd: str, rundir: Path, taskname: str, env: dict | None = None) -> No
     kwargs = {"check": False, "cwd": rundir, "shell": True}
     if env:
         kwargs["env"] = env
-    POOL.apply(run, [cmd], kwargs)
+    get_pool().apply(run, [cmd], kwargs)
 
 
 def resource(relpath: str | Path) -> str:

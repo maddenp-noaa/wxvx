@@ -3,16 +3,18 @@ Tests for wxvx.workflow.
 """
 
 import os
+from collections.abc import Sequence
 from datetime import datetime, timezone
 from pathlib import Path
 from textwrap import dedent
 from threading import Event
 from types import SimpleNamespace as ns
+from typing import cast
 from unittest.mock import ANY, patch
 
 import pandas as pd
 import xarray as xr
-from iotaa import asset, external, ready, refs
+from iotaa import Node, asset, external, ready, refs
 from pytest import fixture, mark
 
 from wxvx import variables, workflow
@@ -20,30 +22,56 @@ from wxvx.times import TimeCoords, _cycles, validtimes
 from wxvx.types import Source
 from wxvx.variables import Var
 
-DF = {
+TESTDATA = {
     "foo": (
         "T2M",
         2,
         [
-            pd.DataFrame(
-                {"MODEL": ["foo"], "FCST_LEAD": [60000], "FCST_THRESH": None, "RMSE": [0.5]}
-            ),
-            pd.DataFrame(
-                {"MODEL": ["bar"], "FCST_LEAD": [60000], "FCST_THRESH": None, "RMSE": [0.4]}
-            ),
+            pd.DataFrame({"MODEL": "foo", "FCST_LEAD": [60000], "RMSE": [0.5]}),
+            pd.DataFrame({"MODEL": "bar", "FCST_LEAD": [60000], "RMSE": [0.4]}),
         ],
+        "RMSE",
+        None,
     ),
     "bar": (
         "REFC",
         None,
         [
             pd.DataFrame(
-                {"MODEL": ["foo"], "FCST_LEAD": [60000], "FCST_THRESH": ">=20", "PODY": [0.5]}
+                {"MODEL": "foo", "FCST_LEAD": [60000], "PODY": [0.5], "FCST_THRESH": ">=20"}
             ),
             pd.DataFrame(
-                {"MODEL": ["bar"], "FCST_LEAD": [60000], "FCST_THRESH": ">=30", "PODY": [0.4]}
+                {"MODEL": "bar", "FCST_LEAD": [60000], "PODY": [0.4], "FCST_THRESH": ">=30"}
             ),
         ],
+        "PODY",
+        None,
+    ),
+    "baz": (
+        "REFC",
+        None,
+        [
+            pd.DataFrame(
+                {
+                    "MODEL": "foo",
+                    "FCST_LEAD": [60000],
+                    "FSS": [0.5],
+                    "FCST_THRESH": ">=20",
+                    "INTERP_PNTS": 9,
+                }
+            ),
+            pd.DataFrame(
+                {
+                    "MODEL": "bar",
+                    "FCST_LEAD": [60000],
+                    "FSS": [0.4],
+                    "FCST_THRESH": ">=30",
+                    "INTERP_PNTS": 9,
+                }
+            ),
+        ],
+        "FSS",
+        3,
     ),
 }
 
@@ -73,7 +101,10 @@ def test_workflow_plots(c, noop):
     cycles = _cycles(start=c.cycles.start, step=c.cycles.step, stop=c.cycles.stop)
     with patch.object(workflow, "_plot", noop):
         val = workflow.plots(c=c)
-    assert len(refs(val)) == len(cycles) * len(list(workflow._varnames_and_levels(c)))
+    assert len(refs(val)) == len(cycles) * sum(
+        len(list(workflow._stats_and_widths(c, varname)))
+        for varname, _ in workflow._varnames_and_levels(c)
+    )
 
 
 def test_workflow_stats(c, noop):
@@ -199,8 +230,7 @@ def test_workflow__polyfile(fakefs):
     assert path.read_text().strip() == dedent(expected).strip()
 
 
-@mark.filterwarnings("ignore:Starting a Matplotlib GUI")
-@mark.parametrize("dictkey", ["foo", "bar"])
+@mark.parametrize("dictkey", ["foo", "bar", "baz"])
 def test_workflow__plot(c, dictkey, fakefs, fs):
     @external
     def _stat(x: str):
@@ -209,20 +239,22 @@ def test_workflow__plot(c, dictkey, fakefs, fs):
 
     fs.add_real_directory(os.environ["CONDA_PREFIX"])
     cycles = _cycles(start=c.cycles.start, step=c.cycles.step, stop=c.cycles.stop)
-    varname, level, df = DF[dictkey]
+    varname, level, dfs, stat, width = TESTDATA[dictkey]
     with (
         patch.object(workflow, "_statreqs") as _statreqs,
-        patch.object(workflow.pd, "read_csv") as read_csv,
+        patch.object(workflow, "_prepare_plot_data") as _prepare_plot_data,
         patch("matplotlib.pyplot.xticks") as xticks,
     ):
-        _statreqs.return_value = [_stat("foo"), _stat("bar")]
-        read_csv.side_effect = df
+        _statreqs.return_value = [_stat("model1"), _stat("model2")]
+        _prepare_plot_data.side_effect = dfs
         os.environ["MPLCONFIGDIR"] = str(fakefs)
-        val = workflow._plot(c=c, varname=varname, level=level, cycle=cycles[0])
+        val = workflow._plot(
+            c=c, varname=varname, level=level, cycle=cycles[0], stat=stat, width=width
+        )
     path = val.refs
     assert ready(val)
     assert path.is_file()
-    assert read_csv.call_count == 2
+    assert _prepare_plot_data.call_count == 1
     xticks.assert_called_once_with(ticks=[0, 6, 12], labels=["000", "006", "012"], rotation=90)
 
 
@@ -281,6 +313,28 @@ def test__meta(c):
     assert meta.level_type == "isobaricInhPa"
 
 
+@mark.parametrize("dictkey", ["foo", "bar", "baz"])
+def test__prepare_plot_data(dictkey):
+    varname, level, dfs, stat, width = TESTDATA[dictkey]
+    reqs = cast(Sequence[Node], ["node1", "node2"])
+    with (
+        patch("iotaa.refs", side_effect=lambda x: f"{x}.stat"),
+        patch("wxvx.workflow.pd.read_csv", side_effect=dfs),
+    ):
+        tdf = workflow._prepare_plot_data(reqs=reqs, stat=stat, width=width)
+    assert isinstance(tdf, pd.DataFrame)
+    assert stat in tdf.columns
+    assert "FCST_LEAD" in tdf.columns
+    assert all(tdf["FCST_LEAD"] == 6)
+    if stat == "PODY":
+        assert "FCST_THRESH" in tdf.columns
+        assert "LABEL" in tdf.columns
+    if stat == "FSS":
+        assert width is not None
+        assert "INTERP_PNTS" in tdf.columns
+        assert tdf["INTERP_PNTS"].eq(width**2).all()
+
+
 @mark.parametrize("cycle", [datetime(2024, 12, 19, 18, tzinfo=timezone.utc), None])
 def test__statargs(c, statkit, cycle):
     with (
@@ -320,6 +374,19 @@ def test__statreqs(c, statkit, cycle):
         f"baseline_gh_{statkit.level_type}_{statkit.level:04d}",
         Source.BASELINE,
     )
+
+
+def test__stats_and_widths(c):
+    assert list(workflow._stats_and_widths(c=c, varname="REFC")) == [
+        ("FSS", 3),
+        ("FSS", 5),
+        ("FSS", 11),
+        ("PODY", None),
+    ]
+    assert list(workflow._stats_and_widths(c=c, varname="SPFH")) == [
+        ("ME", None),
+        ("RMSE", None),
+    ]
 
 
 def test__var(c):
