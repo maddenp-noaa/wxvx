@@ -3,16 +3,18 @@ Tests for wxvx.workflow.
 """
 
 import os
+from collections.abc import Sequence
 from datetime import datetime, timezone
 from pathlib import Path
 from textwrap import dedent
 from threading import Event
 from types import SimpleNamespace as ns
-from unittest.mock import ANY, MagicMock, patch
+from typing import cast
+from unittest.mock import ANY, patch
 
 import pandas as pd
 import xarray as xr
-from iotaa import asset, external, ready, refs
+from iotaa import Node, asset, external, ready, refs
 from pytest import fixture, mark
 
 from wxvx import variables, workflow
@@ -314,7 +316,7 @@ def test__meta(c):
 @mark.parametrize("dictkey", ["foo", "bar", "baz"])
 def test_workflow__prepare_plot_data(dictkey):
     varname, level, dfs, stat, width = DF[dictkey]
-    reqs = [MagicMock(), MagicMock()]
+    reqs = cast(Sequence[Node], ["foo", "bar"])
     with (
         patch("iotaa.refs", side_effect=lambda x: f"{x}.stat"),
         patch("wxvx.workflow.pd.read_csv", side_effect=dfs),
