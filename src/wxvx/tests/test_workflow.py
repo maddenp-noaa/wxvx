@@ -240,11 +240,11 @@ def test_workflow__plot(c, dictkey, fakefs, fs):
     varname, level, df, stat, width = DF[dictkey]
     with (
         patch.object(workflow, "_statreqs") as _statreqs,
-        patch.object(workflow.pd, "read_csv") as read_csv,
+        patch.object(workflow, "_prepare_plot_data") as prepare_plot_data,
         patch("matplotlib.pyplot.xticks") as xticks,
     ):
         _statreqs.return_value = [_stat("foo"), _stat("bar")]
-        read_csv.side_effect = df
+        prepare_plot_data.side_effect = df
         os.environ["MPLCONFIGDIR"] = str(fakefs)
         val = workflow._plot(
             c=c, varname=varname, level=level, cycle=cycles[0], stat=stat, width=width
@@ -252,7 +252,7 @@ def test_workflow__plot(c, dictkey, fakefs, fs):
     path = val.refs
     assert ready(val)
     assert path.is_file()
-    assert read_csv.call_count == 2
+    assert prepare_plot_data.call_count == 1
     xticks.assert_called_once_with(ticks=[0, 6, 12], labels=["000", "006", "012"], rotation=90)
 
 
