@@ -314,7 +314,7 @@ def test__meta(c):
 
 
 @mark.parametrize("dictkey", ["foo", "bar", "baz"])
-def test_workflow__prepare_plot_data(dictkey):
+def test__prepare_plot_data(dictkey):
     varname, level, dfs, stat, width = DF[dictkey]
     reqs = cast(Sequence[Node], ["foo", "bar"])
     with (
