@@ -329,7 +329,7 @@ def test__prepare_plot_data(dictkey):
     if stat == "PODY":
         assert "FCST_THRESH" in tdf.columns
         assert "LABEL" in tdf.columns
-    if stat == "REFC":
+    if stat == "FSS":
         assert width is not None
         assert "INTERP_PNTS" in tdf.columns
         assert tdf["INTERP_PNTS"].eq(width**2).all()
