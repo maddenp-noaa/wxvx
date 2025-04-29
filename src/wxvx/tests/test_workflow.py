@@ -22,7 +22,7 @@ from wxvx.times import TimeCoords, _cycles, validtimes
 from wxvx.types import Source
 from wxvx.variables import Var
 
-DF = {
+TESTDATA = {
     "foo": (
         "T2M",
         2,
@@ -239,14 +239,14 @@ def test_workflow__plot(c, dictkey, fakefs, fs):
 
     fs.add_real_directory(os.environ["CONDA_PREFIX"])
     cycles = _cycles(start=c.cycles.start, step=c.cycles.step, stop=c.cycles.stop)
-    varname, level, df, stat, width = DF[dictkey]
+    varname, level, dfs, stat, width = TESTDATA[dictkey]
     with (
         patch.object(workflow, "_statreqs") as _statreqs,
         patch.object(workflow, "_prepare_plot_data") as _prepare_plot_data,
         patch("matplotlib.pyplot.xticks") as xticks,
     ):
-        _statreqs.return_value = [_stat("foo"), _stat("bar")]
-        _prepare_plot_data.side_effect = df
+        _statreqs.return_value = [_stat("model1"), _stat("model2")]
+        _prepare_plot_data.side_effect = dfs
         os.environ["MPLCONFIGDIR"] = str(fakefs)
         val = workflow._plot(
             c=c, varname=varname, level=level, cycle=cycles[0], stat=stat, width=width
@@ -315,8 +315,8 @@ def test__meta(c):
 
 @mark.parametrize("dictkey", ["foo", "bar", "baz"])
 def test__prepare_plot_data(dictkey):
-    varname, level, dfs, stat, width = DF[dictkey]
-    reqs = cast(Sequence[Node], ["foo", "bar"])
+    varname, level, dfs, stat, width = TESTDATA[dictkey]
+    reqs = cast(Sequence[Node], ["node1", "node2"])
     with (
         patch("iotaa.refs", side_effect=lambda x: f"{x}.stat"),
         patch("wxvx.workflow.pd.read_csv", side_effect=dfs),
