@@ -18,7 +18,7 @@ from iotaa import Node, asset, external, ready, refs
 from pytest import fixture, mark
 
 from wxvx import variables, workflow
-from wxvx.times import TimeCoords, _cycles, validtimes
+from wxvx.times import TimeCoords, gen_cycles, gen_validtimes
 from wxvx.types import Source
 from wxvx.variables import Var
 
@@ -98,7 +98,7 @@ def test_workflow_grids_forecast(c, n_grids, noop):
 
 
 def test_workflow_plots(c, noop):
-    cycles = _cycles(start=c.cycles.start, step=c.cycles.step, stop=c.cycles.stop)
+    cycles = gen_cycles(start=c.cycles.start, step=c.cycles.step, stop=c.cycles.stop)
     with patch.object(workflow, "_plot", noop):
         val = workflow.plots(c=c)
     assert len(refs(val)) == len(cycles) * sum(
@@ -238,7 +238,7 @@ def test_workflow__plot(c, dictkey, fakefs, fs):
         yield asset(fakefs / f"{x}.stat", lambda: True)
 
     fs.add_real_directory(os.environ["CONDA_PREFIX"])
-    cycles = _cycles(start=c.cycles.start, step=c.cycles.step, stop=c.cycles.stop)
+    cycles = gen_cycles(start=c.cycles.start, step=c.cycles.step, stop=c.cycles.stop)
     varname, level, dfs, stat, width = TESTDATA[dictkey]
     with (
         patch.object(workflow, "_statreqs") as _statreqs,
@@ -339,7 +339,7 @@ def test__prepare_plot_data(dictkey):
 def test__statargs(c, statkit, cycle):
     with (
         patch.object(workflow, "_vxvars", return_value={statkit.var: statkit.varname}),
-        patch.object(workflow, "validtimes", return_value=[statkit.tc]),
+        patch.object(workflow, "gen_validtimes", return_value=[statkit.tc]),
     ):
         statargs = workflow._statargs(
             c=c,
@@ -358,7 +358,7 @@ def test__statreqs(c, statkit, cycle):
     with (
         patch.object(workflow, "_stat") as _stat,
         patch.object(workflow, "_vxvars", return_value={statkit.var: statkit.varname}),
-        patch.object(workflow, "validtimes", return_value=[statkit.tc]),
+        patch.object(workflow, "gen_validtimes", return_value=[statkit.tc]),
     ):
         reqs = workflow._statreqs(c=c, varname=statkit.varname, level=statkit.level, cycle=cycle)
     assert len(reqs) == 2
@@ -418,7 +418,7 @@ def test__vxvars(c):
 
 @fixture
 def n_grids(c):
-    n_validtimes = len(list(validtimes(c.cycles, c.leadtimes)))
+    n_validtimes = len(list(gen_validtimes(c.cycles, c.leadtimes)))
     n_var_level_pairs = len(list(workflow._varnames_and_levels(c)))
     return n_validtimes * n_var_level_pairs
 

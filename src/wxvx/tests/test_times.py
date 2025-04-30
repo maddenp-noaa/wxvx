@@ -28,7 +28,7 @@ def test_times_TimeCoords(leadtime, utc):
     assert tc.yyyymmdd == "20250128"
 
 
-def test_times_TimeCoords_no_leadtime(utc):
+def test_times_TimeCoords__no_leadtime(utc):
     cycle = utc(2025, 1, 28, 12)
     tc = times.TimeCoords(cycle=cycle)
     assert hash(tc) == cycle.timestamp()
@@ -39,6 +39,36 @@ def test_times_TimeCoords_no_leadtime(utc):
     assert str(tc) == "2025-01-28T12:00:00"
     assert tc.hh == "12"
     assert tc.yyyymmdd == "20250128"
+
+
+def test_times_gen_cycles(config_data, utc):
+    assert times.gen_cycles(**config_data["cycles"]) == [
+        utc(2024, 12, 19, 18),
+        utc(2024, 12, 20, 6),
+    ]
+
+
+def test_times_gen_leadtimes(config_data):
+    assert times.gen_leadtimes(**config_data["leadtimes"]) == [
+        timedelta(hours=n) for n in (0, 6, 12)
+    ]
+
+
+def test_times_gen_validtimes(config_data, utc):
+    actual = {
+        vt.validtime
+        for vt in times.gen_validtimes(
+            cycles=Cycles(**config_data["cycles"]), leadtimes=Leadtimes(**config_data["leadtimes"])
+        )
+    }
+    expected = {
+        utc(2024, 12, 19, 18),
+        utc(2024, 12, 20, 0),
+        utc(2024, 12, 20, 6),
+        utc(2024, 12, 20, 12),
+        utc(2024, 12, 20, 18),
+    }
+    assert actual == expected
 
 
 def test_times_hh(utc):
@@ -54,32 +84,8 @@ def test_times_tcinfo(utc):
     assert times.tcinfo(tc=tc, leadtime_digits=2) == ("20250211", "03", "08")
 
 
-def test_times_validtimes(config_data, utc):
-    actual = {
-        vt.validtime
-        for vt in times.validtimes(
-            cycles=Cycles(**config_data["cycles"]), leadtimes=Leadtimes(**config_data["leadtimes"])
-        )
-    }
-    expected = {
-        utc(2024, 12, 19, 18),
-        utc(2024, 12, 20, 0),
-        utc(2024, 12, 20, 6),
-        utc(2024, 12, 20, 12),
-        utc(2024, 12, 20, 18),
-    }
-    assert actual == expected
-
-
 def test_times_yyyymmdd(utc):
     assert times.yyyymmdd(utc(2025, 1, 30, 18)) == "20250130"
-
-
-def test_times__cycles(config_data, utc):
-    assert times._cycles(**config_data["cycles"]) == [
-        utc(2024, 12, 19, 18),
-        utc(2024, 12, 20, 6),
-    ]
 
 
 def test_times__enumerate_basic(utc):
@@ -108,10 +114,6 @@ def test_times__enumerate_stop_precedes_start(utc):
     with raises(WXVXError) as e:
         times._enumerate(start=start, step=step, stop=stop)
     assert str(e.value) == "Stop time 2024-12-19 06:00:00 precedes start time 2024-12-19 12:00:00"
-
-
-def test_times__leadtimes(config_data):
-    assert times._leadtimes(**config_data["leadtimes"]) == [timedelta(hours=n) for n in (0, 6, 12)]
 
 
 @mark.parametrize(

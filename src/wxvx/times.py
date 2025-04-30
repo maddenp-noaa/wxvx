@@ -39,6 +39,25 @@ class TimeCoords:
         return self.validtime.isoformat()
 
 
+def gen_cycles(start: str, step: str, stop: str) -> list[datetime]:
+    dt_start, dt_stop = [datetime.fromisoformat(x) for x in (start, stop)]
+    td_step = _timedelta(step)
+    return _enumerate(dt_start, td_step, dt_stop)
+
+
+def gen_leadtimes(start: str, step: str, stop: str) -> list[timedelta]:
+    td_start, td_step, td_stop = [_timedelta(x) for x in (start, step, stop)]
+    return _enumerate(td_start, td_step, td_stop)
+
+
+def gen_validtimes(cycles: Cycles, leadtimes: Leadtimes) -> Iterator[TimeCoords]:
+    for cycle, leadtime in product(
+        gen_cycles(start=cycles.start, step=cycles.step, stop=cycles.stop),
+        gen_leadtimes(leadtimes.start, leadtimes.step, leadtimes.stop),
+    ):
+        yield TimeCoords(cycle=cycle, leadtime=leadtime)
+
+
 def hh(dt: datetime) -> str:
     return dt.strftime("%H")
 
@@ -48,25 +67,11 @@ def tcinfo(tc: TimeCoords, leadtime_digits: int = 3) -> tuple[str, str, str]:
     return (yyyymmdd(dt=tc.cycle), hh(dt=tc.cycle), fmt % (tc.leadtime.total_seconds() // 3600))
 
 
-def validtimes(cycles: Cycles, leadtimes: Leadtimes) -> Iterator[TimeCoords]:
-    for cycle, leadtime in product(
-        _cycles(start=cycles.start, step=cycles.step, stop=cycles.stop),
-        _leadtimes(leadtimes.start, leadtimes.step, leadtimes.stop),
-    ):
-        yield TimeCoords(cycle=cycle, leadtime=leadtime)
-
-
 def yyyymmdd(dt: datetime) -> str:
     return dt.strftime("%Y%m%d")
 
 
 # Private
-
-
-def _cycles(start: str, step: str, stop: str) -> list[datetime]:
-    dt_start, dt_stop = [datetime.fromisoformat(x) for x in (start, stop)]
-    td_step = _timedelta(step)
-    return _enumerate(dt_start, td_step, dt_stop)
 
 
 @overload
@@ -80,11 +85,6 @@ def _enumerate(start, step, stop):
     while (x := xs[-1]) < stop:
         xs.append(x + step)
     return xs
-
-
-def _leadtimes(start: str, step: str, stop: str) -> list[timedelta]:
-    td_start, td_step, td_stop = [_timedelta(x) for x in (start, step, stop)]
-    return _enumerate(td_start, td_step, td_stop)
 
 
 def _timedelta(step: str) -> timedelta:
