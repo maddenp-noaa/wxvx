@@ -204,7 +204,7 @@ def _plot(
     taskname = f"Plot {desc}{' width ' + str(width) if width else ''} {stat} at {cyclestr}"
     yield taskname
     rundir = c.paths.run / "plots" / yyyymmdd(cycle) / hh(cycle)
-    plot_fn = rundir / f"{var}_{stat}{'_width_' + str(width) if width else ''}_plot.png"
+    plot_fn = rundir / f"{var}-{stat}{'-width-' + str(width) if width else ''}-plot.png"
     yield asset(plot_fn, plot_fn.is_file)
     reqs = _statreqs(c, varname, level, cycle)
     yield reqs
