@@ -68,6 +68,13 @@ def _parse_args(argv: list[str]) -> Namespace:
         help="Log all messages",
     )
     optional.add_argument(
+        "-f",
+        "--statefile",
+        help="State file",
+        metavar="FILE",
+        type=Path,
+    )
+    optional.add_argument(
         "-h",
         "--help",
         action="help",
@@ -82,7 +89,7 @@ def _parse_args(argv: list[str]) -> Namespace:
     optional.add_argument(
         "-n",
         "--threads",
-        help="Threads",
+        help="Number of threads",
         default=1,
         metavar="N",
         type=int,
