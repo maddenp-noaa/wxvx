@@ -1,5 +1,5 @@
 {% set info = load_file_data("wxvx/resources/info.json") %}
-{% set pymin = "3.12" %}
+{% set pymin = "3.11" %}
 
 package:
   name: wxvx
@@ -24,7 +24,7 @@ requirements:
     - pyyaml 6.0.*
     - requests >=2.32,<3
     - seaborn 0.13.*
-    - uwtools 2.8.*
+    - uwtools 2.7.*
     - xarray >=2025.1.*
     - zarr >=3.0,<3.1
 test:
