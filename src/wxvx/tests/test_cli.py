@@ -21,16 +21,14 @@ from wxvx.util import pkgname, resource_path
 
 
 @mark.parametrize("switch_c", ["-c", "--config"])
-@mark.parametrize("switch_f", ["-f", "--statefile"])
 @mark.parametrize("switch_n", ["-n", "--threads"])
 @mark.parametrize("switch_t", ["-t", "--task"])
-def test_cli_main(config_data, fakefs, fs, switch_c, switch_f, switch_n, switch_t):
+def test_cli_main(config_data, fs, switch_c, switch_n, switch_t):
     fs.add_real_file(resource_path("config.jsonschema"))
     fs.add_real_file(resource_path("info.json"))
     with patch.multiple(cli, workflow=D, sys=D, use_uwtools_logger=D) as mocks:
         cf = fs.create_file("/path/to/config.yaml", contents=yaml.safe_dump(config_data))
-        sf = str(fakefs / "statefile")
-        argv = [pkgname, switch_c, cf.path, switch_f, sf, switch_n, "2", switch_t, "plots"]
+        argv = [pkgname, switch_c, cf.path, switch_n, "2", switch_t, "plots"]
         mocks["sys"].argv = argv
         with patch.object(cli, "_parse_args", wraps=cli._parse_args) as _parse_args:
             cli.main()
