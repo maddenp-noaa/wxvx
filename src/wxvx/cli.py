@@ -82,7 +82,7 @@ def _parse_args(argv: list[str]) -> Namespace:
     optional.add_argument(
         "-n",
         "--threads",
-        help="Threads",
+        help="Number of threads",
         default=1,
         metavar="N",
         type=int,

@@ -24,11 +24,6 @@ LINETYPE = {
 }
 
 
-@cache
-def get_pool():
-    return Pool(initializer=signal, initargs=(SIGINT, SIG_IGN))
-
-
 class WXVXError(Exception): ...
 
 
@@ -44,6 +39,11 @@ def fail(msg: str | None = None, *args) -> NoReturn:
     if msg:
         logging.error(msg, *args)
     sys.exit(1)
+
+
+@cache
+def get_pool():
+    return Pool(initializer=signal, initargs=(SIGINT, SIG_IGN))
 
 
 def mpexec(cmd: str, rundir: Path, taskname: str, env: dict | None = None) -> None:

@@ -17,12 +17,12 @@ conda activate
 2. Create and activate a conda virtual environment providing the latest `wxvx`. Add the flags `-c conda-forge --override-channels` to the `conda create` command if you are using a non-conda-forge conda installation.
 
 ``` bash
-conda create -y -n wxvx -c ufs-community -c maddenp wxvx
+conda create -y -n wxvx -c ufs-community -c paul.madden wxvx
 conda activate wxvx
 wxvx --version
 ```
 
-The activated virtual environment includes the [`met2go`](https://github.com/maddenp-noaa/met2go) package, which provides [MET](https://github.com/dtcenter/MET) and select [METplus](https://github.com/dtcenter/METplus) executables and data files. See the `met2go` [docs](https://github.com/maddenp-noaa/met2go/blob/main/README.md) for more information.
+The activated virtual environment includes the [`met2go`](https://github.com/maddenp-cu/met2go) package, which provides [MET](https://github.com/dtcenter/MET) and select [METplus](https://github.com/dtcenter/METplus) executables and data files. See the `met2go` [docs](https://github.com/maddenp-cu/met2go/blob/main/README.md) for more information.
 
 ## Configuration
 

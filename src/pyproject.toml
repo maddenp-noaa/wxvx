@@ -21,6 +21,11 @@ check_untyped_defs = true
 pretty = true
 warn_return_any = true
 
+[tool.pytest.ini_options]
+filterwarnings = [
+  "ignore:This process .* is multi-threaded:DeprecationWarning"
+]
+
 [tool.ruff]
 line-length = 100
 
@@ -53,6 +58,7 @@ ignore = [
   "FBT001",  # boolean-type-hint-positional-argument
   "FBT002",  # boolean-default-value-positional-argument
   "FLY002",  # static-join-to-f-string
+  "LOG015",  # root-logger-call
   "N813",    # camelcase-imported-as-lowercase
   "PLR0911", # too-many-return-statements
   "PLR0912", # too-many-branches
@@ -60,6 +66,7 @@ ignore = [
   "S101",    # assert
   "S603",    # subprocess-without-shell-equals-true
   "T201",    # print
+  "TC006",   # runtime-cast-value
   "UP031",   # printf-string-formatting
 ]
 
