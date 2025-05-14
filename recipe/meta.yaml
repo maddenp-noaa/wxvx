@@ -25,7 +25,7 @@ requirements:
     - requests >=2.32,<3
     - seaborn 0.13.*
     - uwtools 2.7.*
-    - xarray >=2025.1.*
+    - xarray >=2023.12,<2025.2
     - zarr >=3.0,<3.1
 test:
   requires:
