@@ -1,5 +1,5 @@
 {% set info = load_file_data("wxvx/resources/info.json") %}
-{% set python = "python 3.11" %}
+{% set python = "python 3.13" %}
 
 package:
   name: wxvx
@@ -23,7 +23,7 @@ requirements:
     - pyyaml 6.0.*
     - requests >=2.32,<3
     - seaborn 0.13.*
-    - uwtools 2.7.*
+    - uwtools 2.8.*
     - xarray >=2023.12,<2025.2
     - zarr >=3.0,<3.1
     - {{ python }}
