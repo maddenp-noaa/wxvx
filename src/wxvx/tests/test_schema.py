@@ -94,20 +94,59 @@ def test_schema_forecast(logged, config_data, fs):
     assert not ok(with_set(config, 42, "n"))
     assert logged("'n' was unexpected")
     # Some keys have object values:
-    for key in ["projection"]:
+    for key in ["coordinates", "projection"]:
         assert not ok(with_set(config, None, key))
         assert logged("None is not of type 'object'")
     # Some keys have string values:
     for key in ["name", "path"]:
         assert not ok(with_set(config, None, key))
         assert logged("None is not of type 'string'")
-    # Optional 'mask' key must match its schema:
-    assert ok(with_set(config, [[1.1, 2], [3.3, 4], [5.5, 6], [7.7, 8]], "mask"))
-    assert ok(with_del(config, "mask"))
-    assert not ok(with_set(config, "string", "mask"))
+    # Some keys are optional:
+    for key in ["mask"]:
+        assert ok(with_del(config, key))
+
+
+def test_schema_forecast_coordinates(logged, config_data, fs):
+    ok = validator(fs, "properties", "forecast", "properties", "coordinates")
+    config = config_data["forecast"]["coordinates"]
+    assert ok(config)
+    # All keys are required:
+    for key in ["latitude", "level", "longitude", "validtime"]:
+        assert not ok(with_del(config, key))
+        assert logged(f"'{key}' is a required property")
+    # Some keys must have string values:
+    for key in ["latitude", "level", "longitude"]:
+        assert not ok(with_set(config, None, key))
+        assert logged("None is not of type 'string'")
+
+
+def test_schema_forecast_coordinates_validtime(logged, config_data, fs):
+    ok = validator(
+        fs, "properties", "forecast", "properties", "coordinates", "properties", "validtime"
+    )
+    config = config_data["forecast"]["coordinates"]["validtime"]
+    assert ok(config)
+    # A string value is ok:
+    assert ok("time")
+    # A certain object is ok:
+    obj = {"initialization": "time", "leadtime": "lead_time"}
+    assert ok(obj)
+    # # All that object's keys are required:
+    # for key in obj:
+    #     assert not ok(with_del(obj, key))
+    #     assert logged("'{key}' is a required property")
+    # That object's keys must have string values:
+    for key in obj:
+        assert not ok(with_set(obj, None, key))
+        assert logged("is not valid")
+
+
+def test_schema_forecast_mask(logged, config_data, fs):
+    ok = validator(fs, "properties", "forecast", "properties", "mask")
+    config = config_data["forecast"]["mask"]
+    assert ok(config)
+    assert not ok("string")
     assert logged("'string' is not of type 'array'")
-    assert not ok(with_set(config, ["foo"], "mask"))
-    assert logged("'foo' is not of type 'array'")
 
 
 def test_schema_forecast_projection(logged, config_data, fs):
