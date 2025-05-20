@@ -194,6 +194,7 @@
         }
       },
       "required": [
+        "coordinates",
         "name",
         "path",
         "projection"

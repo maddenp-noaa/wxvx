@@ -47,6 +47,7 @@ class Cycles:
 
 @dataclass(frozen=True)
 class Forecast:
+    coordinates: dict
     name: str
     path: Path
     projection: dict

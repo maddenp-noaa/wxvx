@@ -87,6 +87,15 @@ def config_data():
             "stop": "2024-12-20T06:00:00",
         },
         "forecast": {
+            "coordinates": {
+                "latitude": "latitude",
+                "level": "level",
+                "longitude": "longitude",
+                "validtime": {
+                    "initialization": "time",
+                    "leadtime": "lead_time",
+                },
+            },
             "mask": [
                 [52.61564933, 225.90452027],
                 [52.61564933, 275.0],
