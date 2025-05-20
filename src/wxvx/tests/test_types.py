@@ -54,6 +54,8 @@ def test_Cycles(config_data, cycles):
 def test_Forecast(config_data, forecast):
     obj = forecast
     assert hash(obj)
+    assert obj.coordinates.validtime.initialization == "time"
+    assert obj.coordinates.validtime.leadtime == "lead_time"
     assert obj.name == "Forecast"
     assert obj.path == Path("/path/to/forecast")
     other1 = types.Forecast(**config_data["forecast"])

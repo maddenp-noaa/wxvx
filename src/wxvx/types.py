@@ -39,6 +39,18 @@ class Config:
 
 
 @dataclass(frozen=True)
+class Coordinates:
+    latitude: str
+    level: str
+    longitude: str
+    validtime: str | Validtime
+
+    def __post_init__(self):
+        if isinstance(self.validtime, dict):
+            _force(self, "validtime", Validtime(**self.validtime))
+
+
+@dataclass(frozen=True)
 class Cycles:
     start: str
     step: str
@@ -47,18 +59,21 @@ class Cycles:
 
 @dataclass(frozen=True)
 class Forecast:
-    coordinates: dict
+    coordinates: Coordinates
     name: str
     path: Path
     projection: dict
     mask: tuple[tuple[float, float]] | None = None
 
-    KEYS = ("mask", "name", "path", "projection")
+    KEYS = ("coordinates", "mask", "name", "path", "projection")
 
     def __hash__(self):
         return _hash(self)
 
     def __post_init__(self):
+        if isinstance(self.coordinates, dict):
+            coordinates = Coordinates(**self.coordinates)
+        _force(self, "coordinates", coordinates)
         if self.mask:
             _force(self, "mask", tuple(tuple(x) for x in self.mask))
         _force(self, "path", Path(self.path))
@@ -81,6 +96,12 @@ class Paths:
         _force(self, "grids_baseline", Path(self.grids_baseline))
         _force(self, "grids_forecast", Path(self.grids_forecast))
         _force(self, "run", Path(self.run))
+
+
+@dataclass(frozen=True)
+class Validtime:
+    initialization: str
+    leadtime: str
 
 
 @dataclass(frozen=True)
