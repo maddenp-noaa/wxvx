@@ -41,6 +41,11 @@ The content of the YAML configuration file supplied via `-c` / `--config` is des
 │   step:            │   Interval between cycles as hh[:mm[:ss]]    │
 │   stop:            │   Last cycle as ISO8601 timestamp            │
 │ forecast:          │ Description of the forecast dataset          │
+│   coordinates:     │   Names of coordinate variables              │
+│     latitude:      │     Latitude variable                        │
+│     level:         │     Level variable                           │
+│     longitude:     │     Longitude variable                       │
+│     validtime:     │     Validtime variable(s) (see below)        │
 │   mask:            │   Sequence of [lat, lon] pairs (optional)    │
 │   name:            │   Dataset descriptive name                   │
 │   path:            │   Filesystem path to Zarr/netCDF dataset     │
@@ -73,9 +78,20 @@ Use the `-s` / `--show` CLI switch to show a pro-forma config with realistic val
 - A `levels:` value should only be specified if a level type supports it. Currently, these are: `heightAboveGround`, `isobaricInhPa`.
 - [CF Metadata](https://cfconventions.org/) are added to the copies made of forecast variables that are provided to MET, which requires them. See [this database](https://cfconventions.org/Data/cf-standard-names/current/build/cf-standard-name-table.html) for CF standard names and units.
 - The `forecast.mask` value may be omitted, or set to the YAML value `null`, in which case no masking will be applied.
-- The `forecast.projection` value should be a mapping with at least a `proj` key identifying the ID of the [projection](https://proj.org/en/stable/operations/projections/index.html), and potentially additional projection attributes depending on the `proj` value:
+
+### Projection
+
+The `forecast.projection` value should be a mapping with at least a `proj` key identifying the ID of the [projection](https://proj.org/en/stable/operations/projections/index.html), and potentially additional projection attributes depending on the `proj` value:
+
   - When `proj` is [`latlon`](https://proj.org/en/stable/operations/conversions/latlon.html), specify no additional attributes.
   - When `proj` is [`lcc`](https://proj.org/en/stable/operations/projections/lcc.html), specify attributes `a`, `b`, `lat_0`, `lat_1`, `lat_2`, and `lon_0`.
+
+### Validtime
+
+The `forecast.coordinates.validtime` value may be either:
+
+  - The name of a single coordinate variable providing the forecast validtime, or
+  - A mapping with keys `initialization` and `leadtime`, whose values are the names of the coordinate variables providing, respectively, the forecast initialization time and leadtime.
 
 ## Use
 

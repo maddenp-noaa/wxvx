@@ -58,6 +58,46 @@
     "forecast": {
       "additionalProperties": false,
       "properties": {
+        "coordinates": {
+          "additionalProperties": false,
+          "properties": {
+            "latitude": {
+              "type": "string"
+            },
+            "level": {
+              "type": "string"
+            },
+            "longitude": {
+              "type": "string"
+            },
+            "validtime": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "initialization": {
+                      "type": "string"
+                    },
+                    "leadtime": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              ]
+            }
+          },
+          "required": [
+            "latitude",
+            "level",
+            "longitude",
+            "validtime"
+          ],
+          "type": "object"
+        },
         "mask": {
           "items": {
             "items": {

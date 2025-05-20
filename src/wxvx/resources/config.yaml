@@ -7,6 +7,13 @@ cycles:
   step: "01:00:00"
   stop: "2024-04-07T23:00:00"
 forecast:
+  dimensions:
+    latitude: latitude
+    level: level
+    longitude: longitude
+    validtime:
+      initialization: time
+      leadtime: lead_time
   mask:
     - [52.61564933, 225.90452027]
     - [52.61564933, 255.00000000]
