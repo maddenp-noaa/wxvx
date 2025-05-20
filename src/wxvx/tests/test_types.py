@@ -13,6 +13,11 @@ def baseline(config_data):
 
 
 @fixture
+def coordinates(config_data):
+    return types.Coordinates(**config_data["forecast"]["coordinates"])
+
+
+@fixture
 def cycles(config_data):
     return types.Cycles(**config_data["cycles"])
 
@@ -27,6 +32,11 @@ def leadtimes(config_data):
     return types.Leadtimes(**config_data["leadtimes"])
 
 
+@fixture
+def validtime(config_data):
+    return types.Validtime(**config_data["forecast"]["coordinates"]["validtime"])
+
+
 # Tests
 
 
@@ -34,44 +44,10 @@ def test_Baseline(baseline, config_data):
     obj = baseline
     assert obj.name == "Baseline"
     assert obj.template == "https://some.url/{yyyymmdd}/{hh}/{ff}/a.grib2"
-    other1 = types.Baseline(**config_data["baseline"])
+    cfg = config_data["baseline"]
+    other1 = types.Baseline(**cfg)
     assert obj == other1
-    other2 = types.Baseline(**{**config_data["baseline"], "name": "foo"})
-    assert obj != other2
-
-
-def test_Cycles(config_data, cycles):
-    obj = cycles
-    assert obj.start == "2024-12-19T18:00:00"
-    assert obj.step == "12:00:00"
-    assert obj.stop == "2024-12-20T06:00:00"
-    other1 = types.Cycles(**config_data["cycles"])
-    assert obj == other1
-    other2 = types.Cycles(**{**config_data["cycles"], "step": "24:00:00"})
-    assert obj != other2
-
-
-def test_Forecast(config_data, forecast):
-    obj = forecast
-    assert hash(obj)
-    assert obj.coordinates.validtime.initialization == "time"
-    assert obj.coordinates.validtime.leadtime == "lead_time"
-    assert obj.name == "Forecast"
-    assert obj.path == Path("/path/to/forecast")
-    other1 = types.Forecast(**config_data["forecast"])
-    assert obj == other1
-    other2 = types.Forecast(**{**config_data["forecast"], "name": "foo"})
-    assert obj != other2
-
-
-def test_Leadtimes(config_data, leadtimes):
-    obj = leadtimes
-    assert obj.start == "00:00:00"
-    assert obj.step == "06:00:00"
-    assert obj.stop == "12:00:00"
-    other1 = types.Leadtimes(**config_data["leadtimes"])
-    assert obj == other1
-    other2 = types.Leadtimes(**{**config_data["leadtimes"], "start": "01:00:00"})
+    other2 = types.Baseline(**{**cfg, "name": "foo"})
     assert obj != other2
 
 
@@ -90,6 +66,74 @@ def test_Config(baseline, config_data, cycles, forecast, leadtimes):
     assert obj == other
     other.variables = {}
     assert obj != other
+
+
+def test_Coordinates(config_data, coordinates):
+    obj = coordinates
+    assert hash(obj)
+    assert obj.latitude == "latitude"
+    assert obj.level == "level"
+    assert obj.longitude == "longitude"
+    assert obj.validtime.initialization == "time"
+    assert obj.validtime.leadtime == "lead_time"
+    cfg = config_data["forecast"]["coordinates"]
+    other1 = types.Coordinates(**cfg)
+    assert obj == other1
+    other2 = types.Coordinates(**{**cfg, "latitude": "lat"})
+    assert obj != other2
+
+
+def test_Cycles(config_data, cycles):
+    obj = cycles
+    assert obj.start == "2024-12-19T18:00:00"
+    assert obj.step == "12:00:00"
+    assert obj.stop == "2024-12-20T06:00:00"
+    cfg = config_data["cycles"]
+    other1 = types.Cycles(**cfg)
+    assert obj == other1
+    other2 = types.Cycles(**{**cfg, "step": "24:00:00"})
+    assert obj != other2
+
+
+def test_Forecast(config_data, forecast):
+    obj = forecast
+    assert hash(obj)
+    assert obj.coordinates.latitude == "latitude"
+    assert obj.coordinates.level == "level"
+    assert obj.coordinates.longitude == "longitude"
+    assert obj.coordinates.validtime.initialization == "time"
+    assert obj.coordinates.validtime.leadtime == "lead_time"
+    assert obj.name == "Forecast"
+    assert obj.path == Path("/path/to/forecast")
+    cfg = config_data["forecast"]
+    other1 = types.Forecast(**cfg)
+    assert obj == other1
+    other2 = types.Forecast(**{**cfg, "name": "foo"})
+    assert obj != other2
+
+
+def test_Leadtimes(config_data, leadtimes):
+    obj = leadtimes
+    assert obj.start == "00:00:00"
+    assert obj.step == "06:00:00"
+    assert obj.stop == "12:00:00"
+    cfg = config_data["leadtimes"]
+    other1 = types.Leadtimes(**cfg)
+    assert obj == other1
+    other2 = types.Leadtimes(**{**cfg, "start": "01:00:00"})
+    assert obj != other2
+
+
+def test_Validtime(config_data, validtime):
+    obj = validtime
+    assert hash(obj)
+    assert obj.initialization == "time"
+    assert obj.leadtime == "lead_time"
+    cfg = config_data["forecast"]["coordinates"]["validtime"]
+    other1 = types.Validtime(**cfg)
+    assert obj == other1
+    other2 = types.Validtime(**{**cfg, "initialization": "foo"})
+    assert obj != other2
 
 
 def test_VarMeta():
