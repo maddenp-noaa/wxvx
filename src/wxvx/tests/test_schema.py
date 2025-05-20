@@ -131,10 +131,10 @@ def test_schema_forecast_coordinates_validtime(logged, config_data, fs):
     # A certain object is ok:
     obj = {"initialization": "time", "leadtime": "lead_time"}
     assert ok(obj)
-    # # All that object's keys are required:
-    # for key in obj:
-    #     assert not ok(with_del(obj, key))
-    #     assert logged("'{key}' is a required property")
+    # All that object's keys are required:
+    for key in obj:
+        assert not ok(with_del(obj, key))
+        assert logged("is not valid")
     # That object's keys must have string values:
     for key in obj:
         assert not ok(with_set(obj, None, key))

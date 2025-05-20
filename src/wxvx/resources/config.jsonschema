@@ -85,6 +85,10 @@
                       "type": "string"
                     }
                   },
+                  "required": [
+                    "initialization",
+                    "leadtime"
+                  ],
                   "type": "object"
                 }
               ]
