@@ -45,6 +45,11 @@ class Coordinates:
     longitude: str
     validtime: str | Validtime
 
+    KEYS = ("latitude", "level", "longitude", "validtime")
+
+    def __hash__(self):
+        return _hash(self)
+
     def __post_init__(self):
         if isinstance(self.validtime, dict):
             _force(self, "validtime", Validtime(**self.validtime))
@@ -73,7 +78,7 @@ class Forecast:
     def __post_init__(self):
         if isinstance(self.coordinates, dict):
             coordinates = Coordinates(**self.coordinates)
-        _force(self, "coordinates", coordinates)
+            _force(self, "coordinates", coordinates)
         if self.mask:
             _force(self, "mask", tuple(tuple(x) for x in self.mask))
         _force(self, "path", Path(self.path))
