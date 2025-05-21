@@ -111,7 +111,7 @@ def test_schema_forecast_coordinates(logged, config_data, fs):
     config = config_data["forecast"]["coordinates"]
     assert ok(config)
     # All keys are required:
-    for key in ["latitude", "level", "longitude", "validtime"]:
+    for key in ["latitude", "level", "longitude", "time"]:
         assert not ok(with_del(config, key))
         assert logged(f"'{key}' is a required property")
     # Some keys must have string values:

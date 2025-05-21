@@ -70,11 +70,8 @@
             "longitude": {
               "type": "string"
             },
-            "validtime": {
+            "time": {
               "anyOf": [
-                {
-                  "type": "string"
-                },
                 {
                   "additionalProperties": false,
                   "properties": {
@@ -90,6 +87,22 @@
                     "leadtime"
                   ],
                   "type": "object"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "initialization": {
+                      "type": "string"
+                    },
+                    "validtime": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "initialization",
+                    "validtime"
+                  ],
+                  "type": "object"
                 }
               ]
             }
@@ -98,7 +111,7 @@
             "latitude",
             "level",
             "longitude",
-            "validtime"
+            "time"
           ],
           "type": "object"
         },

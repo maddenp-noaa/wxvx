@@ -33,8 +33,8 @@ def leadtimes(config_data):
 
 
 @fixture
-def validtime(config_data):
-    return types.Validtime(**config_data["forecast"]["coordinates"]["validtime"])
+def time(config_data):
+    return types.Time(**config_data["forecast"]["coordinates"]["time"])
 
 
 # Tests
@@ -74,8 +74,8 @@ def test_Coordinates(config_data, coordinates):
     assert obj.latitude == "latitude"
     assert obj.level == "level"
     assert obj.longitude == "longitude"
-    assert obj.validtime.initialization == "time"
-    assert obj.validtime.leadtime == "lead_time"
+    assert obj.time.initialization == "time"
+    assert obj.time.leadtime == "lead_time"
     cfg = config_data["forecast"]["coordinates"]
     other1 = types.Coordinates(**cfg)
     assert obj == other1
@@ -101,8 +101,8 @@ def test_Forecast(config_data, forecast):
     assert obj.coordinates.latitude == "latitude"
     assert obj.coordinates.level == "level"
     assert obj.coordinates.longitude == "longitude"
-    assert obj.coordinates.validtime.initialization == "time"
-    assert obj.coordinates.validtime.leadtime == "lead_time"
+    assert obj.coordinates.time.initialization == "time"
+    assert obj.coordinates.time.leadtime == "lead_time"
     assert obj.name == "Forecast"
     assert obj.path == Path("/path/to/forecast")
     cfg = config_data["forecast"]
@@ -124,15 +124,15 @@ def test_Leadtimes(config_data, leadtimes):
     assert obj != other2
 
 
-def test_Validtime(config_data, validtime):
-    obj = validtime
+def test_Time(config_data, time):
+    obj = time
     assert hash(obj)
     assert obj.initialization == "time"
     assert obj.leadtime == "lead_time"
-    cfg = config_data["forecast"]["coordinates"]["validtime"]
-    other1 = types.Validtime(**cfg)
+    cfg = config_data["forecast"]["coordinates"]["time"]
+    other1 = types.Time(**cfg)
     assert obj == other1
-    other2 = types.Validtime(**{**cfg, "initialization": "foo"})
+    other2 = types.Time(**{**cfg, "initialization": "foo"})
     assert obj != other2
 
 

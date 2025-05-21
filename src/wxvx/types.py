@@ -43,16 +43,16 @@ class Coordinates:
     latitude: str
     level: str
     longitude: str
-    validtime: str | Validtime
+    time: str | Time
 
-    KEYS = ("latitude", "level", "longitude", "validtime")
+    KEYS = ("latitude", "level", "longitude", "time")
 
     def __hash__(self):
         return _hash(self)
 
     def __post_init__(self):
-        if isinstance(self.validtime, dict):
-            _force(self, "validtime", Validtime(**self.validtime))
+        if isinstance(self.time, dict):
+            _force(self, "time", Time(**self.time))
 
 
 @dataclass(frozen=True)
@@ -104,9 +104,13 @@ class Paths:
 
 
 @dataclass(frozen=True)
-class Validtime:
+class Time:
     initialization: str
-    leadtime: str
+    leadtime: str | None = None
+    validtime: str | None = None
+
+    def __post_init__(self):
+        assert self.leadtime is not None or self.validtime is not None
 
 
 @dataclass(frozen=True)

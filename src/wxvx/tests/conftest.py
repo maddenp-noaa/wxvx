@@ -91,7 +91,7 @@ def config_data():
                 "latitude": "latitude",
                 "level": "level",
                 "longitude": "longitude",
-                "validtime": {
+                "time": {
                     "initialization": "time",
                     "leadtime": "lead_time",
                 },
