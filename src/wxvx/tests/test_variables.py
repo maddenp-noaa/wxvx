@@ -147,12 +147,41 @@ def test_variables_metlevel(level_type, level, expected):
     assert variables.metlevel(level_type=level_type, level=level) == expected
 
 
-def test_variables_metlevel_error():
+def test_variables_metlevel__error():
     with raises(WXVXError) as e:
         variables.metlevel(level_type="foo", level=-1)
     assert str(e.value) == "No MET level defined for level type foo"
 
 
 @mark.parametrize(("s", "expected"), [("900", 900), ("1013.1", 1013.1)])
-def test__levelstr2num(s, expected):
+def test_variables__levelstr2num(s, expected):
     assert variables._levelstr2num(levelstr=s) == expected
+
+
+def test_variables__narrow__fail():
+    data = 42
+    coords = {"x": 1}
+    da = xr.DataArray(name="a", data=data, dims=["x"], coords=coords)
+    with raises(KeyError):
+        variables._narrow(da=da, key="x", value=2)
+
+
+def test_variables__narrow__pass_array_to_array():
+    data = [[42, 43], [44, 45]]
+    coords = {"x": [1, 2], "y": [1, 2]}
+    da = xr.DataArray(name="a", data=data, dims=["x", "y"], coords=coords)
+    assert np.all(variables._narrow(da=da, key="x", value=1).data == [42, 43])
+
+
+def test_variables__narrow__pass_array_to_scalar():
+    data = [42, 43]
+    coords = {"x": [1, 2]}
+    da = xr.DataArray(name="a", data=data, dims=["x"], coords=coords)
+    assert variables._narrow(da=da, key="x", value=1).data == 42
+
+
+def test_variables__narrow__pass_scalar():
+    data = 42
+    coords = {"x": 1}
+    da = xr.DataArray(name="a", data=data, dims=["x"], coords=coords)
+    assert variables._narrow(da=da, key="x", value=1).data == 42
