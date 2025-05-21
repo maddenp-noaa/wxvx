@@ -216,10 +216,10 @@ def da_construct(src: xr.DataArray) -> xr.DataArray:
 def da_select(ds: xr.Dataset, c: Config, varname: str, tc: TimeCoords, var: Var) -> xr.DataArray:
     try:
         da = ds[varname]
-        da = _refine(da, "time", np.datetime64(str(tc.cycle.isoformat())))
-        da = _refine(da, "lead_time", np.timedelta64(int(tc.leadtime.total_seconds()), "s"))
+        da = _narrow(da, "time", np.datetime64(str(tc.cycle.isoformat())))
+        da = _narrow(da, "lead_time", np.timedelta64(int(tc.leadtime.total_seconds()), "s"))
         if var.level is not None and hasattr(da, "level"):
-            da = _refine(da, "level", var.level)
+            da = _narrow(da, "level", var.level)
     except KeyError as e:
         msg = "Variable %s valid at %s not found in %s" % (varname, tc, c.forecast.path)
         raise WXVXError(msg) from e
@@ -361,10 +361,10 @@ def _levelstr2num(levelstr: str) -> float | int:
         return float(levelstr)
 
 
-def _refine(da: xr.DataArray, key: str, value: Any) -> xr.DataArray:
-    data = da[key].values
-    if data.shape:  # i.e. non-scalar
+def _narrow(da: xr.DataArray, key: str, value: Any) -> xr.DataArray:
+    coords = da[key].values
+    if coords.shape:  # i.e. non-scalar
         return da.sel({key: value})
-    if data != value:
+    if coords != value:
         raise KeyError
     return da
