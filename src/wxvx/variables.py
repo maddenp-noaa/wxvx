@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 import netCDF4  # noqa: F401 # import before xarray cf. https://github.com/pydata/xarray/issues/7259
 import numpy as np
@@ -215,13 +215,11 @@ def da_construct(src: xr.DataArray) -> xr.DataArray:
 
 def da_select(ds: xr.Dataset, c: Config, varname: str, tc: TimeCoords, var: Var) -> xr.DataArray:
     try:
-        da = (
-            ds[varname]
-            .sel(time=np.datetime64(str(tc.cycle.isoformat())))
-            .sel(lead_time=np.timedelta64(int(tc.leadtime.total_seconds()), "s"))
-        )
+        da = ds[varname]
+        da = _refine(da, "time", np.datetime64(str(tc.cycle.isoformat())))
+        da = _refine(da, "lead_time", np.timedelta64(int(tc.leadtime.total_seconds()), "s"))
         if var.level is not None and hasattr(da, "level"):
-            da = da.sel(level=var.level)
+            da = _refine(da, "level", var.level)
     except KeyError as e:
         msg = "Variable %s valid at %s not found in %s" % (varname, tc, c.forecast.path)
         raise WXVXError(msg) from e
@@ -361,3 +359,12 @@ def _levelstr2num(levelstr: str) -> float | int:
         return int(levelstr)
     except ValueError:
         return float(levelstr)
+
+
+def _refine(da: xr.DataArray, key: str, value: Any) -> xr.DataArray:
+    data = da[key].values
+    if data.shape:  # i.e. non-scalar
+        return da.sel({key: value})
+    if data != value:
+        raise KeyError
+    return da
