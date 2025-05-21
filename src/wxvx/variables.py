@@ -217,11 +217,11 @@ def da_select(ds: xr.Dataset, c: Config, varname: str, tc: TimeCoords, var: Var)
     try:
         da = (
             ds[varname]
-            .sel(time=np.datetime64(str(tc.cycle.isoformat())))
-            .sel(lead_time=np.timedelta64(int(tc.leadtime.total_seconds()), "s"))
+            .sel({"time": np.datetime64(str(tc.cycle.isoformat()))})
+            .sel({"lead_time": np.timedelta64(int(tc.leadtime.total_seconds()), "s")})
         )
         if var.level is not None and hasattr(da, "level"):
-            da = da.sel(level=var.level)
+            da = da.sel({"level": var.level})
     except KeyError as e:
         msg = "Variable %s valid at %s not found in %s" % (varname, tc, c.forecast.path)
         raise WXVXError(msg) from e
