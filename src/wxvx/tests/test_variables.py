@@ -89,7 +89,7 @@ def test_variables_HRRR__levinfo(expected, levstr):
 def test_variables_da_construct(c, da, tc):
     var = variables.Var(name="gh", level_type="isobaricInhPa", level=900)
     selected = variables.da_select(c=c, ds=da.to_dataset(), varname="HGT", tc=tc, var=var)
-    new = variables.da_construct(c=c, src=selected)
+    new = variables.da_construct(c=c, da=selected)
     assert new.name == da.name
     assert all(new.latitude == da.latitude)
     assert all(new.longitude == da.longitude)

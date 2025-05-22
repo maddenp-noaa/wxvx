@@ -199,17 +199,17 @@ class HRRR(Var):
         return (UNKNOWN, None)
 
 
-def da_construct(c: Config, src: xr.DataArray) -> xr.DataArray:
+def da_construct(c: Config, da: xr.DataArray) -> xr.DataArray:
     return xr.DataArray(
-        data=src.expand_dims(dim=["forecast_reference_time", "time"]),
+        data=da.expand_dims(dim=["forecast_reference_time", "time"]),
         coords=dict(
-            forecast_reference_time=[src.time.values + np.timedelta64(0, "s")],
-            time=[src.time.values + src.lead_time.values],
-            latitude=src[c.forecast.coords.latitude],
-            longitude=src[c.forecast.coords.longitude],
+            forecast_reference_time=[da.time.values + np.timedelta64(0, "s")],
+            time=[da.time.values + da.lead_time.values],
+            latitude=da[c.forecast.coords.latitude],
+            longitude=da[c.forecast.coords.longitude],
         ),
         dims=("forecast_reference_time", "time", "latitude", "longitude"),
-        name=src.name,
+        name=da.name,
     )
 
 
