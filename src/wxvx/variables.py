@@ -368,8 +368,14 @@ def _levelstr2num(levelstr: str) -> float | int:
 
 
 def _narrow(da: xr.DataArray, key: str, value: Any) -> xr.DataArray:
+    # If the value of the coordinate variable identified by the 'key' argument is a vector, reduce
+    # it to a scalar by selecting the single element matching the 'value' argument. If it is already
+    # a scalar, raise an exception if it does not match 'value'. For example, an array with a series
+    # of forecast cycles might have a vector-valued 'key' = 'time' coordinate variable, while one
+    # with a single forecast cycle might have a scalar 'time'. In either case, this function should
+    # return an array with a scalar 'time' coordinate variable with the expected value.
     coords = da[key].values
-    if coords.shape:  # i.e. non-scalar
+    if coords.shape:  # i.e. vector
         return da.sel({key: value})
     if coords != value:
         raise KeyError
