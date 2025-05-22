@@ -217,12 +217,15 @@ def da_select(ds: xr.Dataset, c: Config, varname: str, tc: TimeCoords, var: Var)
     coords = ds.coords.keys()
     try:
         da = ds[varname]
-        if c.forecast.coordinates.time.initialization in coords:
-            da = _narrow(da, "time", np.datetime64(str(tc.cycle.isoformat())))
-        if c.forecast.coordinates.time.leadtime in coords:
-            da = _narrow(da, "lead_time", np.timedelta64(int(tc.leadtime.total_seconds()), "s"))
-        if c.forecast.coordinates.level in coords and var.level is not None:
-            da = _narrow(da, "level", var.level)
+        initialization = c.forecast.coordinates.time.initialization
+        if initialization in coords:
+            da = _narrow(da, initialization, np.datetime64(str(tc.cycle.isoformat())))
+        leadtime = c.forecast.coordinates.time.leadtime
+        if leadtime in coords:
+            da = _narrow(da, leadtime, np.timedelta64(int(tc.leadtime.total_seconds()), "s"))
+        level = c.forecast.coordinates.level
+        if level in coords and var.level is not None:
+            da = _narrow(da, level, var.level)
     except KeyError as e:
         msg = "Variable %s valid at %s not found in %s" % (varname, tc, c.forecast.path)
         raise WXVXError(msg) from e
