@@ -199,7 +199,8 @@ class HRRR(Var):
         return (UNKNOWN, None)
 
 
-def da_construct(src: xr.DataArray) -> xr.DataArray:
+def da_construct(c: Config, src: xr.DataArray) -> xr.DataArray:
+    assert c
     return xr.DataArray(
         data=src.expand_dims(dim=["forecast_reference_time", "time"]),
         coords=dict(

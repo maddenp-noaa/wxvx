@@ -176,7 +176,7 @@ def _grid_nc(c: Config, varname: str, tc: TimeCoords, var: Var):
     fd = _forecast_dataset(c.forecast.path)
     yield fd
     src = da_select(c, fd.refs, varname, tc, var)
-    da = da_construct(src)
+    da = da_construct(c, src)
     ds = ds_construct(c, da, taskname, var.level)
     with atomic(path) as tmp:
         ds.to_netcdf(tmp, encoding={varname: {"zlib": True, "complevel": 9}})
