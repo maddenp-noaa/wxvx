@@ -200,14 +200,13 @@ class HRRR(Var):
 
 
 def da_construct(c: Config, src: xr.DataArray) -> xr.DataArray:
-    assert c
     return xr.DataArray(
         data=src.expand_dims(dim=["forecast_reference_time", "time"]),
         coords=dict(
             forecast_reference_time=[src.time.values + np.timedelta64(0, "s")],
             time=[src.time.values + src.lead_time.values],
-            latitude=src.latitude,
-            longitude=src.longitude,
+            latitude=src[c.forecast.coords.latitude],
+            longitude=src[c.forecast.coords.longitude],
         ),
         dims=("forecast_reference_time", "time", "latitude", "longitude"),
         name=src.name,
@@ -218,13 +217,13 @@ def da_select(c: Config, ds: xr.Dataset, varname: str, tc: TimeCoords, var: Var)
     coords = ds.coords.keys()
     try:
         da = ds[varname]
-        inittime = c.forecast.coordinates.time.inittime
+        inittime = c.forecast.coords.time.inittime
         if inittime in coords:
             da = _narrow(da, inittime, np.datetime64(str(tc.cycle.isoformat())))
-        leadtime = c.forecast.coordinates.time.leadtime
+        leadtime = c.forecast.coords.time.leadtime
         if leadtime in coords:
             da = _narrow(da, leadtime, np.timedelta64(int(tc.leadtime.total_seconds()), "s"))
-        level = c.forecast.coordinates.level
+        level = c.forecast.coords.level
         if level in coords and var.level is not None:
             da = _narrow(da, level, var.level)
     except KeyError as e:

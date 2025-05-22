@@ -87,7 +87,7 @@ def config_data():
             "stop": "2024-12-20T06:00:00",
         },
         "forecast": {
-            "coordinates": {
+            "coords": {
                 "latitude": "latitude",
                 "level": "level",
                 "longitude": "longitude",

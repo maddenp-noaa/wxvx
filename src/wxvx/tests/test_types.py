@@ -13,8 +13,8 @@ def baseline(config_data):
 
 
 @fixture
-def coordinates(config_data):
-    return types.Coordinates(**config_data["forecast"]["coordinates"])
+def coords(config_data):
+    return types.Coords(**config_data["forecast"]["coords"])
 
 
 @fixture
@@ -34,7 +34,7 @@ def leadtimes(config_data):
 
 @fixture
 def time(config_data):
-    return types.Time(**config_data["forecast"]["coordinates"]["time"])
+    return types.Time(**config_data["forecast"]["coords"]["time"])
 
 
 # Tests
@@ -68,18 +68,18 @@ def test_Config(baseline, config_data, cycles, forecast, leadtimes):
     assert obj != other
 
 
-def test_Coordinates(config_data, coordinates):
-    obj = coordinates
+def test_Coords(config_data, coords):
+    obj = coords
     assert hash(obj)
     assert obj.latitude == "latitude"
     assert obj.level == "level"
     assert obj.longitude == "longitude"
     assert obj.time.inittime == "time"
     assert obj.time.leadtime == "lead_time"
-    cfg = config_data["forecast"]["coordinates"]
-    other1 = types.Coordinates(**cfg)
+    cfg = config_data["forecast"]["coords"]
+    other1 = types.Coords(**cfg)
     assert obj == other1
-    other2 = types.Coordinates(**{**cfg, "latitude": "lat"})
+    other2 = types.Coords(**{**cfg, "latitude": "lat"})
     assert obj != other2
 
 
@@ -98,11 +98,11 @@ def test_Cycles(config_data, cycles):
 def test_Forecast(config_data, forecast):
     obj = forecast
     assert hash(obj)
-    assert obj.coordinates.latitude == "latitude"
-    assert obj.coordinates.level == "level"
-    assert obj.coordinates.longitude == "longitude"
-    assert obj.coordinates.time.inittime == "time"
-    assert obj.coordinates.time.leadtime == "lead_time"
+    assert obj.coords.latitude == "latitude"
+    assert obj.coords.level == "level"
+    assert obj.coords.longitude == "longitude"
+    assert obj.coords.time.inittime == "time"
+    assert obj.coords.time.leadtime == "lead_time"
     assert obj.name == "Forecast"
     assert obj.path == Path("/path/to/forecast")
     cfg = config_data["forecast"]
@@ -129,7 +129,7 @@ def test_Time(config_data, time):
     assert hash(obj)
     assert obj.inittime == "time"
     assert obj.leadtime == "lead_time"
-    cfg = config_data["forecast"]["coordinates"]["time"]
+    cfg = config_data["forecast"]["coords"]["time"]
     other1 = types.Time(**cfg)
     assert obj == other1
     other2 = types.Time(**{**cfg, "inittime": "foo"})

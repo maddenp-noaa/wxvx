@@ -39,7 +39,7 @@ class Config:
 
 
 @dataclass(frozen=True)
-class Coordinates:
+class Coords:
     latitude: str
     level: str
     longitude: str
@@ -64,21 +64,21 @@ class Cycles:
 
 @dataclass(frozen=True)
 class Forecast:
-    coordinates: Coordinates
+    coords: Coords
     name: str
     path: Path
     projection: dict
     mask: tuple[tuple[float, float]] | None = None
 
-    KEYS = ("coordinates", "mask", "name", "path", "projection")
+    KEYS = ("coords", "mask", "name", "path", "projection")
 
     def __hash__(self):
         return _hash(self)
 
     def __post_init__(self):
-        if isinstance(self.coordinates, dict):
-            coordinates = Coordinates(**self.coordinates)
-            _force(self, "coordinates", coordinates)
+        if isinstance(self.coords, dict):
+            coords = Coords(**self.coords)
+            _force(self, "coords", coords)
         if self.mask:
             _force(self, "mask", tuple(tuple(x) for x in self.mask))
         _force(self, "path", Path(self.path))

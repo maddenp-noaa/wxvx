@@ -41,7 +41,7 @@ The content of the YAML configuration file supplied via `-c` / `--config` is des
 │   step:            │   Interval between cycles as hh[:mm[:ss]]    │
 │   stop:            │   Last cycle as ISO8601 timestamp            │
 │ forecast:          │ Description of the forecast dataset          │
-│   coordinates:     │   Names of coordinate variables              │
+│   coords:          │   Names of coordinate variables              │
 │     latitude:      │     Latitude variable                        │
 │     level:         │     Level variable                           │
 │     longitude:     │     Longitude variable                       │
@@ -88,7 +88,7 @@ The `forecast.projection` value should be a mapping with at least a `proj` key i
 
 ### Validtime
 
-The `forecast.coordinates.validtime` value may be either:
+The `forecast.coords.validtime` value may be either:
 
   - The name of a single coordinate variable providing the forecast validtime, or
   - A mapping with keys `inittime` and `leadtime`, whose values are the names of the coordinate variables providing, respectively, the forecast initialization time and leadtime.
