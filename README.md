@@ -91,7 +91,7 @@ The `forecast.projection` value should be a mapping with at least a `proj` key i
 The `forecast.coordinates.validtime` value may be either:
 
   - The name of a single coordinate variable providing the forecast validtime, or
-  - A mapping with keys `initialization` and `leadtime`, whose values are the names of the coordinate variables providing, respectively, the forecast initialization time and leadtime.
+  - A mapping with keys `inittime` and `leadtime`, whose values are the names of the coordinate variables providing, respectively, the forecast initialization time and leadtime.
 
 ## Use
 

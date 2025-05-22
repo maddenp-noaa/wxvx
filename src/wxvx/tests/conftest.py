@@ -92,7 +92,7 @@ def config_data():
                 "level": "level",
                 "longitude": "longitude",
                 "time": {
-                    "initialization": "time",
+                    "inittime": "time",
                     "leadtime": "lead_time",
                 },
             },

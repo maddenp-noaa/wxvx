@@ -217,9 +217,9 @@ def da_select(ds: xr.Dataset, c: Config, varname: str, tc: TimeCoords, var: Var)
     coords = ds.coords.keys()
     try:
         da = ds[varname]
-        initialization = c.forecast.coordinates.time.initialization
-        if initialization in coords:
-            da = _narrow(da, initialization, np.datetime64(str(tc.cycle.isoformat())))
+        inittime = c.forecast.coordinates.time.inittime
+        if inittime in coords:
+            da = _narrow(da, inittime, np.datetime64(str(tc.cycle.isoformat())))
         leadtime = c.forecast.coordinates.time.leadtime
         if leadtime in coords:
             da = _narrow(da, leadtime, np.timedelta64(int(tc.leadtime.total_seconds()), "s"))

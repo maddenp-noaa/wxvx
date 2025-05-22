@@ -75,7 +75,7 @@
                 {
                   "additionalProperties": false,
                   "properties": {
-                    "initialization": {
+                    "inittime": {
                       "type": "string"
                     },
                     "leadtime": {
@@ -83,7 +83,7 @@
                     }
                   },
                   "required": [
-                    "initialization",
+                    "inittime",
                     "leadtime"
                   ],
                   "type": "object"
@@ -91,7 +91,7 @@
                 {
                   "additionalProperties": false,
                   "properties": {
-                    "initialization": {
+                    "inittime": {
                       "type": "string"
                     },
                     "validtime": {
@@ -99,7 +99,7 @@
                     }
                   },
                   "required": [
-                    "initialization",
+                    "inittime",
                     "validtime"
                   ],
                   "type": "object"

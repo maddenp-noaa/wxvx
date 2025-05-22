@@ -105,7 +105,7 @@ class Paths:
 
 @dataclass(frozen=True)
 class Time:
-    initialization: str
+    inittime: str
     leadtime: str | None = None
     validtime: str | None = None
 

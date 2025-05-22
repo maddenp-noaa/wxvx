@@ -74,7 +74,7 @@ def test_Coordinates(config_data, coordinates):
     assert obj.latitude == "latitude"
     assert obj.level == "level"
     assert obj.longitude == "longitude"
-    assert obj.time.initialization == "time"
+    assert obj.time.inittime == "time"
     assert obj.time.leadtime == "lead_time"
     cfg = config_data["forecast"]["coordinates"]
     other1 = types.Coordinates(**cfg)
@@ -101,7 +101,7 @@ def test_Forecast(config_data, forecast):
     assert obj.coordinates.latitude == "latitude"
     assert obj.coordinates.level == "level"
     assert obj.coordinates.longitude == "longitude"
-    assert obj.coordinates.time.initialization == "time"
+    assert obj.coordinates.time.inittime == "time"
     assert obj.coordinates.time.leadtime == "lead_time"
     assert obj.name == "Forecast"
     assert obj.path == Path("/path/to/forecast")
@@ -127,12 +127,12 @@ def test_Leadtimes(config_data, leadtimes):
 def test_Time(config_data, time):
     obj = time
     assert hash(obj)
-    assert obj.initialization == "time"
+    assert obj.inittime == "time"
     assert obj.leadtime == "lead_time"
     cfg = config_data["forecast"]["coordinates"]["time"]
     other1 = types.Time(**cfg)
     assert obj == other1
-    other2 = types.Time(**{**cfg, "initialization": "foo"})
+    other2 = types.Time(**{**cfg, "inittime": "foo"})
     assert obj != other2
 
 

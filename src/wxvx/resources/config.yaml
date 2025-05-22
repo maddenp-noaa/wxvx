@@ -12,7 +12,7 @@ forecast:
     level: level
     longitude: longitude
     time:
-      initialization: time
+      inittime: time
       leadtime: lead_time
   mask:
     - [52.61564933, 225.90452027]
