@@ -214,11 +214,14 @@ def da_construct(src: xr.DataArray) -> xr.DataArray:
 
 
 def da_select(ds: xr.Dataset, c: Config, varname: str, tc: TimeCoords, var: Var) -> xr.DataArray:
+    coords = ds.coords.keys()
     try:
         da = ds[varname]
-        da = _narrow(da, "time", np.datetime64(str(tc.cycle.isoformat())))
-        da = _narrow(da, "lead_time", np.timedelta64(int(tc.leadtime.total_seconds()), "s"))
-        if var.level is not None and hasattr(da, "level"):
+        if c.forecast.coordinates.time.initialization in coords:
+            da = _narrow(da, "time", np.datetime64(str(tc.cycle.isoformat())))
+        if c.forecast.coordinates.time.leadtime in coords:
+            da = _narrow(da, "lead_time", np.timedelta64(int(tc.leadtime.total_seconds()), "s"))
+        if c.forecast.coordinates.level in coords and var.level is not None:
             da = _narrow(da, "level", var.level)
     except KeyError as e:
         msg = "Variable %s valid at %s not found in %s" % (varname, tc, c.forecast.path)

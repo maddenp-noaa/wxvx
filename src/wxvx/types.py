@@ -43,7 +43,7 @@ class Coordinates:
     latitude: str
     level: str
     longitude: str
-    time: str | Time
+    time: Time
 
     KEYS = ("latitude", "level", "longitude", "time")
 
