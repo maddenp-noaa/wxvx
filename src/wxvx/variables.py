@@ -213,7 +213,7 @@ def da_construct(src: xr.DataArray) -> xr.DataArray:
     )
 
 
-def da_select(ds: xr.Dataset, c: Config, varname: str, tc: TimeCoords, var: Var) -> xr.DataArray:
+def da_select(c: Config, ds: xr.Dataset, varname: str, tc: TimeCoords, var: Var) -> xr.DataArray:
     coords = ds.coords.keys()
     try:
         da = ds[varname]

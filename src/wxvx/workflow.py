@@ -175,7 +175,7 @@ def _grid_nc(c: Config, varname: str, tc: TimeCoords, var: Var):
     yield asset(path, path.is_file)
     fd = _forecast_dataset(c.forecast.path)
     yield fd
-    src = da_select(fd.refs, c, varname, tc, var)
+    src = da_select(c, fd.refs, varname, tc, var)
     da = da_construct(src)
     ds = ds_construct(c, da, taskname, var.level)
     with atomic(path) as tmp:

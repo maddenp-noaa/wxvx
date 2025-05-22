@@ -88,7 +88,7 @@ def test_variables_HRRR__levinfo(expected, levstr):
 
 def test_variables_da_construct(c, da, tc):
     var = variables.Var(name="gh", level_type="isobaricInhPa", level=900)
-    selected = variables.da_select(ds=da.to_dataset(), c=c, varname="HGT", tc=tc, var=var)
+    selected = variables.da_select(c=c, ds=da.to_dataset(), varname="HGT", tc=tc, var=var)
     new = variables.da_construct(src=selected)
     assert new.name == da.name
     assert all(new.latitude == da.latitude)
@@ -100,7 +100,7 @@ def test_variables_da_construct(c, da, tc):
 @mark.parametrize(("fail", "name", "varname"), [(False, "gh", "HGT"), (True, "foo", "FOO")])
 def test_variables_da_select(c, da, fail, name, tc, varname):
     var = variables.Var(name=name, level_type="isobaricInhPa", level=900)
-    kwargs = dict(ds=da.to_dataset(), c=c, varname=varname, tc=tc, var=var)
+    kwargs = dict(c=c, ds=da.to_dataset(), varname=varname, tc=tc, var=var)
     if fail:
         with raises(WXVXError) as e:
             variables.da_select(**kwargs)
