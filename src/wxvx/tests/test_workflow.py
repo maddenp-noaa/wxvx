@@ -371,7 +371,7 @@ def test__statreqs(c, statkit, cycle):
     )
     assert _stat.call_args_list[1].args == (
         *args,
-        f"baseline_gh_{statkit.level_type}_{statkit.level:04d}",
+        f"gfs_gh_{statkit.level_type}_{statkit.level:04d}",
         Source.BASELINE,
     )
 

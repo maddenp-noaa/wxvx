@@ -78,7 +78,7 @@ def config_data():
     return {
         "baseline": {
             "compare": True,
-            "name": "Baseline",
+            "name": "GFS",
             "template": "https://some.url/{yyyymmdd}/{hh}/{fh:02}/a.grib2",
         },
         "cycles": {

@@ -21,6 +21,7 @@ import seaborn as sns
 import xarray as xr
 from iotaa import Node, asset, external, refs, task, tasks
 
+from wxvx import variables
 from wxvx.metconf import render
 from wxvx.net import fetch
 from wxvx.times import TimeCoords, gen_cycles, gen_leadtimes, gen_validtimes, hh, tcinfo, yyyymmdd
@@ -121,15 +122,16 @@ def _grib_index_data(c: Config, outdir: Path, tc: TimeCoords, url: str):
     yyyymmdd, hh, leadtime = tcinfo(tc)
     taskname = "GRIB index data %s %sZ %s" % (yyyymmdd, hh, leadtime)
     yield taskname
-    idxdata: dict[str, HRRR] = {}
+    idxdata: dict[str, Var] = {}
     yield asset(idxdata, lambda: bool(idxdata))
     idxfile = _grib_index_file(outdir, url)
     yield idxfile
     lines = idxfile.refs.read_text(encoding="utf-8").strip().split("\n")
     lines.append(":-1:::::")  # end marker
     vxvars = set(_vxvars(c).keys())
+    baseline_class = getattr(variables, c.baseline.name)
     for this_record, next_record in pairwise([line.split(":") for line in lines]):
-        baseline_var = HRRR(
+        baseline_var = baseline_class(
             name=this_record[3],
             levstr=this_record[4],
             firstbyte=int(this_record[1]),
