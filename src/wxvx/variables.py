@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 import netCDF4  # noqa: F401 # import before xarray cf. https://github.com/pydata/xarray/issues/7259
 import numpy as np
@@ -199,12 +199,56 @@ class HRRR(Var):
         return (UNKNOWN, None)
 
 
+def _coord_or_attr(da: xr.DataArray, key: str) -> Any:
+    coords = da.coords.keys()
+    if key in coords:
+        return da[key].values
+    try:
+        return da.attrs[key]
+    except KeyError as e:
+        msg = f"Not found in forecast dataset coordinates or attributes: '{key}'"
+        raise WXVXError(msg) from e
+
+
+# PM combine/generalize _val_*() functions
+
+
+def _get_datetime(da: xr.DataArray, key: str, desc: str) -> np.datetime64:
+    val = _coord_or_attr(da, key)
+    if not isinstance(val, np.datetime64):
+        try:
+            val = np.datetime64(val)
+        except Exception as e:
+            msg = f"Could not parse '{val}' as {desc}"
+            raise WXVXError(msg) from e
+    return cast(np.datetime64, val)
+
+
+def _get_timedelta(da: xr.DataArray, key: str, desc: str) -> np.timedelta64:
+    val = _coord_or_attr(da, key)
+    if not isinstance(val, np.timedelta64):
+        try:
+            val = np.timedelta64(val)
+        except Exception as e:
+            msg = f"Could not parse '{val}' as {desc}"
+            raise WXVXError(msg) from e
+    return cast(np.timedelta64, val)
+
+
 def da_construct(c: Config, da: xr.DataArray) -> xr.DataArray:
+    inittime = _get_datetime(da, c.forecast.coords.time.inittime, "initialization time")
+    if leadtime := c.forecast.coords.time.leadtime:
+        time = inittime + _get_timedelta(da, leadtime, "leadtime")
+    elif validtime := c.forecast.coords.time.validtime:
+        time = _get_datetime(da, validtime, "validtime")
+    else:
+        msg = "No leadtime or validtime coordinate was specified for forecast dataset"
+        raise WXVXError(msg)
     return xr.DataArray(
         data=da.expand_dims(dim=["forecast_reference_time", "time"]),
         coords=dict(
-            forecast_reference_time=[da.time.values + np.timedelta64(0, "s")],
-            time=[da.time.values + da.lead_time.values],
+            forecast_reference_time=[inittime + np.timedelta64(0, "s")],
+            time=[time],
             latitude=da[c.forecast.coords.latitude],
             longitude=da[c.forecast.coords.longitude],
         ),
@@ -217,15 +261,15 @@ def da_select(c: Config, ds: xr.Dataset, varname: str, tc: TimeCoords, var: Var)
     coords = ds.coords.keys()
     try:
         da = ds[varname]
-        inittime = c.forecast.coords.time.inittime
-        if inittime in coords:
-            da = _narrow(da, inittime, np.datetime64(str(tc.cycle.isoformat())))
-        leadtime = c.forecast.coords.time.leadtime
-        if leadtime in coords:
-            da = _narrow(da, leadtime, np.timedelta64(int(tc.leadtime.total_seconds()), "s"))
-        level = c.forecast.coords.level
-        if level in coords and var.level is not None:
-            da = _narrow(da, level, var.level)
+        key_inittime = c.forecast.coords.time.inittime
+        if key_inittime in coords:
+            da = _narrow(da, key_inittime, np.datetime64(str(tc.cycle.isoformat())))
+        key_leadtime = c.forecast.coords.time.leadtime
+        if key_leadtime in coords:
+            da = _narrow(da, key_leadtime, np.timedelta64(int(tc.leadtime.total_seconds()), "s"))
+        key_level = c.forecast.coords.level
+        if key_level in coords and var.level is not None:
+            da = _narrow(da, key_level, var.level)
     except KeyError as e:
         msg = "Variable %s valid at %s not found in %s" % (varname, tc, c.forecast.path)
         raise WXVXError(msg) from e
