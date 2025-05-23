@@ -129,14 +129,14 @@ def _grib_index_data(c: Config, outdir: Path, tc: TimeCoords, url: str):
     lines.append(":-1:::::")  # end marker
     vxvars = set(_vxvars(c).keys())
     for this_record, next_record in pairwise([line.split(":") for line in lines]):
-        hrrrvar = HRRR(
+        baseline_var = HRRR(
             name=this_record[3],
             levstr=this_record[4],
             firstbyte=int(this_record[1]),
             lastbyte=int(next_record[1]) - 1,
         )
-        if hrrrvar in vxvars:
-            idxdata[str(hrrrvar)] = hrrrvar
+        if baseline_var in vxvars:
+            idxdata[str(baseline_var)] = baseline_var
 
 
 @task
