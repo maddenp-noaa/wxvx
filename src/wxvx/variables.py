@@ -225,7 +225,7 @@ def da_select(c: Config, ds: xr.Dataset, varname: str, tc: TimeCoords, var: Var)
     coords = ds.coords.keys()
     try:
         da = ds[varname]
-        ds.attrs.update(ds.attrs)
+        da.attrs.update(ds.attrs)
         key_inittime = c.forecast.coords.time.inittime
         if key_inittime in coords:
             da = _narrow(da, key_inittime, np.datetime64(str(tc.cycle.isoformat())))
@@ -402,9 +402,13 @@ def _narrow(da: xr.DataArray, key: str, value: Any) -> xr.DataArray:
     # of forecast cycles might have a vector-valued 'key' = 'time' coordinate variable, while one
     # with a single forecast cycle might have a scalar 'time'. In either case, this function should
     # return an array with a scalar 'time' coordinate variable with the expected value.
-    coords = da[key].values
-    if coords.shape:  # i.e. vector
-        return da.sel({key: value})
-    if coords != value:
-        raise KeyError
+    try:
+        coords = da[key].values
+    except KeyError:
+        logging.debug("No coordinate '%s' found for '%s', ignoring", key, da.name)
+    else:
+        if coords.shape:  # i.e. vector
+            da = da.sel({key: value})
+        elif coords != value:
+            raise KeyError
     return da
