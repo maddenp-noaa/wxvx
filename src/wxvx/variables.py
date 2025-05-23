@@ -207,22 +207,6 @@ class HRRR(GFS):
     )
 
 
-def model_class(name: str) -> Any:
-    if name in model_names():
-        return getattr(sys.modules[__name__], name)
-    msg = f"Baseline model {name}"
-    raise NotImplementedError(msg)
-
-
-@cache
-def model_names(current: type = Var) -> set[str]:
-    s = set()
-    for subclass in current.__subclasses__():
-        s.add(subclass.__name__)
-        s |= model_names(subclass)
-    return s
-
-
 def da_construct(c: Config, da: xr.DataArray) -> xr.DataArray:
     inittime = _da_val(da, c.forecast.coords.time.inittime, "initialization time", np.datetime64)
     if leadtime := c.forecast.coords.time.leadtime:
@@ -310,6 +294,22 @@ def metlevel(level_type: str, level: float | None) -> str:
     except KeyError as e:
         raise WXVXError("No MET level defined for level type %s" % level_type) from e
     return f"{prefix}%03d" % int(level or 0)
+
+
+def model_class(name: str) -> Any:
+    if name in model_names():
+        return getattr(sys.modules[__name__], name)
+    msg = f"Baseline model {name}"
+    raise NotImplementedError(msg)
+
+
+@cache
+def model_names(current: type = Var) -> set[str]:
+    s = set()
+    for subclass in current.__subclasses__():
+        s.add(subclass.__name__)
+        s |= model_names(subclass)
+    return s
 
 
 # Private
