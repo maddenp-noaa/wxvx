@@ -131,22 +131,10 @@ class Var:
         return "-".join(vals)
 
 
-class HRRR(Var):
+class GFS(Var):
     """
-    A HRRR variable.
+    A GFS variable.
     """
-
-    proj = Proj(
-        {
-            "a": 6371229,
-            "b": 6371229,
-            "lat_0": 38.5,
-            "lat_1": 38.5,
-            "lat_2": 38.5,
-            "lon_0": 262.5,
-            "proj": "lcc",
-        }
-    )
 
     def __init__(self, name: str, levstr: str, firstbyte: int, lastbyte: int):
         level_type, level = self._levinfo(levstr=levstr)
@@ -197,6 +185,24 @@ class HRRR(Var):
         if m := re.match(r"^surface$", levstr):
             return ("surface", None)
         return (UNKNOWN, None)
+
+
+class HRRR(GFS):
+    """
+    A HRRR variable.
+    """
+
+    proj = Proj(
+        {
+            "a": 6371229,
+            "b": 6371229,
+            "lat_0": 38.5,
+            "lat_1": 38.5,
+            "lat_2": 38.5,
+            "lon_0": 262.5,
+            "proj": "lcc",
+        }
+    )
 
 
 def da_construct(c: Config, da: xr.DataArray) -> xr.DataArray:
