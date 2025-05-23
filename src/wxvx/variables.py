@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
+import sys
 from functools import cache
 from typing import TYPE_CHECKING, Any, Literal
 
@@ -206,13 +207,20 @@ class HRRR(GFS):
     )
 
 
+def model_class(name: str) -> Any:
+    if name in model_names():
+        return getattr(sys.modules[__name__], name)
+    msg = f"Baseline model {name}"
+    raise NotImplementedError(msg)
+
+
 @cache
-def baseline_classes(current: type = Var) -> set[type]:
-    classes = set()
+def model_names(current: type = Var) -> set[str]:
+    s = set()
     for subclass in current.__subclasses__():
-        classes.add(subclass)
-        classes |= baseline_classes(subclass)
-    return classes
+        s.add(subclass.__name__)
+        s |= model_names(subclass)
+    return s
 
 
 def da_construct(c: Config, da: xr.DataArray) -> xr.DataArray:

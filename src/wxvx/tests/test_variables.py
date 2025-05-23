@@ -86,19 +86,6 @@ def test_variables_HRRR__levinfo(expected, levstr):
     assert variables.HRRR._levinfo(levstr) == expected
 
 
-def test_baseline_classes():
-    class A: ...
-
-    class B(A): ...
-
-    class C1(B): ...
-
-    class C2(B): ...
-
-    assert variables.baseline_classes(A) == {B, C1, C2}
-    assert variables.baseline_classes() == {variables.GFS, variables.HRRR}
-
-
 def test_variables_da_construct(c, da, tc):
     var = variables.Var(name="gh", level_type="isobaricInhPa", level=900)
     selected = variables.da_select(c=c, ds=da.to_dataset(), varname="HGT", tc=tc, var=var)
@@ -164,6 +151,19 @@ def test_variables_metlevel__error():
     with raises(WXVXError) as e:
         variables.metlevel(level_type="foo", level=-1)
     assert str(e.value) == "No MET level defined for level type foo"
+
+
+def test_variables_model_names():
+    class A: ...
+
+    class B(A): ...
+
+    class C1(B): ...
+
+    class C2(B): ...
+
+    assert variables.model_names(A) == {"B", "C1", "C2"}
+    assert variables.model_names() == {"GFS", "HRRR"}
 
 
 @mark.parametrize(("s", "expected"), [("900", 900), ("1013.1", 1013.1)])

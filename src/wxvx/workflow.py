@@ -27,7 +27,7 @@ from wxvx.net import fetch
 from wxvx.times import TimeCoords, gen_cycles, gen_leadtimes, gen_validtimes, hh, tcinfo, yyyymmdd
 from wxvx.types import Cycles, Source
 from wxvx.util import LINETYPE, atomic, mpexec
-from wxvx.variables import HRRR, VARMETA, Var, da_construct, da_select, ds_construct, metlevel
+from wxvx.variables import VARMETA, Var, da_construct, da_select, ds_construct, metlevel
 
 if TYPE_CHECKING:
     from collections.abc import Iterator, Sequence
@@ -129,7 +129,7 @@ def _grib_index_data(c: Config, outdir: Path, tc: TimeCoords, url: str):
     lines = idxfile.refs.read_text(encoding="utf-8").strip().split("\n")
     lines.append(":-1:::::")  # end marker
     vxvars = set(_vxvars(c).keys())
-    baseline_class = getattr(variables, c.baseline.name)
+    baseline_class = variables.model_class(c.baseline.name)
     for this_record, next_record in pairwise([line.split(":") for line in lines]):
         baseline_var = baseline_class(
             name=this_record[3],
@@ -286,13 +286,14 @@ def _grid_stat_config(
     polyfile: Node | None,
 ):
     level_obs = metlevel(var.level_type, var.level)
+    baseline_class = variables.model_class(c.baseline.name)
     attrs = {
-        Source.BASELINE: (level_obs, HRRR.varname(var.name), c.baseline.name),
+        Source.BASELINE: (level_obs, baseline_class.varname(var.name), c.baseline.name),
         Source.FORECAST: ("(0,0,*,*)", varname, c.forecast.name),
     }
     level_fcst, name_fcst, model = attrs[source]
     field_fcst = {"level": [level_fcst], "name": name_fcst, "set_attr_level": level_obs}
-    field_obs = {"level": [level_obs], "name": HRRR.varname(var.name)}
+    field_obs = {"level": [level_obs], "name": baseline_class.varname(var.name)}
     meta = _meta(c, varname)
     if meta.cat_thresh:
         for x in field_fcst, field_obs:
