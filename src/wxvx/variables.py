@@ -225,6 +225,7 @@ def da_select(c: Config, ds: xr.Dataset, varname: str, tc: TimeCoords, var: Var)
     coords = ds.coords.keys()
     try:
         da = ds[varname]
+        ds.attrs.update(ds.attrs)
         key_inittime = c.forecast.coords.time.inittime
         if key_inittime in coords:
             da = _narrow(da, key_inittime, np.datetime64(str(tc.cycle.isoformat())))
