@@ -43,7 +43,7 @@ def time(config_data):
 def test_Baseline(baseline, config_data):
     obj = baseline
     assert obj.name == "Baseline"
-    assert obj.template == "https://some.url/{yyyymmdd}/{hh}/{ff}/a.grib2"
+    assert obj.template == "https://some.url/{yyyymmdd}/{hh}/{fh:02}/a.grib2"
     cfg = config_data["baseline"]
     other1 = types.Baseline(**cfg)
     assert obj == other1
