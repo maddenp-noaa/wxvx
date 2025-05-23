@@ -223,15 +223,19 @@ def da_construct(c: Config, da: xr.DataArray) -> xr.DataArray:
 
 def da_select(c: Config, ds: xr.Dataset, varname: str, tc: TimeCoords, var: Var) -> xr.DataArray:
     coords = ds.coords.keys()
+    dt = lambda x: np.datetime64(str(x.isoformat()))
     try:
         da = ds[varname]
         da.attrs.update(ds.attrs)
         key_inittime = c.forecast.coords.time.inittime
         if key_inittime in coords:
-            da = _narrow(da, key_inittime, np.datetime64(str(tc.cycle.isoformat())))
+            da = _narrow(da, key_inittime, dt(tc.cycle))
         key_leadtime = c.forecast.coords.time.leadtime
         if key_leadtime in coords:
             da = _narrow(da, key_leadtime, np.timedelta64(int(tc.leadtime.total_seconds()), "s"))
+        key_validtime = c.forecast.coords.time.validtime
+        if key_validtime in coords:
+            da = _narrow(da, key_validtime, dt(tc.validtime))
         key_level = c.forecast.coords.level
         if key_level in coords and var.level is not None:
             da = _narrow(da, key_level, var.level)
