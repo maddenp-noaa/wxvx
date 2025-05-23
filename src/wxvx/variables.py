@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import TYPE_CHECKING, Any, Literal, cast
+from typing import TYPE_CHECKING, Any, Literal
 
 import netCDF4  # noqa: F401 # import before xarray cf. https://github.com/pydata/xarray/issues/7259
 import numpy as np
@@ -210,37 +210,23 @@ def _coord_or_attr(da: xr.DataArray, key: str) -> Any:
         raise WXVXError(msg) from e
 
 
-# PM combine/generalize _val_*() functions
-
-
-def _get_datetime(da: xr.DataArray, key: str, desc: str) -> np.datetime64:
+def _get(da: xr.DataArray, key: str, desc: str, t: type) -> Any:
     val = _coord_or_attr(da, key)
-    if not isinstance(val, np.datetime64):
+    if not isinstance(val, t):
         try:
-            val = np.datetime64(val)
+            val = t(val)
         except Exception as e:
             msg = f"Could not parse '{val}' as {desc}"
             raise WXVXError(msg) from e
-    return cast(np.datetime64, val)
-
-
-def _get_timedelta(da: xr.DataArray, key: str, desc: str) -> np.timedelta64:
-    val = _coord_or_attr(da, key)
-    if not isinstance(val, np.timedelta64):
-        try:
-            val = np.timedelta64(val)
-        except Exception as e:
-            msg = f"Could not parse '{val}' as {desc}"
-            raise WXVXError(msg) from e
-    return cast(np.timedelta64, val)
+    return val
 
 
 def da_construct(c: Config, da: xr.DataArray) -> xr.DataArray:
-    inittime = _get_datetime(da, c.forecast.coords.time.inittime, "initialization time")
+    inittime = _get(da, c.forecast.coords.time.inittime, "initialization time", np.datetime64)
     if leadtime := c.forecast.coords.time.leadtime:
-        time = inittime + _get_timedelta(da, leadtime, "leadtime")
+        time = inittime + _get(da, leadtime, "leadtime", np.timedelta64)
     elif validtime := c.forecast.coords.time.validtime:
-        time = _get_datetime(da, validtime, "validtime")
+        time = _get(da, validtime, "validtime", np.datetime64)
     else:
         msg = "No leadtime or validtime coordinate was specified for forecast dataset"
         raise WXVXError(msg)
