@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
+from functools import cache
 from typing import TYPE_CHECKING, Any, Literal
 
 import netCDF4  # noqa: F401 # import before xarray cf. https://github.com/pydata/xarray/issues/7259
@@ -203,6 +204,15 @@ class HRRR(GFS):
             "proj": "lcc",
         }
     )
+
+
+@cache
+def baseline_classes(current: type = Var) -> set[type]:
+    classes = set()
+    for subclass in current.__subclasses__():
+        classes.add(subclass)
+        classes |= baseline_classes(subclass)
+    return classes
 
 
 def da_construct(c: Config, da: xr.DataArray) -> xr.DataArray:

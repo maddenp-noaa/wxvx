@@ -86,6 +86,19 @@ def test_variables_HRRR__levinfo(expected, levstr):
     assert variables.HRRR._levinfo(levstr) == expected
 
 
+def test_baseline_classes():
+    class A: ...
+
+    class B(A): ...
+
+    class C1(B): ...
+
+    class C2(B): ...
+
+    assert variables.baseline_classes(A) == {B, C1, C2}
+    assert variables.baseline_classes() == {variables.GFS, variables.HRRR}
+
+
 def test_variables_da_construct(c, da, tc):
     var = variables.Var(name="gh", level_type="isobaricInhPa", level=900)
     selected = variables.da_select(c=c, ds=da.to_dataset(), varname="HGT", tc=tc, var=var)
