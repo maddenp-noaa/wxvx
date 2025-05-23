@@ -199,31 +199,12 @@ class HRRR(Var):
         return (UNKNOWN, None)
 
 
-def _get(da: xr.DataArray, key: str, desc: str, t: type) -> Any:
-    coords = da.coords.keys()
-    if key in coords:
-        val = da[key].values
-    else:
-        try:
-            val = da.attrs[key]
-        except KeyError as e:
-            msg = f"Not found in forecast dataset coordinates or attributes: '{key}'"
-            raise WXVXError(msg) from e
-    if not isinstance(val, t):
-        try:
-            val = t(val)
-        except Exception as e:
-            msg = f"Could not parse '{val}' as {desc}"
-            raise WXVXError(msg) from e
-    return val
-
-
 def da_construct(c: Config, da: xr.DataArray) -> xr.DataArray:
-    inittime = _get(da, c.forecast.coords.time.inittime, "initialization time", np.datetime64)
+    inittime = _da_val(da, c.forecast.coords.time.inittime, "initialization time", np.datetime64)
     if leadtime := c.forecast.coords.time.leadtime:
-        time = inittime + _get(da, leadtime, "leadtime", np.timedelta64)
+        time = inittime + _da_val(da, leadtime, "leadtime", np.timedelta64)
     elif validtime := c.forecast.coords.time.validtime:
-        time = _get(da, validtime, "validtime", np.datetime64)
+        time = _da_val(da, validtime, "validtime", np.datetime64)
     else:
         msg = "No leadtime or validtime coordinate was specified for forecast dataset"
         raise WXVXError(msg)
@@ -385,6 +366,25 @@ def _da_to_y(da: xr.DataArray, proj: Proj) -> xr.DataArray:
         dims=["y"],
         attrs=dict(standard_name="projection_y_coordinate", units="m"),
     )
+
+
+def _da_val(da: xr.DataArray, key: str, desc: str, t: type) -> Any:
+    coords = da.coords.keys()
+    if key in coords:
+        val = da[key].values
+    else:
+        try:
+            val = da.attrs[key]
+        except KeyError as e:
+            msg = f"Not found in forecast dataset coordinates or attributes: '{key}'"
+            raise WXVXError(msg) from e
+    if not isinstance(val, t):
+        try:
+            val = t(val)
+        except Exception as e:
+            msg = f"Could not parse '{val}' as {desc}"
+            raise WXVXError(msg) from e
+    return val
 
 
 def _levelstr2num(levelstr: str) -> float | int:
