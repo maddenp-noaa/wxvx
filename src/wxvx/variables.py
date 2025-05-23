@@ -199,19 +199,16 @@ class HRRR(Var):
         return (UNKNOWN, None)
 
 
-def _coord_or_attr(da: xr.DataArray, key: str) -> Any:
+def _get(da: xr.DataArray, key: str, desc: str, t: type) -> Any:
     coords = da.coords.keys()
     if key in coords:
-        return da[key].values
-    try:
-        return da.attrs[key]
-    except KeyError as e:
-        msg = f"Not found in forecast dataset coordinates or attributes: '{key}'"
-        raise WXVXError(msg) from e
-
-
-def _get(da: xr.DataArray, key: str, desc: str, t: type) -> Any:
-    val = _coord_or_attr(da, key)
+        val = da[key].values
+    else:
+        try:
+            val = da.attrs[key]
+        except KeyError as e:
+            msg = f"Not found in forecast dataset coordinates or attributes: '{key}'"
+            raise WXVXError(msg) from e
     if not isinstance(val, t):
         try:
             val = t(val)
