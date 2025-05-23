@@ -111,7 +111,9 @@ def _forecast_dataset(path: Path):
     logging.info("%s: Opening forecast %s", taskname, path)
     with catch_warnings():
         simplefilter("ignore")
-        ds.update(xr.open_dataset(path, decode_timedelta=True))
+        src = xr.open_dataset(path, decode_timedelta=True)
+        ds.update(src)
+        ds.attrs.update(src.attrs)
 
 
 @task
