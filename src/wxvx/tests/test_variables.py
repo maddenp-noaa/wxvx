@@ -86,7 +86,7 @@ def test_variables_HRRR__levinfo(expected, levstr):
     assert variables.HRRR._levinfo(levstr) == expected
 
 
-@mark.parametrize(("leadtime", "validtime"), [("lead_time", None)])
+@mark.parametrize(("leadtime", "validtime"), [("lead_time", None), (None, "validtime")])
 def test_variables_da_construct(
     config_data, da_with_leadtime, da_with_validtime, fakefs, gen_config, leadtime, tc, validtime
 ):
