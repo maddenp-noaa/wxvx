@@ -41,6 +41,22 @@ def test_schema(logged, config_data, fs):
         assert logged("None is not of type 'object'")
 
 
+def test_schema_defs_datetime(fs):
+    ok = validator(fs, "$defs", "datetime")
+    assert ok("2025-05-27T14:13:27")
+    assert not ok("2025-05-27 14:13:27")
+    assert not ok("25-05-27T14:13:27")
+
+
+def test_schema_defs_timedelta(fs):
+    ok = validator(fs, "$defs", "timedelta")
+    assert ok("14:13:27")
+    assert ok("240:00:00")
+    assert ok("2:0:0")
+    assert ok("0:120:0")
+    assert ok("0:0:7200")
+
+
 def test_schema_baseline(logged, config_data, fs):
     ok = validator(fs, "properties", "baseline")
     config = config_data["baseline"]
@@ -306,7 +322,8 @@ def validator(fs: FakeFilesystem, *args: Any) -> Callable:
     defs = schema.get("$defs", {})
     for arg in args:
         schema = schema[arg]
-    schema.update({"$defs": defs})
+    if args and args[0] != "$defs":
+        schema.update({"$defs": defs})
     schema_file = str(fs.create_file("test.schema", contents=json.dumps(schema)).path)
     return lambda c: validate(schema_file=schema_file, config_data=c)
 
