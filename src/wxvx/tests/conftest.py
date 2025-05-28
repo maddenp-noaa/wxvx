@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Callable
@@ -180,6 +181,16 @@ def gen_config():
         )
 
     return gen_config
+
+
+@fixture
+def logged(caplog):
+    def logged_(s: str):
+        found = any(re.match(rf"^.*{s}.*$", message) for message in caplog.messages)
+        caplog.clear()
+        return found
+
+    return logged_
 
 
 @fixture

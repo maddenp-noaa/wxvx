@@ -3,12 +3,10 @@ Granular tests of config.schema.
 """
 
 import json
-import re
 from copy import deepcopy
 from typing import Any, Callable
 
 from pyfakefs.fake_filesystem import FakeFilesystem
-from pytest import fixture
 from uwtools.api.config import validate
 
 from wxvx.util import resource_path
@@ -291,19 +289,6 @@ def test_schema_variables(logged, config_data, fs):
     for key in ["name"]:
         assert not ok({"X": {**one, key: None}})
         assert logged("None is not of type 'string'")
-
-
-# Fixtures
-
-
-@fixture
-def logged(caplog):
-    def logged_(s: str):
-        found = any(re.match(rf"^.*{s}.*$", message) for message in caplog.messages)
-        caplog.clear()
-        return found
-
-    return logged_
 
 
 # Helpers

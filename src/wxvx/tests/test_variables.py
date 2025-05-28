@@ -241,6 +241,10 @@ def test_variables__narrow__fail():
         variables._narrow(da=da, key="x", value=2)
 
 
+def test_variables__narrow_noop_passthrough(logged):
+    pass
+
+
 def test_variables__narrow__pass_array_to_array():
     data = [[42, 43], [44, 45]]
     coords = {"x": [1, 2], "y": [1, 2]}
