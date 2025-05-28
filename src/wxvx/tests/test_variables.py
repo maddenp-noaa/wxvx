@@ -241,8 +241,9 @@ def test_variables__narrow__fail():
         variables._narrow(da=da, key="x", value=2)
 
 
-def test_variables__narrow_noop_passthrough(logged):
-    pass
+def test_variables__narrow_noop_passthrough(da_with_leadtime, logged):
+    assert variables._narrow(da=da_with_leadtime, key="foo", value=None) == da_with_leadtime
+    assert logged("No coordinate 'foo' found for 'HGT', ignoring")
 
 
 def test_variables__narrow__pass_array_to_array():
