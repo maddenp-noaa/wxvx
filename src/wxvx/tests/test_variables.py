@@ -161,9 +161,15 @@ def test_variables_metlevel__error():
     assert str(e.value) == "No MET level defined for level type foo"
 
 
-@mark.parametrize(("name", "obj"), [("GFS", variables.GFS), ("HRRR", variables.HRRR)])
+@mark.parametrize(
+    ("name", "obj"), [("GFS", variables.GFS), ("HRRR", variables.HRRR), ("FOO", None)]
+)
 def test_variables_model_class(name, obj):
-    assert variables.model_class(name) == obj
+    if obj is None:
+        with raises(NotImplementedError):
+            variables.model_class(name)
+    else:
+        assert variables.model_class(name) == obj
 
 
 def test_variables_model_names():
