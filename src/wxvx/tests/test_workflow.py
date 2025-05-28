@@ -120,14 +120,14 @@ def test_workflow__existing(fakefs):
     assert ready(workflow._existing(path=path))
 
 
-def test_workflow__forecast_dataset(da, fakefs):
+def test_workflow__forecast_dataset(da_with_leadtime, fakefs):
     path = fakefs / "forecast"
     assert not ready(workflow._forecast_dataset(path=path))
     path.touch()
-    with patch.object(workflow.xr, "open_dataset", return_value=da.to_dataset()):
+    with patch.object(workflow.xr, "open_dataset", return_value=da_with_leadtime.to_dataset()):
         val = workflow._forecast_dataset(path=path)
     assert ready(val)
-    assert (da == refs(val).HGT).all()
+    assert (da_with_leadtime == refs(val).HGT).all()
 
 
 def test_workflow__grib_index_data(c, tc):
@@ -203,11 +203,11 @@ def test_workflow__grid_grib(c, tc):
     _grib_index_data.assert_called_with(c, outdir, tc, url=url)
 
 
-def test_workflow__grid_nc(c_real_fs, check_cf_metadata, da, tc):
+def test_workflow__grid_nc(c_real_fs, check_cf_metadata, da_with_leadtime, tc):
     level = 900
     var = variables.Var(name="gh", level_type="isobaricInhPa", level=level)
     path = Path(c_real_fs.paths.grids_forecast, "a.nc")
-    da.to_netcdf(path)
+    da_with_leadtime.to_netcdf(path)
     object.__setattr__(c_real_fs.forecast, "path", path)
     val = workflow._grid_nc(c=c_real_fs, varname="HGT", tc=tc, var=var)
     assert ready(val)

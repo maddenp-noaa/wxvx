@@ -86,7 +86,15 @@ def test_variables_HRRR__levinfo(expected, levstr):
     assert variables.HRRR._levinfo(levstr) == expected
 
 
-def test_variables_da_construct(c, da, tc):
+@mark.parametrize(("leadtime", "validtime"), [("lead_time", None)])
+def test_variables_da_construct(
+    config_data, da_with_leadtime, da_with_validtime, fakefs, gen_config, leadtime, tc, validtime
+):
+    da = da_with_leadtime if leadtime else da_with_validtime
+    time = config_data["forecast"]["coords"]["time"]
+    time["leadtime"] = leadtime
+    time["validtime"] = validtime
+    c = gen_config(config_data, fakefs)
     var = variables.Var(name="gh", level_type="isobaricInhPa", level=900)
     selected = variables.da_select(c=c, ds=da.to_dataset(), varname="HGT", tc=tc, var=var)
     new = variables.da_construct(c=c, da=selected)
@@ -98,9 +106,9 @@ def test_variables_da_construct(c, da, tc):
 
 
 @mark.parametrize(("fail", "name", "varname"), [(False, "gh", "HGT"), (True, "foo", "FOO")])
-def test_variables_da_select(c, da, fail, name, tc, varname):
+def test_variables_da_select(c, da_with_leadtime, fail, name, tc, varname):
     var = variables.Var(name=name, level_type="isobaricInhPa", level=900)
-    kwargs = dict(c=c, ds=da.to_dataset(), varname=varname, tc=tc, var=var)
+    kwargs = dict(c=c, ds=da_with_leadtime.to_dataset(), varname=varname, tc=tc, var=var)
     if fail:
         with raises(WXVXError) as e:
             variables.da_select(**kwargs)
@@ -109,12 +117,12 @@ def test_variables_da_select(c, da, fail, name, tc, varname):
     else:
         new = variables.da_select(**kwargs)
         # latitude and longitude are unchanged
-        assert all(new.latitude == da.latitude)
-        assert all(new.longitude == da.longitude)
+        assert all(new.latitude == da_with_leadtime.latitude)
+        assert all(new.longitude == da_with_leadtime.longitude)
         # scalar level, time, and lead_time values are selected from arrays
-        assert new.level.values == da.level.values[0]
-        assert new.time.values == da.time.values[0]
-        assert new.lead_time.values == da.lead_time.values[0]
+        assert new.level.values == da_with_leadtime.level.values[0]
+        assert new.time.values == da_with_leadtime.time.values[0]
+        assert new.lead_time.values == da_with_leadtime.lead_time.values[0]
 
 
 def test_variables_ds_construct(c, check_cf_metadata):
