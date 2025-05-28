@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 from pytest import fixture, raises
@@ -66,6 +67,8 @@ def test_Config(baseline, config_data, cycles, forecast, leadtimes):
     assert obj == other
     other.variables = {}
     assert obj != other
+    for f in (repr, str):
+        assert re.match(r"^Config(.*)$", f(obj))
 
 
 def test_Coords(config_data, coords):
