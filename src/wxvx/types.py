@@ -37,6 +37,10 @@ class Config:
     def __hash__(self):
         return _hash(self)
 
+    def __repr__(self):
+        parts = ["%s=%s" % (x, getattr(self, x)) for x in self.KEYS]
+        return "%s(%s)" % (self.__class__.__name__, ", ".join(parts))
+
 
 @dataclass(frozen=True)
 class Coords:
