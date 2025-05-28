@@ -29,43 +29,46 @@ The activated virtual environment includes the [`met2go`](https://github.com/mad
 The content of the YAML configuration file supplied via `-c` / `--config` is described in the table below.
 
 ```
-┌────────────────────┬──────────────────────────────────────────────┐
-│ Key                │ Description                                  │
-├────────────────────┼──────────────────────────────────────────────┤
-│ baseline:          │ Description of the baseline dataset          │
-│   compare:         │   Verify and/or plot forecast?               │
-│   name:            │   Dataset descriptive name                   │
-│   template:        │   Template for baseline GRIB file URLs       │
-│ cycles:            │ Cycles to verify                             │
-│   start:           │   First cycle as ISO8601 timestamp           │
-│   step:            │   Interval between cycles as hh[:mm[:ss]]    │
-│   stop:            │   Last cycle as ISO8601 timestamp            │
-│ forecast:          │ Description of the forecast dataset          │
-│   coords:          │   Names of coordinate variables              │
-│     latitude:      │     Latitude variable                        │
-│     level:         │     Level variable                           │
-│     longitude:     │     Longitude variable                       │
-│     validtime:     │     Validtime variable(s) (see below)        │
-│   mask:            │   Sequence of [lat, lon] pairs (optional)    │
-│   name:            │   Dataset descriptive name                   │
-│   path:            │   Filesystem path to Zarr/netCDF dataset     │
-│   projection:      │   Projection name and attributes (see below) │
-│ leadtimes:         │ Leadtimes to verify                          │
-│   start:           │   First leadtime as hh[:mm[:ss]]             │
-│   step:            │   Interval between leadtimes as hh[:mm[:ss]] │
-│   stop:            │   Last leadtime as hh[:mm[:ss]]              │
-│ meta:              │ Optional free-form data section              │
-│ paths:             │ Paths                                        │
-│   grids:           │   Where to store grids                       │
-│     baseline:      │     Baseline grids                           │
-│     forecast:      │     Forecast grids                           │
-│   run:             │   Where to store run data                    │
-│ variables:         │ Mapping describing variables to verify       │
-│   VAR:             │   Forecast-dataset variable name             │
-│     level_type:    │     Generic level type                       │
-│     levels:        │     Sequence of level values                 │
-│     name:          │     Canonical variable name                  │
-└────────────────────┴──────────────────────────────────────────────┘
+┌────────────────────┬───────────────────────────────────────────────────┐
+│ Key                │ Description                                       │
+├────────────────────┼───────────────────────────────────────────────────┤
+│ baseline:          │ Description of the baseline dataset               │
+│   compare:         │   Verify and/or plot forecast?                    │
+│   name:            │   Dataset descriptive name                        │
+│   template:        │   Template for baseline GRIB file URLs            │
+│ cycles:            │ Cycles to verify                                  │
+│   start:           │   First cycle as ISO8601 timestamp                │
+│   step:            │   Interval between cycles as hh[:mm[:ss]]         │
+│   stop:            │   Last cycle as ISO8601 timestamp                 │
+│ forecast:          │ Description of the forecast dataset               │
+│   coords:          │   Names of coordinate variables                   │
+│     latitude:      │     Latitude variable                             │
+│     level:         │     Level variable                                │
+│     longitude:     │     Longitude variable                            │
+│     time:          │     Names of time variables (see 'Time' below)    │
+│       inittime:    │       Forecast initialization time                │
+│       leadtime:    │       Forecast leadtime                           │
+│       validtime:   │       Forecast validtime                          │
+│   mask:            │   Sequence of [lat, lon] pairs (optional)         │
+│   name:            │   Dataset descriptive name                        │
+│   path:            │   Filesystem path to Zarr/netCDF dataset          │
+│   projection:      │   Projection information (see 'Projection' below) │
+│ leadtimes:         │ Leadtimes to verify                               │
+│   start:           │   First leadtime as hh[:mm[:ss]]                  │
+│   step:            │   Interval between leadtimes as hh[:mm[:ss]]      │
+│   stop:            │   Last leadtime as hh[:mm[:ss]]                   │
+│ meta:              │ Optional free-form data section                   │
+│ paths:             │ Paths                                             │
+│   grids:           │   Where to store grids                            │
+│     baseline:      │     Baseline grids                                │
+│     forecast:      │     Forecast grids                                │
+│   run:             │   Where to store run data                         │
+│ variables:         │ Mapping describing variables to verify            │
+│   VAR:             │   Forecast-dataset variable name                  │
+│     level_type:    │     Generic level type                            │
+│     levels:        │     Sequence of level values                      │
+│     name:          │     Canonical variable name                       │
+└────────────────────┴───────────────────────────────────────────────────┘
 ```
 
 Use the `-s` / `--show` CLI switch to show a pro-forma config with realistic values for reference.
@@ -86,12 +89,15 @@ The `forecast.projection` value should be a mapping with at least a `proj` key i
   - When `proj` is [`latlon`](https://proj.org/en/stable/operations/conversions/latlon.html), specify no additional attributes.
   - When `proj` is [`lcc`](https://proj.org/en/stable/operations/projections/lcc.html), specify attributes `a`, `b`, `lat_0`, `lat_1`, `lat_2`, and `lon_0`.
 
-### Validtime
+### Time
 
-The `forecast.coords.validtime` value may be either:
+Specify values under `forecast.coords.time` as follows:
 
-  - The name of a single coordinate variable providing the forecast validtime, or
-  - A mapping with keys `inittime` and `leadtime`, whose values are the names of the coordinate variables providing, respectively, the forecast initialization time and leadtime.
+  - `inittime`: The name of the variable or attribute providing the forecast initialization time, aka cycle or, per CF Conventions, forecast reference time. Required.
+  - `leadtime`: The name of the variable or attribute providing the forecast leadtime. Exactly one of `leadtime` and `validtime` must be specified.
+  - `validtime`: The name of the variable or attribute providing the forecast validtime. Exactly one of `validtime` and `leadtime` must be specified.
+
+If a `forecast.coords.time` specifies the name of a coordinate dimension variable, that variable will be used. If no such variable exists, `wxvx` will look for a dataset attribute with the given name and try to use it, coercing it to the expected type (e.g. `datetime` or `timedelta`) as needed.
 
 ## Use
 
