@@ -185,12 +185,12 @@ def gen_config():
 
 @fixture
 def logged(caplog):
-    def logged_(s: str):
+    def logged(s: str):
         found = any(re.match(rf"^.*{s}.*$", message) for message in caplog.messages)
         caplog.clear()
         return found
 
-    return logged_
+    return logged
 
 
 @fixture
