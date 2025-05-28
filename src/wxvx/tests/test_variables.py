@@ -4,10 +4,22 @@ Tests for wxvx.net.
 
 import numpy as np
 import xarray as xr
-from pytest import mark, raises
+from pytest import fixture, mark, raises
 
 from wxvx import variables
 from wxvx.util import WXVXError
+
+# Fixtures
+
+
+@fixture
+def da_flat(da_with_leadtime):
+    return (
+        da_with_leadtime.sel(time=da_with_leadtime.time.values[0])
+        .sel(lead_time=da_with_leadtime.lead_time.values[0])
+        .sel(level=da_with_leadtime.level.values[0])
+    )
+
 
 # Tests
 
@@ -183,6 +195,37 @@ def test_variables_model_names():
 
     assert variables.model_names(A) == {"B", "C1", "C2"}
     assert variables.model_names() == {"GFS", "HRRR"}
+
+
+def test_variables__da_val__fail_unparesable(da_flat):
+    da_flat.attrs["init"] = "foo"
+    with raises(WXVXError) as e:
+        variables._da_val(da=da_flat, key="init", desc="init time", t=np.datetime64)
+    assert str(e.value) == "Could not parse 'foo' as init time"
+
+
+def test_variables__da_val__fail_no_attr_or_coord(da_flat):
+    with raises(WXVXError) as e:
+        variables._da_val(da=da_flat, key="init", desc="init time", t=np.datetime64)
+    assert str(e.value) == "Not found in forecast dataset coordinates or attributes: 'init'"
+
+
+def test_variables__da_val__pass_attr_as_is(da_flat):
+    expected = np.datetime64(0, "s")
+    da_flat.attrs["init"] = expected
+    actual = variables._da_val(da=da_flat, key="init", desc="init time", t=np.datetime64)
+    assert actual == expected
+
+
+def test_variables__da_val__pass_attr_must_parse(da_flat):
+    da_flat.attrs["init"] = "1970-01-01T00:00:00"
+    actual = variables._da_val(da=da_flat, key="init", desc="init time", t=np.datetime64)
+    assert actual == np.datetime64(0, "s")
+
+
+def test_variables__da_val__pass_coord(da_flat):
+    actual = variables._da_val(da=da_flat, key="time", desc="init time", t=np.datetime64)
+    assert actual == np.datetime64(0, "s")
 
 
 @mark.parametrize(("s", "expected"), [("900", 900), ("1013.1", 1013.1)])
