@@ -37,40 +37,12 @@ def check_cf_metadata() -> Callable:
 
 @fixture
 def c(config_data, fakefs):
-    grids_baseline, grids_forecast, run = [
-        fakefs / x for x in ("grids/baseline", "grids/forecast", "run")
-    ]
-    grids_baseline.mkdir(parents=True)
-    grids_forecast.mkdir(parents=True)
-    run.mkdir()
-    return Config(
-        {
-            **config_data,
-            "paths": {
-                "grids": {"baseline": str(grids_baseline), "forecast": str(grids_forecast)},
-                "run": str(run),
-            },
-        }
-    )
+    return gen_config(config_data, fakefs)
 
 
 @fixture
 def c_real_fs(config_data, tmp_path):
-    grids_baseline, grids_forecast, run = [
-        tmp_path / x for x in ("grids/baseline", "grids/forecast", "run")
-    ]
-    grids_baseline.mkdir(parents=True)
-    grids_forecast.mkdir(parents=True)
-    run.mkdir()
-    return Config(
-        {
-            **config_data,
-            "paths": {
-                "grids": {"baseline": str(grids_baseline), "forecast": str(grids_forecast)},
-                "run": str(run),
-            },
-        }
-    )
+    return gen_config(config_data, tmp_path)
 
 
 @fixture
@@ -187,3 +159,23 @@ def utc():
         return dt.replace(tzinfo=None)
 
     return datetime_utc
+
+
+# Helpers
+
+
+def gen_config(config_data, rootpath) -> Config:
+    dirs = ("grids/baseline", "grids/forecast", "run")
+    grids_baseline, grids_forecast, run = [rootpath / x for x in dirs]
+    grids_baseline.mkdir(parents=True)
+    grids_forecast.mkdir(parents=True)
+    run.mkdir()
+    return Config(
+        {
+            **config_data,
+            "paths": {
+                "grids": {"baseline": str(grids_baseline), "forecast": str(grids_forecast)},
+                "run": str(run),
+            },
+        }
+    )
