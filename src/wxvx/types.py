@@ -37,6 +37,27 @@ class Config:
     def __hash__(self):
         return _hash(self)
 
+    def __repr__(self):
+        parts = ["%s=%s" % (x, getattr(self, x)) for x in self.KEYS]
+        return "%s(%s)" % (self.__class__.__name__, ", ".join(parts))
+
+
+@dataclass(frozen=True)
+class Coords:
+    latitude: str
+    level: str
+    longitude: str
+    time: Time
+
+    KEYS = ("latitude", "level", "longitude", "time")
+
+    def __hash__(self):
+        return _hash(self)
+
+    def __post_init__(self):
+        if isinstance(self.time, dict):
+            _force(self, "time", Time(**self.time))
+
 
 @dataclass(frozen=True)
 class Cycles:
@@ -47,17 +68,21 @@ class Cycles:
 
 @dataclass(frozen=True)
 class Forecast:
+    coords: Coords
     name: str
     path: Path
     projection: dict
     mask: tuple[tuple[float, float]] | None = None
 
-    KEYS = ("mask", "name", "path", "projection")
+    KEYS = ("coords", "mask", "name", "path", "projection")
 
     def __hash__(self):
         return _hash(self)
 
     def __post_init__(self):
+        if isinstance(self.coords, dict):
+            coords = Coords(**self.coords)
+            _force(self, "coords", coords)
         if self.mask:
             _force(self, "mask", tuple(tuple(x) for x in self.mask))
         _force(self, "path", Path(self.path))
@@ -80,6 +105,16 @@ class Paths:
         _force(self, "grids_baseline", Path(self.grids_baseline))
         _force(self, "grids_forecast", Path(self.grids_forecast))
         _force(self, "run", Path(self.run))
+
+
+@dataclass(frozen=True)
+class Time:
+    inittime: str
+    leadtime: str | None = None
+    validtime: str | None = None
+
+    def __post_init__(self):
+        assert self.leadtime is not None or self.validtime is not None
 
 
 @dataclass(frozen=True)

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Callable
@@ -36,41 +37,13 @@ def check_cf_metadata() -> Callable:
 
 
 @fixture
-def c(config_data, fakefs):
-    grids_baseline, grids_forecast, run = [
-        fakefs / x for x in ("grids/baseline", "grids/forecast", "run")
-    ]
-    grids_baseline.mkdir(parents=True)
-    grids_forecast.mkdir(parents=True)
-    run.mkdir()
-    return Config(
-        {
-            **config_data,
-            "paths": {
-                "grids": {"baseline": str(grids_baseline), "forecast": str(grids_forecast)},
-                "run": str(run),
-            },
-        }
-    )
+def c(config_data, fakefs, gen_config):
+    return gen_config(config_data, fakefs)
 
 
 @fixture
-def c_real_fs(config_data, tmp_path):
-    grids_baseline, grids_forecast, run = [
-        tmp_path / x for x in ("grids/baseline", "grids/forecast", "run")
-    ]
-    grids_baseline.mkdir(parents=True)
-    grids_forecast.mkdir(parents=True)
-    run.mkdir()
-    return Config(
-        {
-            **config_data,
-            "paths": {
-                "grids": {"baseline": str(grids_baseline), "forecast": str(grids_forecast)},
-                "run": str(run),
-            },
-        }
-    )
+def c_real_fs(config_data, gen_config, tmp_path):
+    return gen_config(config_data, tmp_path)
 
 
 @fixture
@@ -78,8 +51,8 @@ def config_data():
     return {
         "baseline": {
             "compare": True,
-            "name": "Baseline",
-            "template": "https://some.url/{yyyymmdd}/{hh}/{ff}/a.grib2",
+            "name": "GFS",
+            "template": "https://some.url/{yyyymmdd}/{hh}/{fh:02}/a.grib2",
         },
         "cycles": {
             "start": "2024-12-19T18:00:00",
@@ -87,6 +60,15 @@ def config_data():
             "stop": "2024-12-20T06:00:00",
         },
         "forecast": {
+            "coords": {
+                "latitude": "latitude",
+                "level": "level",
+                "longitude": "longitude",
+                "time": {
+                    "inittime": "time",
+                    "leadtime": "lead_time",
+                },
+            },
             "mask": [
                 [52.61564933, 225.90452027],
                 [52.61564933, 275.0],
@@ -142,7 +124,7 @@ def config_data():
 
 
 @fixture
-def da() -> xr.DataArray:
+def da_with_leadtime() -> xr.DataArray:
     one = np.array([1], dtype="float32")
     return xr.DataArray(
         name="HGT",
@@ -159,14 +141,62 @@ def da() -> xr.DataArray:
 
 
 @fixture
+def da_with_validtime() -> xr.DataArray:
+    one = np.array([1], dtype="float32")
+    return xr.DataArray(
+        name="HGT",
+        data=one.reshape((1, 1, 1, 1, 1)),
+        dims=["latitude", "longitude", "level", "time", "validtime"],
+        coords=dict(
+            latitude=(["latitude", "longitude"], one.reshape((1, 1))),
+            longitude=(["latitude", "longitude"], one.reshape((1, 1))),
+            level=(["level"], np.array([900], dtype="float32")),
+            time=np.array([0], dtype="datetime64[ns]"),
+            validtime=np.array([0], dtype="datetime64[ns]"),
+        ),
+    )
+
+
+@fixture
 def fakefs(fs):
     return Path(fs.create_dir("/test").path)
 
 
 @fixture
-def tc(da):
-    cycle = datetime.fromtimestamp(int(da.time.values[0]), tz=timezone.utc)
-    leadtime = timedelta(hours=int(da.lead_time.values[0]))
+def gen_config():
+    def gen_config(config_data, rootpath) -> Config:
+        dirs = ("grids/baseline", "grids/forecast", "run")
+        grids_baseline, grids_forecast, run = [rootpath / x for x in dirs]
+        grids_baseline.mkdir(parents=True)
+        grids_forecast.mkdir(parents=True)
+        run.mkdir()
+        return Config(
+            {
+                **config_data,
+                "paths": {
+                    "grids": {"baseline": str(grids_baseline), "forecast": str(grids_forecast)},
+                    "run": str(run),
+                },
+            }
+        )
+
+    return gen_config
+
+
+@fixture
+def logged(caplog):
+    def logged(s: str):
+        found = any(re.match(rf"^.*{s}.*$", message) for message in caplog.messages)
+        caplog.clear()
+        return found
+
+    return logged
+
+
+@fixture
+def tc(da_with_leadtime):
+    cycle = datetime.fromtimestamp(int(da_with_leadtime.time.values[0]), tz=timezone.utc)
+    leadtime = timedelta(hours=int(da_with_leadtime.lead_time.values[0]))
     return times.TimeCoords(cycle=cycle, leadtime=leadtime)
 
 
