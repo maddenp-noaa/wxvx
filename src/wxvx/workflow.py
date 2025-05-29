@@ -21,12 +21,13 @@ import seaborn as sns
 import xarray as xr
 from iotaa import Node, asset, external, refs, task, tasks
 
+from wxvx import variables
 from wxvx.metconf import render
 from wxvx.net import fetch
 from wxvx.times import TimeCoords, gen_cycles, gen_leadtimes, gen_validtimes, hh, tcinfo, yyyymmdd
 from wxvx.types import Cycles, Source
 from wxvx.util import LINETYPE, atomic, mpexec
-from wxvx.variables import HRRR, VARMETA, Var, da_construct, da_select, ds_construct, metlevel
+from wxvx.variables import VARMETA, Var, da_construct, da_select, ds_construct, metlevel
 
 if TYPE_CHECKING:
     from collections.abc import Iterator, Sequence
@@ -111,7 +112,9 @@ def _forecast_dataset(path: Path):
     logging.info("%s: Opening forecast %s", taskname, path)
     with catch_warnings():
         simplefilter("ignore")
-        ds.update(xr.open_dataset(path, decode_timedelta=True))
+        src = xr.open_dataset(path, decode_timedelta=True)
+        ds.update(src)
+        ds.attrs.update(src.attrs)
 
 
 @task
@@ -119,22 +122,23 @@ def _grib_index_data(c: Config, outdir: Path, tc: TimeCoords, url: str):
     yyyymmdd, hh, leadtime = tcinfo(tc)
     taskname = "GRIB index data %s %sZ %s" % (yyyymmdd, hh, leadtime)
     yield taskname
-    idxdata: dict[str, HRRR] = {}
+    idxdata: dict[str, Var] = {}
     yield asset(idxdata, lambda: bool(idxdata))
     idxfile = _grib_index_file(outdir, url)
     yield idxfile
     lines = idxfile.refs.read_text(encoding="utf-8").strip().split("\n")
     lines.append(":-1:::::")  # end marker
     vxvars = set(_vxvars(c).keys())
+    baseline_class = variables.model_class(c.baseline.name)
     for this_record, next_record in pairwise([line.split(":") for line in lines]):
-        hrrrvar = HRRR(
+        baseline_var = baseline_class(
             name=this_record[3],
             levstr=this_record[4],
             firstbyte=int(this_record[1]),
             lastbyte=int(next_record[1]) - 1,
         )
-        if hrrrvar in vxvars:
-            idxdata[str(hrrrvar)] = hrrrvar
+        if baseline_var in vxvars:
+            idxdata[str(baseline_var)] = baseline_var
 
 
 @task
@@ -156,7 +160,7 @@ def _grid_grib(c: Config, tc: TimeCoords, var: Var):
     taskname = "Baseline grid %s" % path
     yield taskname
     yield asset(path, path.is_file)
-    url = c.baseline.template.format(yyyymmdd=yyyymmdd, hh=hh, ff="%02d" % int(leadtime))
+    url = c.baseline.template.format(yyyymmdd=yyyymmdd, hh=hh, fh=int(leadtime))
     idxdata = _grib_index_data(c, outdir, tc, url=f"{url}.idx")
     yield idxdata
     var_idxdata = idxdata.refs[str(var)]
@@ -175,8 +179,8 @@ def _grid_nc(c: Config, varname: str, tc: TimeCoords, var: Var):
     yield asset(path, path.is_file)
     fd = _forecast_dataset(c.forecast.path)
     yield fd
-    src = da_select(fd.refs, c, varname, tc, var)
-    da = da_construct(src)
+    src = da_select(c, fd.refs, varname, tc, var)
+    da = da_construct(c, src)
     ds = ds_construct(c, da, taskname, var.level)
     with atomic(path) as tmp:
         ds.to_netcdf(tmp, encoding={varname: {"zlib": True, "complevel": 9}})
@@ -282,13 +286,14 @@ def _grid_stat_config(
     polyfile: Node | None,
 ):
     level_obs = metlevel(var.level_type, var.level)
+    baseline_class = variables.model_class(c.baseline.name)
     attrs = {
-        Source.BASELINE: (level_obs, HRRR.varname(var.name), c.baseline.name),
+        Source.BASELINE: (level_obs, baseline_class.varname(var.name), c.baseline.name),
         Source.FORECAST: ("(0,0,*,*)", varname, c.forecast.name),
     }
     level_fcst, name_fcst, model = attrs[source]
     field_fcst = {"level": [level_fcst], "name": name_fcst, "set_attr_level": level_obs}
-    field_obs = {"level": [level_obs], "name": HRRR.varname(var.name)}
+    field_obs = {"level": [level_obs], "name": baseline_class.varname(var.name)}
     meta = _meta(c, varname)
     if meta.cat_thresh:
         for x in field_fcst, field_obs:

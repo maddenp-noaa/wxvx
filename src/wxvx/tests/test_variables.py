@@ -4,10 +4,22 @@ Tests for wxvx.net.
 
 import numpy as np
 import xarray as xr
-from pytest import mark, raises
+from pytest import fixture, mark, raises
 
 from wxvx import variables
 from wxvx.util import WXVXError
+
+# Fixtures
+
+
+@fixture
+def da_flat(da_with_leadtime):
+    return (
+        da_with_leadtime.sel(time=da_with_leadtime.time.values[0])
+        .sel(lead_time=da_with_leadtime.lead_time.values[0])
+        .sel(level=da_with_leadtime.level.values[0])
+    )
+
 
 # Tests
 
@@ -86,10 +98,18 @@ def test_variables_HRRR__levinfo(expected, levstr):
     assert variables.HRRR._levinfo(levstr) == expected
 
 
-def test_variables_da_construct(c, da, tc):
+@mark.parametrize(("leadtime", "validtime"), [("lead_time", None), (None, "validtime")])
+def test_variables_da_construct(
+    config_data, da_with_leadtime, da_with_validtime, fakefs, gen_config, leadtime, tc, validtime
+):
+    da = da_with_leadtime if leadtime else da_with_validtime
+    time = config_data["forecast"]["coords"]["time"]
+    time["leadtime"] = leadtime
+    time["validtime"] = validtime
+    c = gen_config(config_data, fakefs)
     var = variables.Var(name="gh", level_type="isobaricInhPa", level=900)
-    selected = variables.da_select(ds=da.to_dataset(), c=c, varname="HGT", tc=tc, var=var)
-    new = variables.da_construct(src=selected)
+    selected = variables.da_select(c=c, ds=da.to_dataset(), varname="HGT", tc=tc, var=var)
+    new = variables.da_construct(c=c, da=selected)
     assert new.name == da.name
     assert all(new.latitude == da.latitude)
     assert all(new.longitude == da.longitude)
@@ -98,9 +118,9 @@ def test_variables_da_construct(c, da, tc):
 
 
 @mark.parametrize(("fail", "name", "varname"), [(False, "gh", "HGT"), (True, "foo", "FOO")])
-def test_variables_da_select(c, da, fail, name, tc, varname):
+def test_variables_da_select(c, da_with_leadtime, fail, name, tc, varname):
     var = variables.Var(name=name, level_type="isobaricInhPa", level=900)
-    kwargs = dict(ds=da.to_dataset(), c=c, varname=varname, tc=tc, var=var)
+    kwargs = dict(c=c, ds=da_with_leadtime.to_dataset(), varname=varname, tc=tc, var=var)
     if fail:
         with raises(WXVXError) as e:
             variables.da_select(**kwargs)
@@ -109,12 +129,12 @@ def test_variables_da_select(c, da, fail, name, tc, varname):
     else:
         new = variables.da_select(**kwargs)
         # latitude and longitude are unchanged
-        assert all(new.latitude == da.latitude)
-        assert all(new.longitude == da.longitude)
+        assert all(new.latitude == da_with_leadtime.latitude)
+        assert all(new.longitude == da_with_leadtime.longitude)
         # scalar level, time, and lead_time values are selected from arrays
-        assert new.level.values == da.level.values[0]
-        assert new.time.values == da.time.values[0]
-        assert new.lead_time.values == da.lead_time.values[0]
+        assert new.level.values == da_with_leadtime.level.values[0]
+        assert new.time.values == da_with_leadtime.time.values[0]
+        assert new.lead_time.values == da_with_leadtime.lead_time.values[0]
 
 
 def test_variables_ds_construct(c, check_cf_metadata):
@@ -147,12 +167,101 @@ def test_variables_metlevel(level_type, level, expected):
     assert variables.metlevel(level_type=level_type, level=level) == expected
 
 
-def test_variables_metlevel_error():
+def test_variables_metlevel__error():
     with raises(WXVXError) as e:
         variables.metlevel(level_type="foo", level=-1)
     assert str(e.value) == "No MET level defined for level type foo"
 
 
+@mark.parametrize(
+    ("name", "obj"), [("GFS", variables.GFS), ("HRRR", variables.HRRR), ("FOO", None)]
+)
+def test_variables_model_class(name, obj):
+    if obj is None:
+        with raises(NotImplementedError):
+            variables.model_class(name)
+    else:
+        assert variables.model_class(name) == obj
+
+
+def test_variables_model_names():
+    class A: ...
+
+    class B(A): ...
+
+    class C1(B): ...
+
+    class C2(B): ...
+
+    assert variables.model_names(A) == {"B", "C1", "C2"}
+    assert variables.model_names() == {"GFS", "HRRR"}
+
+
+def test_variables__da_val__fail_unparesable(da_flat):
+    da_flat.attrs["init"] = "foo"
+    with raises(WXVXError) as e:
+        variables._da_val(da=da_flat, key="init", desc="init time", t=np.datetime64)
+    assert str(e.value) == "Could not parse 'foo' as init time"
+
+
+def test_variables__da_val__fail_no_attr_or_coord(da_flat):
+    with raises(WXVXError) as e:
+        variables._da_val(da=da_flat, key="init", desc="init time", t=np.datetime64)
+    assert str(e.value) == "Not found in forecast dataset coordinates or attributes: 'init'"
+
+
+def test_variables__da_val__pass_attr_as_is(da_flat):
+    expected = np.datetime64(0, "s")
+    da_flat.attrs["init"] = expected
+    actual = variables._da_val(da=da_flat, key="init", desc="init time", t=np.datetime64)
+    assert actual == expected
+
+
+def test_variables__da_val__pass_attr_must_parse(da_flat):
+    da_flat.attrs["init"] = "1970-01-01T00:00:00"
+    actual = variables._da_val(da=da_flat, key="init", desc="init time", t=np.datetime64)
+    assert actual == np.datetime64(0, "s")
+
+
+def test_variables__da_val__pass_coord(da_flat):
+    actual = variables._da_val(da=da_flat, key="time", desc="init time", t=np.datetime64)
+    assert actual == np.datetime64(0, "s")
+
+
 @mark.parametrize(("s", "expected"), [("900", 900), ("1013.1", 1013.1)])
-def test__levelstr2num(s, expected):
+def test_variables__levelstr2num(s, expected):
     assert variables._levelstr2num(levelstr=s) == expected
+
+
+def test_variables__narrow__fail():
+    data = 42
+    coords = {"x": 1}
+    da = xr.DataArray(name="a", data=data, dims=["x"], coords=coords)
+    with raises(KeyError):
+        variables._narrow(da=da, key="x", value=2)
+
+
+def test_variables__narrow_noop_passthrough(da_with_leadtime, logged):
+    assert variables._narrow(da=da_with_leadtime, key="foo", value=None) == da_with_leadtime
+    assert logged("No coordinate 'foo' found for 'HGT', ignoring")
+
+
+def test_variables__narrow__pass_array_to_array():
+    data = [[42, 43], [44, 45]]
+    coords = {"x": [1, 2], "y": [1, 2]}
+    da = xr.DataArray(name="a", data=data, dims=["x", "y"], coords=coords)
+    assert np.all(variables._narrow(da=da, key="x", value=1).data == [42, 43])
+
+
+def test_variables__narrow__pass_array_to_scalar():
+    data = [42, 43]
+    coords = {"x": [1, 2]}
+    da = xr.DataArray(name="a", data=data, dims=["x"], coords=coords)
+    assert variables._narrow(da=da, key="x", value=1).data == 42
+
+
+def test_variables__narrow__pass_scalar():
+    data = 42
+    coords = {"x": 1}
+    da = xr.DataArray(name="a", data=data, dims=["x"], coords=coords)
+    assert variables._narrow(da=da, key="x", value=1).data == 42

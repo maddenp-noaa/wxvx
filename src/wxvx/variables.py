@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import TYPE_CHECKING, Literal
+import sys
+from functools import cache
+from typing import TYPE_CHECKING, Any, Literal
 
 import netCDF4  # noqa: F401 # import before xarray cf. https://github.com/pydata/xarray/issues/7259
 import numpy as np
@@ -131,22 +133,10 @@ class Var:
         return "-".join(vals)
 
 
-class HRRR(Var):
+class GFS(Var):
     """
-    A HRRR variable.
+    A GFS variable.
     """
-
-    proj = Proj(
-        {
-            "a": 6371229,
-            "b": 6371229,
-            "lat_0": 38.5,
-            "lat_1": 38.5,
-            "lat_2": 38.5,
-            "lon_0": 262.5,
-            "proj": "lcc",
-        }
-    )
 
     def __init__(self, name: str, levstr: str, firstbyte: int, lastbyte: int):
         level_type, level = self._levinfo(levstr=levstr)
@@ -199,29 +189,64 @@ class HRRR(Var):
         return (UNKNOWN, None)
 
 
-def da_construct(src: xr.DataArray) -> xr.DataArray:
-    return xr.DataArray(
-        data=src.expand_dims(dim=["forecast_reference_time", "time"]),
-        coords=dict(
-            forecast_reference_time=[src.time.values + np.timedelta64(0, "s")],
-            time=[src.time.values + src.lead_time.values],
-            latitude=src.latitude,
-            longitude=src.longitude,
-        ),
-        dims=("forecast_reference_time", "time", "latitude", "longitude"),
-        name=src.name,
+class HRRR(GFS):
+    """
+    A HRRR variable.
+    """
+
+    proj = Proj(
+        {
+            "a": 6371229,
+            "b": 6371229,
+            "lat_0": 38.5,
+            "lat_1": 38.5,
+            "lat_2": 38.5,
+            "lon_0": 262.5,
+            "proj": "lcc",
+        }
     )
 
 
-def da_select(ds: xr.Dataset, c: Config, varname: str, tc: TimeCoords, var: Var) -> xr.DataArray:
+def da_construct(c: Config, da: xr.DataArray) -> xr.DataArray:
+    inittime = _da_val(da, c.forecast.coords.time.inittime, "initialization time", np.datetime64)
+    leadtime = c.forecast.coords.time.leadtime
+    validtime = c.forecast.coords.time.validtime
+    assert bool(leadtime) ^ bool(validtime)  # enforced by wxvx.types.Time initializer
+    if leadtime:
+        time = inittime + _da_val(da, leadtime, "leadtime", np.timedelta64)
+    elif validtime:
+        time = _da_val(da, validtime, "validtime", np.datetime64)
+    return xr.DataArray(
+        data=da.expand_dims(dim=["forecast_reference_time", "time"]),
+        coords=dict(
+            forecast_reference_time=[inittime + np.timedelta64(0, "s")],
+            time=[time],
+            latitude=da[c.forecast.coords.latitude],
+            longitude=da[c.forecast.coords.longitude],
+        ),
+        dims=("forecast_reference_time", "time", "latitude", "longitude"),
+        name=da.name,
+    )
+
+
+def da_select(c: Config, ds: xr.Dataset, varname: str, tc: TimeCoords, var: Var) -> xr.DataArray:
+    coords = ds.coords.keys()
+    dt = lambda x: np.datetime64(str(x.isoformat()))
     try:
-        da = (
-            ds[varname]
-            .sel(time=np.datetime64(str(tc.cycle.isoformat())))
-            .sel(lead_time=np.timedelta64(int(tc.leadtime.total_seconds()), "s"))
-        )
-        if var.level is not None and hasattr(da, "level"):
-            da = da.sel(level=var.level)
+        da = ds[varname]
+        da.attrs.update(ds.attrs)
+        key_inittime = c.forecast.coords.time.inittime
+        if key_inittime in coords:
+            da = _narrow(da, key_inittime, dt(tc.cycle))
+        key_leadtime = c.forecast.coords.time.leadtime
+        if key_leadtime in coords:
+            da = _narrow(da, key_leadtime, np.timedelta64(int(tc.leadtime.total_seconds()), "s"))
+        key_validtime = c.forecast.coords.time.validtime
+        if key_validtime in coords:
+            da = _narrow(da, key_validtime, dt(tc.validtime))
+        key_level = c.forecast.coords.level
+        if key_level in coords and var.level is not None:
+            da = _narrow(da, key_level, var.level)
     except KeyError as e:
         msg = "Variable %s valid at %s not found in %s" % (varname, tc, c.forecast.path)
         raise WXVXError(msg) from e
@@ -269,6 +294,22 @@ def metlevel(level_type: str, level: float | None) -> str:
     except KeyError as e:
         raise WXVXError("No MET level defined for level type %s" % level_type) from e
     return f"{prefix}%03d" % int(level or 0)
+
+
+def model_class(name: str) -> Any:
+    if name in model_names():
+        return getattr(sys.modules[__name__], name)
+    msg = f"Baseline model {name}"
+    raise NotImplementedError(msg)
+
+
+@cache
+def model_names(current: type = Var) -> set[str]:
+    s = set()
+    for subclass in current.__subclasses__():
+        s.add(subclass.__name__)
+        s |= model_names(subclass)
+    return s
 
 
 # Private
@@ -356,8 +397,46 @@ def _da_to_y(da: xr.DataArray, proj: Proj) -> xr.DataArray:
     )
 
 
+def _da_val(da: xr.DataArray, key: str, desc: str, t: type) -> Any:
+    coords = da.coords.keys()
+    if key in coords:
+        val = da[key].values
+    else:
+        try:
+            val = da.attrs[key]
+        except KeyError as e:
+            msg = f"Not found in forecast dataset coordinates or attributes: '{key}'"
+            raise WXVXError(msg) from e
+    if not isinstance(val, t):
+        try:
+            val = t(val)
+        except Exception as e:
+            msg = f"Could not parse '{val}' as {desc}"
+            raise WXVXError(msg) from e
+    return val
+
+
 def _levelstr2num(levelstr: str) -> float | int:
     try:
         return int(levelstr)
     except ValueError:
         return float(levelstr)
+
+
+def _narrow(da: xr.DataArray, key: str, value: Any) -> xr.DataArray:
+    # If the value of the coordinate variable identified by the 'key' argument is a vector, reduce
+    # it to a scalar by selecting the single element matching the 'value' argument. If it is already
+    # a scalar, raise an exception if it does not match 'value'. For example, an array with a series
+    # of forecast cycles might have a vector-valued 'key' = 'time' coordinate variable, while one
+    # with a single forecast cycle might have a scalar 'time'. In either case, this function should
+    # return an array with a scalar 'time' coordinate variable with the expected value.
+    try:
+        coords = da[key].values
+    except KeyError:
+        logging.debug("No coordinate '%s' found for '%s', ignoring", key, da.name)
+    else:
+        if coords.shape:  # i.e. vector
+            da = da.sel({key: value})
+        elif coords != value:
+            raise KeyError
+    return da
