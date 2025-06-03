@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 import xarray as xr
-from iotaa import Node, asset, external, refs, task, tasks
+from iotaa import Node, asset, external, ref, task, tasks
 
 from wxvx import variables
 from wxvx.metconf import render
@@ -126,7 +126,7 @@ def _grib_index_data(c: Config, outdir: Path, tc: TimeCoords, url: str):
     yield asset(idxdata, lambda: bool(idxdata))
     idxfile = _grib_index_file(outdir, url)
     yield idxfile
-    lines = idxfile.refs.read_text(encoding="utf-8").strip().split("\n")
+    lines = idxfile.ref.read_text(encoding="utf-8").strip().split("\n")
     lines.append(":-1:::::")  # end marker
     vxvars = set(_vxvars(c).keys())
     baseline_class = variables.model_class(c.baseline.name)
@@ -163,7 +163,7 @@ def _grid_grib(c: Config, tc: TimeCoords, var: Var):
     url = c.baseline.template.format(yyyymmdd=yyyymmdd, hh=hh, fh=int(leadtime))
     idxdata = _grib_index_data(c, outdir, tc, url=f"{url}.idx")
     yield idxdata
-    var_idxdata = idxdata.refs[str(var)]
+    var_idxdata = idxdata.ref[str(var)]
     fb, lb = var_idxdata.firstbyte, var_idxdata.lastbyte
     headers = {"Range": "bytes=%s" % (f"{fb}-{lb}" if lb else fb)}
     with atomic(path) as tmp:
@@ -179,7 +179,7 @@ def _grid_nc(c: Config, varname: str, tc: TimeCoords, var: Var):
     yield asset(path, path.is_file)
     fd = _forecast_dataset(c.forecast.path)
     yield fd
-    src = da_select(c, fd.refs, varname, tc, var)
+    src = da_select(c, fd.ref, varname, tc, var)
     da = da_construct(c, src)
     ds = ds_construct(c, da, taskname, var.level)
     with atomic(path) as tmp:
@@ -264,7 +264,7 @@ def _stat(c: Config, varname: str, tc: TimeCoords, var: Var, prefix: str, source
     runscript = path.with_suffix(".sh")
     content = f"""
     export OMP_NUM_THREADS=1
-    grid_stat -v 4 {toverify.refs} {baseline.refs} {cfgfile} >{log} 2>&1
+    grid_stat -v 4 {toverify.ref} {baseline.ref} {cfgfile} >{log} 2>&1
     """
     with atomic(runscript) as tmp:
         tmp.write_text("#!/usr/bin/env bash\n\n%s\n" % dedent(content).strip())
@@ -302,7 +302,7 @@ def _grid_stat_config(
         for x in field_fcst, field_obs:
             x["cnt_thresh"] = meta.cnt_thresh
     mask_grid = [] if polyfile else ["FULL"]
-    mask_poly = [polyfile.refs] if polyfile else []
+    mask_poly = [polyfile.ref] if polyfile else []
     config = {
         "fcst": {"field": [field_fcst]},
         "mask": {"grid": mask_grid, "poly": mask_poly},
@@ -327,7 +327,7 @@ def _meta(c: Config, varname: str) -> VarMeta:
 
 def _prepare_plot_data(reqs: Sequence[Node], stat: str, width: int | None) -> pd.DataFrame:
     linetype = LINETYPE[stat]
-    files = [str(refs(x)).replace(".stat", f"_{linetype}.txt") for x in reqs]
+    files = [str(ref(x)).replace(".stat", f"_{linetype}.txt") for x in reqs]
     columns = ["MODEL", "FCST_LEAD", stat]
     if linetype in ["cts", "nbrcnt"]:
         columns.append("FCST_THRESH")
