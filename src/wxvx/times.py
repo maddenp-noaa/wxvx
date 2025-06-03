@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from itertools import product
 from typing import TYPE_CHECKING, overload
 
-from wxvx.util import WXVXError, to_timedelta
+from wxvx.util import WXVXError, to_datetime, to_timedelta
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -40,7 +40,7 @@ class TimeCoords:
 
 
 def gen_cycles(start: str, step: str, stop: str) -> list[datetime]:
-    dt_start, dt_stop = [datetime.fromisoformat(x) for x in (start, stop)]
+    dt_start, dt_stop = [to_datetime(x) for x in (start, stop)]
     td_step = to_timedelta(step)
     return _enumerate(dt_start, td_step, dt_stop)
 
