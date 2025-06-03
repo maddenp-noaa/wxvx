@@ -4,9 +4,16 @@ import json
 from dataclasses import dataclass
 from enum import Enum, auto
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any, cast
 
-from wxvx.util import LINETYPE
+from wxvx.util import LINETYPE, expand, to_datetime, to_timedelta
+
+if TYPE_CHECKING:
+    from datetime import datetime
+
+    _DatetimeT = str | datetime
+    _TimedeltaT = str | int
+
 
 Source = Enum("Source", [("BASELINE", auto()), ("FORECAST", auto())])
 
@@ -66,12 +73,14 @@ class Cycles:
     stop: str
 
 
-# class Cycles:
-#     def __init__(self, value: dict[str, str | int | datetime] | list[str, datetime]):
-#         if isinstance(value, dict):
-#             dt_start, dt_stop = [to_datetime(x) for x in (start, stop)]
-#             td_step = to_timedelta(step)
-#             self.cycles = expand(dt_start, td_step, dt_stop)
+class Cycles2:
+    def __init__(self, value: dict[str, str | int | datetime] | list[str | datetime]):
+        if isinstance(value, dict):
+            dt_start, dt_stop = [to_datetime(cast(_DatetimeT, value[x])) for x in ("start", "stop")]
+            td_step = to_timedelta(cast(_TimedeltaT, value["step"]))
+            self.cycles = expand(dt_start, td_step, dt_stop)
+        else:
+            self.cycles = list(map(to_datetime, value))
 
 
 @dataclass(frozen=True)
