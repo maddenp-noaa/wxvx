@@ -46,24 +46,34 @@
       "type": "object"
     },
     "cycles": {
-      "additionalProperties": false,
-      "properties": {
-        "start": {
-          "$ref": "#/$defs/datetime"
+      "anyOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "start": {
+              "$ref": "#/$defs/datetime"
+            },
+            "step": {
+              "$ref": "#/$defs/timedelta"
+            },
+            "stop": {
+              "$ref": "#/$defs/datetime"
+            }
+          },
+          "required": [
+            "start",
+            "step",
+            "stop"
+          ],
+          "type": "object"
         },
-        "step": {
-          "$ref": "#/$defs/timedelta"
-        },
-        "stop": {
-          "$ref": "#/$defs/datetime"
+        {
+          "items": {
+            "$ref": "#/$defs/datetime"
+          },
+          "type": "array"
         }
-      },
-      "required": [
-        "start",
-        "step",
-        "stop"
-      ],
-      "type": "object"
+      ]
     },
     "forecast": {
       "additionalProperties": false,
@@ -229,24 +239,34 @@
       "type": "object"
     },
     "leadtimes": {
-      "additionalProperties": false,
-      "properties": {
-        "start": {
-          "$ref": "#/$defs/timedelta"
+      "anyOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "start": {
+              "$ref": "#/$defs/timedelta"
+            },
+            "step": {
+              "$ref": "#/$defs/timedelta"
+            },
+            "stop": {
+              "$ref": "#/$defs/timedelta"
+            }
+          },
+          "required": [
+            "start",
+            "step",
+            "stop"
+          ],
+          "type": "object"
         },
-        "step": {
-          "$ref": "#/$defs/timedelta"
-        },
-        "stop": {
-          "$ref": "#/$defs/timedelta"
+        {
+          "items": {
+            "$ref": "#/$defs/timedelta"
+          },
+          "type": "array"
         }
-      },
-      "required": [
-        "start",
-        "step",
-        "stop"
-      ],
-      "type": "object"
+      ]
     },
     "meta": {
       "type": "object"

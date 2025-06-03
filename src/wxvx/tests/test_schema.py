@@ -34,7 +34,10 @@ def test_schema(logged, config_data, fs):
     assert not ok(with_set(config, 42, "n"))
     assert logged("'n' was unexpected")
     # Some keys have object values:
-    for key in ["cycles", "leadtimes", "paths", "variables"]:
+    for key in ["cycles", "leadtimes"]:
+        assert not ok(with_set(config, None, key))
+        assert logged("is not valid")
+    for key in ["paths", "variables"]:
         assert not ok(with_set(config, None, key))
         assert logged("None is not of type 'object'")
 
@@ -88,14 +91,14 @@ def test_schema_cycles(logged, config_data, fs):
     # Certain top-level keys are required:
     for key in ["start", "step", "stop"]:
         assert not ok(with_del(config, key))
-        assert logged(f"'{key}' is a required property")
+        assert logged("is not valid")
     # Additional keys are not allowed:
     assert not ok(with_set(config, 42, "n"))
-    assert logged("'n' was unexpected")
+    assert logged("is not valid")
     # Some keys must match a certain pattern:
     for key in ["start", "step", "stop"]:
         assert not ok(with_set(config, "foo", key))
-        assert logged("'foo' is not valid")
+        assert logged("is not valid")
 
 
 def test_schema_forecast(logged, config_data, fs):
@@ -204,14 +207,14 @@ def test_schema_leadtimes(logged, config_data, fs):
     # Certain top-level keys are required:
     for key in ["start", "step", "stop"]:
         assert not ok(with_del(config, key))
-        assert logged(f"'{key}' is a required property")
+        assert logged("is not valid")
     # Additional keys are not allowed:
     assert not ok(with_set(config, 42, "n"))
-    assert logged("'n' was unexpected")
+    assert logged("is not valid")
     # Some keys must match a certain pattern:
     for key in ["start", "step", "stop"]:
         assert not ok(with_set(config, "foo", key))
-        assert logged("'foo' is not valid")
+        assert logged("is not valid")
 
 
 def test_schema_meta(config_data, fs, logged):
