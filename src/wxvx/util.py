@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import sys
 from contextlib import contextmanager
+from datetime import datetime, timedelta
 from functools import cache
 from importlib import resources
 from multiprocessing.pool import Pool
@@ -62,3 +63,17 @@ def resource(relpath: str | Path) -> str:
 
 def resource_path(relpath: str | Path) -> Path:
     return cast(Path, resources.files(f"{pkgname}.resources").joinpath(str(relpath)))
+
+
+def to_datetime(value: str | datetime) -> datetime:
+    if isinstance(value, datetime):
+        return value
+    return datetime.fromisoformat(value)
+
+
+def to_timedelta(value: str | int) -> timedelta:
+    if isinstance(value, int):
+        return timedelta(hours=value)
+    keys = ["hours", "minutes", "seconds"]
+    args = dict(zip(keys, map(int, value.split(":"))))
+    return timedelta(**args)

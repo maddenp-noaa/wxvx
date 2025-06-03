@@ -112,14 +112,3 @@ def test_times__enumerate_stop_precedes_start(utc):
     with raises(WXVXError) as e:
         times._enumerate(start=start, step=step, stop=stop)
     assert str(e.value) == "Stop time 2024-12-19 06:00:00 precedes start time 2024-12-19 12:00:00"
-
-
-@mark.parametrize(
-    ("step", "expected"),
-    [
-        ("01:02:03", timedelta(hours=1, minutes=2, seconds=3)),
-        ("168:00:00", timedelta(days=7)),
-    ],
-)
-def test_times__timedelta(step, expected):
-    assert times._timedelta(value=step) == expected

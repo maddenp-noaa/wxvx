@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from itertools import product
 from typing import TYPE_CHECKING, overload
 
-from wxvx.util import WXVXError
+from wxvx.util import WXVXError, to_timedelta
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -41,12 +41,12 @@ class TimeCoords:
 
 def gen_cycles(start: str, step: str, stop: str) -> list[datetime]:
     dt_start, dt_stop = [datetime.fromisoformat(x) for x in (start, stop)]
-    td_step = _timedelta(step)
+    td_step = to_timedelta(step)
     return _enumerate(dt_start, td_step, dt_stop)
 
 
 def gen_leadtimes(start: str, step: str, stop: str) -> list[timedelta]:
-    td_start, td_step, td_stop = [_timedelta(x) for x in (start, step, stop)]
+    td_start, td_step, td_stop = [to_timedelta(x) for x in (start, step, stop)]
     return _enumerate(td_start, td_step, td_stop)
 
 
@@ -74,12 +74,6 @@ def yyyymmdd(dt: datetime) -> str:
 # Private
 
 
-def _datetime(value: str | datetime) -> datetime:
-    if isinstance(value, datetime):
-        return value
-    return datetime.fromisoformat(value)
-
-
 @overload
 def _enumerate(start: datetime, step: timedelta, stop: datetime) -> list[datetime]: ...
 @overload
@@ -91,11 +85,3 @@ def _enumerate(start, step, stop):
     while (x := xs[-1]) < stop:
         xs.append(x + step)
     return xs
-
-
-def _timedelta(value: str | int) -> timedelta:
-    if isinstance(value, int):
-        return timedelta(hours=value)
-    keys = ["hours", "minutes", "seconds"]
-    args = dict(zip(keys, map(int, value.split(":"))))
-    return timedelta(**args)

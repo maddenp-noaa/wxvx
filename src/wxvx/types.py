@@ -58,6 +58,8 @@ class Coords:
         if isinstance(self.time, dict):
             _force(self, "time", Time(**self.time))
 
+    # def __init__(self, value: dict[str, str | int | datetime] | list[str, datetime]):
+
 
 @dataclass(frozen=True)
 class Cycles:

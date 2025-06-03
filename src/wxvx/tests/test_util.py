@@ -3,10 +3,11 @@ Tests for wxvx.util.
 """
 
 import logging
+from datetime import timedelta
 from pathlib import Path
 from unittest.mock import patch
 
-from pytest import raises
+from pytest import mark, raises
 
 from wxvx import util
 
@@ -62,3 +63,14 @@ def test_util_resource(fs):
 
 def test_util_resource_path():
     assert str(util.resource_path("foo")).endswith("%s/resources/foo" % util.pkgname)
+
+
+@mark.parametrize(
+    ("step", "expected"),
+    [
+        ("01:02:03", timedelta(hours=1, minutes=2, seconds=3)),
+        ("168:00:00", timedelta(days=7)),
+    ],
+)
+def test_util_to_timedelta(step, expected):
+    assert util.to_timedelta(value=step) == expected
