@@ -92,7 +92,7 @@ def test_schema_cycles(logged, config_data, fs):
     # Some keys must match a certain regex:
     for key in ["start", "step", "stop"]:
         assert not ok(with_set(config, "foo", key))
-        assert logged("'foo' does not match")
+        assert logged("'foo' is not valid")
 
 
 def test_schema_forecast(logged, config_data, fs):
@@ -208,7 +208,7 @@ def test_schema_leadtimes(logged, config_data, fs):
     # Some keys must match a certain regex:
     for key in ["start", "step", "stop"]:
         assert not ok(with_set(config, "foo", key))
-        assert logged("'foo' does not match")
+        assert logged("'foo' is not valid")
 
 
 def test_schema_meta(config_data, fs, logged):
