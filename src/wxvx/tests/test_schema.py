@@ -83,7 +83,7 @@ def test_schema_baseline(logged, config_data, fs):
         assert logged("None is not of type 'string'")
 
 
-def test_schema_cycles(logged, config_data, fs):
+def test_schema_cycles(logged, config_data, fs, utc):
     ok = validator(fs, "properties", "cycles")
     config = config_data["cycles"]
     # Basic correctness:
@@ -99,6 +99,9 @@ def test_schema_cycles(logged, config_data, fs):
     for key in ["start", "step", "stop"]:
         assert not ok(with_set(config, "foo", key))
         assert logged("is not valid")
+    # Alternate short form:
+    assert ok(["2025-06-03T03:00:00", "2025-06-03T06:00:00", "2025-06-03T12:00:00"])
+    assert ok([utc(2025, 6, 3, 3), utc(2025, 6, 3, 6), utc(2025, 6, 3, 12)])
 
 
 def test_schema_forecast(logged, config_data, fs):
@@ -215,6 +218,9 @@ def test_schema_leadtimes(logged, config_data, fs):
     for key in ["start", "step", "stop"]:
         assert not ok(with_set(config, "foo", key))
         assert logged("is not valid")
+    # Alternate short form:
+    assert ok(["01:00:00", "02:00:00", "03:00:00", "12:00:00", "24:00:00"])
+    assert ok([1, 2, 3, 12, 24])
 
 
 def test_schema_meta(config_data, fs, logged):
