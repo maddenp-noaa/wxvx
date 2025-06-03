@@ -10,11 +10,11 @@ from textwrap import dedent
 from threading import Event
 from types import SimpleNamespace as ns
 from typing import cast
-from unittest.mock import ANY, patch
+from unittest.mock import ANY, Mock, patch
 
 import pandas as pd
 import xarray as xr
-from iotaa import Node, asset, external, ready, refs
+from iotaa import Node, asset, external, ready
 from pytest import fixture, mark
 
 from wxvx import variables, workflow
@@ -80,28 +80,28 @@ TESTDATA = {
 
 def test_workflow_grids(c, n_grids, noop):
     with patch.object(workflow, "_grid_grib", noop), patch.object(workflow, "_grid_nc", noop):
-        assert len(refs(workflow.grids(c=c))) == n_grids * 3  # forecast, baseline, and comp grids
-        assert len(refs(workflow.grids(c=c, baseline=True, forecast=True))) == n_grids * 3
-        assert len(refs(workflow.grids(c=c, baseline=True, forecast=False))) == n_grids * 2
-        assert len(refs(workflow.grids(c=c, baseline=False, forecast=True))) == n_grids
-        assert len(refs(workflow.grids(c=c, baseline=False, forecast=False))) == 0
+        assert len(workflow.grids(c=c).ref) == n_grids * 3  # forecast, baseline, and comp grids
+        assert len(workflow.grids(c=c, baseline=True, forecast=True).ref) == n_grids * 3
+        assert len(workflow.grids(c=c, baseline=True, forecast=False).ref) == n_grids * 2
+        assert len(workflow.grids(c=c, baseline=False, forecast=True).ref) == n_grids
+        assert len(workflow.grids(c=c, baseline=False, forecast=False).ref) == 0
 
 
 def test_workflow_grids_baseline(c, n_grids, noop):
     with patch.object(workflow, "_grid_grib", noop):
-        assert len(refs(workflow.grids_baseline(c=c))) == n_grids * 2
+        assert len(workflow.grids_baseline(c=c).ref) == n_grids * 2
 
 
 def test_workflow_grids_forecast(c, n_grids, noop):
     with patch.object(workflow, "_grid_nc", noop):
-        assert len(refs(workflow.grids_forecast(c=c))) == n_grids
+        assert len(workflow.grids_forecast(c=c).ref) == n_grids
 
 
 def test_workflow_plots(c, noop):
     cycles = gen_cycles(start=c.cycles.start, step=c.cycles.step, stop=c.cycles.stop)
     with patch.object(workflow, "_plot", noop):
         val = workflow.plots(c=c)
-    assert len(refs(val)) == len(cycles) * sum(
+    assert len(val.ref) == len(cycles) * sum(
         len(list(workflow._stats_and_widths(c, varname)))
         for varname, _ in workflow._varnames_and_levels(c)
     )
@@ -110,7 +110,7 @@ def test_workflow_plots(c, noop):
 def test_workflow_stats(c, noop):
     with patch.object(workflow, "_statreqs", return_value=[noop()]) as _statreqs:
         val = workflow.stats(c=c)
-    assert len(refs(val)) == len(c.variables) + 1  # for 2x SPFH levels
+    assert len(val.ref) == len(c.variables) + 1  # for 2x SPFH levels
 
 
 def test_workflow__existing(fakefs):
@@ -127,7 +127,7 @@ def test_workflow__forecast_dataset(da_with_leadtime, fakefs):
     with patch.object(workflow.xr, "open_dataset", return_value=da_with_leadtime.to_dataset()):
         val = workflow._forecast_dataset(path=path)
     assert ready(val)
-    assert (da_with_leadtime == refs(val).HGT).all()
+    assert (da_with_leadtime == val.ref.HGT).all()
 
 
 def test_workflow__grib_index_data(c, tc):
@@ -148,7 +148,7 @@ def test_workflow__grib_index_data(c, tc):
         val = workflow._grib_index_data(
             c=c, outdir=c.paths.grids_baseline, tc=tc, url=c.baseline.template
         )
-    assert refs(val) == {
+    assert val.ref == {
         "gh-isobaricInhPa-0900": variables.HRRR(
             name="HGT", levstr="900 mb", firstbyte=0, lastbyte=0
         )
@@ -158,7 +158,7 @@ def test_workflow__grib_index_data(c, tc):
 def test_workflow__grib_index_file(c):
     url = f"{c.baseline.template}.idx"
     val = workflow._grib_index_file(outdir=c.paths.grids_baseline, url=url)
-    path: Path = refs(val)
+    path: Path = val.ref
     assert not path.exists()
     path.parent.mkdir(parents=True, exist_ok=True)
     with patch.object(workflow, "fetch") as fetch:
@@ -187,7 +187,7 @@ def test_workflow__grid_grib(c, tc):
     var = variables.Var(name="t", level_type="isobaricInhPa", level=900)
     with patch.object(workflow, "_grib_index_data", wraps=mock) as _grib_index_data:
         val = workflow._grid_grib(c=c, tc=tc, var=var)
-        path = refs(val)
+        path = val.ref
         assert not path.exists()
         ready.set()
         with patch.object(workflow, "fetch") as fetch:
@@ -211,7 +211,7 @@ def test_workflow__grid_nc(c_real_fs, check_cf_metadata, da_with_leadtime, tc):
     object.__setattr__(c_real_fs.forecast, "path", path)
     val = workflow._grid_nc(c=c_real_fs, varname="HGT", tc=tc, var=var)
     assert ready(val)
-    check_cf_metadata(ds=xr.open_dataset(refs(val), decode_timedelta=True), name="HGT", level=level)
+    check_cf_metadata(ds=xr.open_dataset(val.ref, decode_timedelta=True), name="HGT", level=level)
 
 
 def test_workflow__polyfile(fakefs):
@@ -251,7 +251,7 @@ def test_workflow__plot(c, dictkey, fakefs, fs):
         val = workflow._plot(
             c=c, varname=varname, level=level, cycle=cycles[0], stat=stat, width=width
         )
-    path = val.refs
+    path = val.ref
     assert ready(val)
     assert path.is_file()
     assert _prepare_plot_data.call_count == 1
@@ -268,7 +268,7 @@ def test_workflow__stat(c, fakefs, tc):
     taskname = "MET stats for baseline 2t-heightAboveGround-0002 at 19700101 00Z 000"
     var = variables.Var(name="2t", level_type="heightAboveGround", level=2)
     kwargs = dict(c=c, varname="T2M", tc=tc, var=var, prefix="foo", source=Source.BASELINE)
-    stat = refs(workflow._stat(**kwargs, dry_run=True))
+    stat = workflow._stat(**kwargs, dry_run=True).ref
     cfgfile = (rundir / stat.stem).with_suffix(".config")
     runscript = (rundir / stat.stem).with_suffix(".sh")
     assert not stat.is_file()
@@ -316,11 +316,9 @@ def test__meta(c):
 @mark.parametrize("dictkey", ["foo", "bar", "baz"])
 def test__prepare_plot_data(dictkey):
     varname, level, dfs, stat, width = TESTDATA[dictkey]
-    reqs = cast(Sequence[Node], ["node1", "node2"])
-    with (
-        patch("iotaa.refs", side_effect=lambda x: f"{x}.stat"),
-        patch("wxvx.workflow.pd.read_csv", side_effect=dfs),
-    ):
+    node = lambda x: Mock(ref=f"{x}.stat", taskname=x)
+    reqs = cast(Sequence[Node], [node("node1"), node("node2")])
+    with patch.object(workflow.pd, "read_csv", side_effect=dfs):
         tdf = workflow._prepare_plot_data(reqs=reqs, stat=stat, width=width)
     assert isinstance(tdf, pd.DataFrame)
     assert stat in tdf.columns
