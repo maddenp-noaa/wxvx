@@ -49,7 +49,9 @@ def test_schema_defs_datetime(fs):
 def test_schema_defs_timedelta(fs):
     ok = validator(fs, "$defs", "timedelta")
     assert ok("14:13:27")
-    assert ok("240:00:00")
+    assert ok("14:13")
+    assert ok("14")
+    # The following three timedeltas are all the same:
     assert ok("2:0:0")
     assert ok("0:120:0")
     assert ok("0:0:7200")
@@ -89,7 +91,7 @@ def test_schema_cycles(logged, config_data, fs):
     # Additional keys are not allowed:
     assert not ok(with_set(config, 42, "n"))
     assert logged("'n' was unexpected")
-    # Some keys must match a certain regex:
+    # Some keys must match a certain pattern:
     for key in ["start", "step", "stop"]:
         assert not ok(with_set(config, "foo", key))
         assert logged("'foo' is not valid")
@@ -205,7 +207,7 @@ def test_schema_leadtimes(logged, config_data, fs):
     # Additional keys are not allowed:
     assert not ok(with_set(config, 42, "n"))
     assert logged("'n' was unexpected")
-    # Some keys must match a certain regex:
+    # Some keys must match a certain pattern:
     for key in ["start", "step", "stop"]:
         assert not ok(with_set(config, "foo", key))
         assert logged("'foo' is not valid")
