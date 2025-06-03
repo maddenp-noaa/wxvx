@@ -4,11 +4,10 @@ Tests for wxvx.times.
 
 from datetime import timedelta
 
-from pytest import mark, raises
+from pytest import mark
 
 from wxvx import times
 from wxvx.types import Cycles, Leadtimes
-from wxvx.util import WXVXError
 
 # Tests
 
@@ -84,31 +83,3 @@ def test_times_tcinfo(utc):
 
 def test_times_yyyymmdd(utc):
     assert times.yyyymmdd(utc(2025, 1, 30, 18)) == "20250130"
-
-
-def test_times__enumerate_basic(utc):
-    start = utc(2024, 12, 19, 12, 0)
-    step = timedelta(hours=6)
-    stop = utc(2024, 12, 20, 6, 0)
-    assert times._enumerate(start=start, stop=stop, step=step) == [
-        utc(2024, 12, 19, 12, 0),
-        utc(2024, 12, 19, 18, 0),
-        utc(2024, 12, 20, 0, 0),
-        utc(2024, 12, 20, 6, 0),
-    ]
-
-
-def test_times__enumerate_degenerate_one(utc):
-    start = utc(2024, 12, 19, 12, 0)
-    step = timedelta(hours=6)
-    stop = utc(2024, 12, 19, 12, 0)
-    assert times._enumerate(start=start, step=step, stop=stop) == [utc(2024, 12, 19, 12, 0)]
-
-
-def test_times__enumerate_stop_precedes_start(utc):
-    start = utc(2024, 12, 19, 12, 0)
-    step = timedelta(hours=6)
-    stop = utc(2024, 12, 19, 6, 0)
-    with raises(WXVXError) as e:
-        times._enumerate(start=start, step=step, stop=stop)
-    assert str(e.value) == "Stop time 2024-12-19 06:00:00 precedes start time 2024-12-19 12:00:00"

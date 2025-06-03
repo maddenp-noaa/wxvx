@@ -58,14 +58,20 @@ class Coords:
         if isinstance(self.time, dict):
             _force(self, "time", Time(**self.time))
 
-    # def __init__(self, value: dict[str, str | int | datetime] | list[str, datetime]):
-
 
 @dataclass(frozen=True)
 class Cycles:
     start: str
     step: str
     stop: str
+
+
+# class Cycles:
+#     def __init__(self, value: dict[str, str | int | datetime] | list[str, datetime]):
+#         if isinstance(value, dict):
+#             dt_start, dt_stop = [to_datetime(x) for x in (start, stop)]
+#             td_step = to_timedelta(step)
+#             self.cycles = expand(dt_start, td_step, dt_stop)
 
 
 @dataclass(frozen=True)

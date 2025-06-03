@@ -10,7 +10,7 @@ from multiprocessing.pool import Pool
 from pathlib import Path
 from signal import SIG_IGN, SIGINT, signal
 from subprocess import run
-from typing import TYPE_CHECKING, NoReturn, cast
+from typing import TYPE_CHECKING, NoReturn, cast, overload
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -34,6 +34,19 @@ def atomic(path: Path) -> Iterator[Path]:
     tmp = Path("%s.tmp" % path)
     yield tmp
     tmp.rename(path)
+
+
+@overload
+def expand(start: datetime, step: timedelta, stop: datetime) -> list[datetime]: ...
+@overload
+def expand(start: timedelta, step: timedelta, stop: timedelta) -> list[timedelta]: ...
+def expand(start, step, stop):
+    if stop < start:
+        raise WXVXError("Stop time %s precedes start time %s" % (stop, start))
+    xs = [start]
+    while (x := xs[-1]) < stop:
+        xs.append(x + step)
+    return xs
 
 
 def fail(msg: str | None = None, *args) -> NoReturn:

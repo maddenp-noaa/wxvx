@@ -32,6 +32,34 @@ def test_atomic(fakefs):
     assert recipient.read_text() == s2
 
 
+def test_times_expand_basic(utc):
+    start = utc(2024, 12, 19, 12, 0)
+    step = timedelta(hours=6)
+    stop = utc(2024, 12, 20, 6, 0)
+    assert util.expand(start=start, stop=stop, step=step) == [
+        utc(2024, 12, 19, 12, 0),
+        utc(2024, 12, 19, 18, 0),
+        utc(2024, 12, 20, 0, 0),
+        utc(2024, 12, 20, 6, 0),
+    ]
+
+
+def test_times_expand_degenerate_one(utc):
+    start = utc(2024, 12, 19, 12, 0)
+    step = timedelta(hours=6)
+    stop = utc(2024, 12, 19, 12, 0)
+    assert util.expand(start=start, step=step, stop=stop) == [utc(2024, 12, 19, 12, 0)]
+
+
+def test_times_expand_stop_precedes_start(utc):
+    start = utc(2024, 12, 19, 12, 0)
+    step = timedelta(hours=6)
+    stop = utc(2024, 12, 19, 6, 0)
+    with raises(util.WXVXError) as e:
+        util.expand(start=start, step=step, stop=stop)
+    assert str(e.value) == "Stop time 2024-12-19 06:00:00 precedes start time 2024-12-19 12:00:00"
+
+
 def test_fail(caplog):
     caplog.set_level(logging.INFO)
     with raises(SystemExit) as e:

@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 from itertools import product
-from typing import TYPE_CHECKING, overload
+from typing import TYPE_CHECKING
 
-from wxvx.util import WXVXError, to_datetime, to_timedelta
+from wxvx.util import expand, to_datetime, to_timedelta
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -42,12 +42,12 @@ class TimeCoords:
 def gen_cycles(start: str, step: str, stop: str) -> list[datetime]:
     dt_start, dt_stop = [to_datetime(x) for x in (start, stop)]
     td_step = to_timedelta(step)
-    return _enumerate(dt_start, td_step, dt_stop)
+    return expand(dt_start, td_step, dt_stop)
 
 
 def gen_leadtimes(start: str, step: str, stop: str) -> list[timedelta]:
     td_start, td_step, td_stop = [to_timedelta(x) for x in (start, step, stop)]
-    return _enumerate(td_start, td_step, td_stop)
+    return expand(td_start, td_step, td_stop)
 
 
 def gen_validtimes(cycles: Cycles, leadtimes: Leadtimes) -> Iterator[TimeCoords]:
@@ -72,16 +72,3 @@ def yyyymmdd(dt: datetime) -> str:
 
 
 # Private
-
-
-@overload
-def _enumerate(start: datetime, step: timedelta, stop: datetime) -> list[datetime]: ...
-@overload
-def _enumerate(start: timedelta, step: timedelta, stop: timedelta) -> list[timedelta]: ...
-def _enumerate(start, step, stop):
-    if stop < start:
-        raise WXVXError("Stop time %s precedes start time %s" % (stop, start))
-    xs = [start]
-    while (x := xs[-1]) < stop:
-        xs.append(x + step)
-    return xs
