@@ -26,70 +26,60 @@ The activated virtual environment includes the [`met2go`](https://github.com/mad
 
 ## Configuration
 
-The content of the YAML configuration file supplied via `-c` / `--config` is described in the table below.
+An overview of the content of the YAML configuration file specified via `-c` / `--config` is described in the table below. See the subsections below for more detailed information. Use the `-s` / `--show` CLI switch to show a pro-forma config with sample values for reference.
 
 ```
-┌────────────────────┬───────────────────────────────────────────────────┐
-│ Key                │ Description                                       │
-├────────────────────┼───────────────────────────────────────────────────┤
-│ baseline:          │ Description of the baseline dataset               │
-│   compare:         │   Verify and/or plot forecast?                    │
-│   name:            │   Dataset descriptive name                        │
-│   template:        │   Template for baseline GRIB file URLs            │
-│ cycles:            │ Cycles to verify                                  │
-│   start:           │   First cycle as ISO8601 timestamp                │
-│   step:            │   Interval between cycles as hh[:mm[:ss]]         │
-│   stop:            │   Last cycle as ISO8601 timestamp                 │
-│ forecast:          │ Description of the forecast dataset               │
-│   coords:          │   Names of coordinate variables                   │
-│     latitude:      │     Latitude variable                             │
-│     level:         │     Level variable                                │
-│     longitude:     │     Longitude variable                            │
-│     time:          │     Names of time variables (see 'Time' below)    │
-│       inittime:    │       Forecast initialization time                │
-│       leadtime:    │       Forecast leadtime                           │
-│       validtime:   │       Forecast validtime                          │
-│   mask:            │   Sequence of [lat, lon] pairs (optional)         │
-│   name:            │   Dataset descriptive name                        │
-│   path:            │   Filesystem path to Zarr/netCDF dataset          │
-│   projection:      │   Projection information (see 'Projection' below) │
-│ leadtimes:         │ Leadtimes to verify                               │
-│   start:           │   First leadtime as hh[:mm[:ss]]                  │
-│   step:            │   Interval between leadtimes as hh[:mm[:ss]]      │
-│   stop:            │   Last leadtime as hh[:mm[:ss]]                   │
-│ meta:              │ Optional free-form data section                   │
-│ paths:             │ Paths                                             │
-│   grids:           │   Where to store grids                            │
-│     baseline:      │     Baseline grids                                │
-│     forecast:      │     Forecast grids                                │
-│   run:             │   Where to store run data                         │
-│ variables:         │ Mapping describing variables to verify            │
-│   VAR:             │   Forecast-dataset variable name                  │
-│     level_type:    │     Generic level type                            │
-│     levels:        │     Sequence of level values                      │
-│     name:          │     Canonical variable name                       │
-└────────────────────┴───────────────────────────────────────────────────┘
+┌────────────────────┬──────────────────────────────────────────────┐
+│ Key                │ Description                                  │
+├────────────────────┼──────────────────────────────────────────────┤
+│ baseline:          │ Description of the baseline dataset          │
+│   compare:         │   Verify and/or plot forecast?               │
+│   name:            │   Dataset descriptive name                   │
+│   template:        │   Template for baseline GRIB file URLs       │
+│ cycles:            │ Cycles to verify                             │
+│   start:           │   First cycle as ISO8601 timestamp           │
+│   step:            │   Interval between cycles as hh[:mm[:ss]]    │
+│   stop:            │   Last cycle as ISO8601 timestamp            │
+│ forecast:          │ Description of the forecast dataset          │
+│   coords:          │   Names of coordinate variables              │
+│     latitude:      │     Latitude variable                        │
+│     level:         │     Level variable                           │
+│     longitude:     │     Longitude variable                       │
+│     time:          │     Names of time variables                  │
+│       inittime:    │       Forecast initialization time           │
+│       leadtime:    │       Forecast leadtime                      │
+│       validtime:   │       Forecast validtime                     │
+│   mask:            │   Sequence of [lat, lon] pairs (optional)    │
+│   name:            │   Dataset descriptive name                   │
+│   path:            │   Filesystem path to Zarr/netCDF dataset     │
+│   projection:      │   Projection information                     │
+│ leadtimes:         │ Leadtimes to verify                          │
+│   start:           │   First leadtime as hh[:mm[:ss]]             │
+│   step:            │   Interval between leadtimes as hh[:mm[:ss]] │
+│   stop:            │   Last leadtime as hh[:mm[:ss]]              │
+│ meta:              │ Optional free-form data section              │
+│ paths:             │ Paths                                        │
+│   grids:           │   Where to store grids                       │
+│     baseline:      │     Baseline grids                           │
+│     forecast:      │     Forecast grids                           │
+│   run:             │   Where to store run data                    │
+│ variables:         │ Mapping describing variables to verify       │
+│   VAR:             │   Forecast-dataset variable name             │
+│     level_type:    │     Generic level type                       │
+│     levels:        │     Sequence of level values                 │
+│     name:          │     Canonical variable name                  │
+└────────────────────┴──────────────────────────────────────────────┘
 ```
 
-Use the `-s` / `--show` CLI switch to show a pro-forma config with realistic values for reference.
+### baseline
 
-- The `baseline` URL template may include `{yyyymmdd}` (forecast date) and `{hh}` (forecast hour) Jinja2 expressions, which will be replaced with appropriate values at run time.
-- The last cycle/leadtime is included in verification. That is, the ranges are inclusive of their upper bounds.
-- The `meta:` block may contain, for example, values tagged with YAML anchors referenced elsewhere via aliases (see the _Aliases_ section [here](https://pyyaml.org/wiki/PyYAMLDocumentation)), or values referenced elsewhere in Jinja2 expressions to be rendered by `uwtools` (see examples in [here](https://uwtools.readthedocs.io/en/stable/sections/user_guide/cli/tools/config.html#realize)).
-- The `variables:` block is an arbitrarily long mapping from forecast-dataset variable names to generic descriptions of the named variables. Generic-description attributes (names and level types) follow ECMWF conventions: See the [Parameter Database](https://codes.ecmwf.int/grib/param-db/) for names, and [this list](https://codes.ecmwf.int/grib/format/edition-independent/3/) or the output of [`grib_ls`](https://confluence.ecmwf.int/display/ECC/grib_ls) run on a GRIB file containing the variable in question, for level types.
-- Currently supported level types are: `atmosphere`, `heightAboveGround`, `isobaricInhPa`, `surface`.
-- A `levels:` value should only be specified if a level type supports it. Currently, these are: `heightAboveGround`, `isobaricInhPa`.
-- [CF Metadata](https://cfconventions.org/) are added to the copies made of forecast variables that are provided to MET, which requires them. See [this database](https://cfconventions.org/Data/cf-standard-names/current/build/cf-standard-name-table.html) for CF standard names and units.
-- The `forecast.mask` value may be omitted, or set to the YAML value `null`, in which case no masking will be applied.
+The `baseline` URL template may include `{yyyymmdd}` (cycle date), `{hh}` (cycle time), and `{fh}` (forecast hour, aka leadtime) Jinja2 expressions, which will be replaced with appropriate values at run time. `yyyymmdd` and `hh` are Python `str` values, and `fh` is an `int`.
 
-### Projection
+### cycles
 
-The `forecast.projection` value should be a mapping with at least a `proj` key identifying the ID of the [projection](https://proj.org/en/stable/operations/projections/index.html), and potentially additional projection attributes depending on the `proj` value:
+When using `start` / `step` / `stop` syntax, the final cycle is included in verification. That is, the range is inclusive of its upper bound.
 
-  - When `proj` is [`latlon`](https://proj.org/en/stable/operations/conversions/latlon.html), specify no additional attributes.
-  - When `proj` is [`lcc`](https://proj.org/en/stable/operations/projections/lcc.html), specify attributes `a`, `b`, `lat_0`, `lat_1`, `lat_2`, and `lon_0`.
-
-### Time
+### forecast.coords.time
 
 Specify values under `forecast.coords.time` as follows:
 
@@ -98,6 +88,37 @@ Specify values under `forecast.coords.time` as follows:
   - `validtime`: The name of the variable or attribute providing the forecast validtime. Exactly one of `validtime` and `leadtime` must be specified.
 
 If a `forecast.coords.time` specifies the name of a coordinate dimension variable, that variable will be used. If no such variable exists, `wxvx` will look for a dataset attribute with the given name and try to use it, coercing it to the expected type (e.g. `datetime` or `timedelta`) as needed.
+
+### forecast.mask
+
+The `forecast.mask` value may be omitted, or set to the YAML value `null`, in which case no masking will be applied.
+
+### leadtimes
+
+When using `start` / `step` / `stop` syntax, the final leadtime is included in verification. That is, the range is inclusive of its upper bound.
+
+### meta
+
+The `meta:` block may contain, for example, values tagged with YAML anchors referenced elsewhere via aliases (see the _Aliases_ section [here](https://pyyaml.org/wiki/PyYAMLDocumentation)), or values referenced elsewhere in Jinja2 expressions to be rendered by `uwtools` (see examples in [here](https://uwtools.readthedocs.io/en/stable/sections/user_guide/cli/tools/config.html#realize)).
+
+### projection
+
+The `forecast.projection` value should be a mapping with at least a `proj` key identifying the ID of the [projection](https://proj.org/en/stable/operations/projections/index.html), and potentially additional projection attributes depending on the `proj` value:
+
+  - When `proj` is [`latlon`](https://proj.org/en/stable/operations/conversions/latlon.html), specify no additional attributes.
+  - When `proj` is [`lcc`](https://proj.org/en/stable/operations/projections/lcc.html), specify attributes `a`, `b`, `lat_0`, `lat_1`, `lat_2`, and `lon_0`.
+
+### variables
+
+The `variables:` block is an arbitrarily long mapping from forecast-dataset variable names to generic descriptions of the named variables. Generic-description attributes (names and level types) follow ECMWF conventions: See the [Parameter Database](https://codes.ecmwf.int/grib/param-db/) for names, and [this list](https://codes.ecmwf.int/grib/format/edition-independent/3/) or the output of [`grib_ls`](https://confluence.ecmwf.int/display/ECC/grib_ls) run on a GRIB file containing the variable in question, for level types.
+
+### variables.*.level_type
+
+Currently supported level types are: `atmosphere`, `heightAboveGround`, `isobaricInhPa`, `surface`.
+
+### variables.*.levels
+
+A `levels:` value should only be specified if a level type supports it. Currently, these are: `heightAboveGround`, `isobaricInhPa`.
 
 ## Use
 
@@ -188,6 +209,10 @@ This config directs `wxvx` to find forecast data, in Zarr format and on a Lamber
 
 Invoking `wxvx -c config.yaml -t grids` would stage the forecast and baseline grids on disk, only; `-t stats` would produce statistics via MET tools, but also stage grids if they are not already available; and `-t plots` would plot statistics, but also _produce_ statistics (and stage grids) if they are not already available.
 
+## Miscellaneous
+
+When `wxvx` extracts grids from the forecast dataset and writes them to netCDF files to be processed by MET, it decorates them with certain [CF Metadata](https://cfconventions.org/) as [required by MET](https://metplus.readthedocs.io/projects/met/en/main_v11.0/Users_Guide/data_io.html#requirements-for-cf-compliant-netcdf). See [this database](https://cfconventions.org/Data/cf-standard-names/current/build/cf-standard-name-table.html) for CF standard names and units.
+
 ## Development
 
 1. In the `base` environment of a [Miniforge](https://github.com/conda-forge/miniforge) installation, install the [`condev`](https://github.com/maddenp/condev) package. Add the flags `-c conda-forge --override-channels` to the `conda create` command if using a non-conda-forge conda installation.
@@ -206,7 +231,9 @@ This will create and activate a conda virtual environment named `DEV-wxvx`, wher
 
 When you are finished, type `exit` to return to your previous shell. The `DEV-wxvx` environment will still exist, and a future `make devshell` command will more-or-less instantly activate it again.
 
-## Extract Grid Projection from GRIB
+## Cookbook
+
+### Extract Grid Projection from GRIB
 
 ``` python
 conda install -y pygrib
