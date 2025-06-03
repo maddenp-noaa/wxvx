@@ -37,9 +37,9 @@ An overview of the content of the YAML configuration file specified via `-c` / `
 │   name:            │   Dataset descriptive name                   │
 │   template:        │   Template for baseline GRIB file URLs       │
 │ cycles:            │ Cycles to verify                             │
-│   start:           │   First cycle as ISO8601 timestamp           │
+│   start:           │   First cycle                                │
 │   step:            │   Interval between cycles as hh[:mm[:ss]]    │
-│   stop:            │   Last cycle as ISO8601 timestamp            │
+│   stop:            │   Last cycle                                 │
 │ forecast:          │ Description of the forecast dataset          │
 │   coords:          │   Names of coordinate variables              │
 │     latitude:      │     Latitude variable                        │
@@ -77,7 +77,15 @@ The `baseline` URL template may include `{yyyymmdd}` (cycle date), `{hh}` (cycle
 
 ### cycles
 
+Values should be in [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) year/month/date/hour/minute/second form, e.g. `2025-06-03T12:00:00`.
+
 When using `start` / `step` / `stop` syntax, the final cycle is included in verification. That is, the range is inclusive of its upper bound.
+
+Alternatively, the cycles to verify may be specified as an arbitrary list of strings, e.g.
+
+``` yaml
+cycles: [
+```
 
 ### forecast.coords.time
 
@@ -94,6 +102,8 @@ If a `forecast.coords.time` specifies the name of a coordinate dimension variabl
 The `forecast.mask` value may be omitted, or set to the YAML value `null`, in which case no masking will be applied.
 
 ### leadtimes
+
+Values should be in `hours:minutes:seconds` form, where each of the colon-separated components can be an arbitrary, possibly zero-padded, integer.
 
 When using `start` / `step` / `stop` syntax, the final leadtime is included in verification. That is, the range is inclusive of its upper bound.
 
@@ -159,9 +169,9 @@ baseline:
   name: HRRR
   template: https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.{yyyymmdd}/conus/hrrr.t{hh}z.wrfprsf{fh:02}.grib2
 cycles:
-  start: "2025-03-01T00:00:00"
-  step: "01:00:00"
-  stop: "2025-03-01T23:00:00"
+  start: 2025-03-01T00:00:00
+  step: 01:00:00
+  stop: 2025-03-01T23:00:00
 forecast:
   mask:
     - [52.61564933, 225.90452027]
@@ -179,9 +189,9 @@ forecast:
     lon_0: 262.5
     proj: lcc
 leadtimes:
-  start: "03:00:00"
-  step: "03:00:00"
-  stop: "09:00:00"
+  start: 03:00:00
+  step: 03:00:00
+  stop: 09:00:00
 meta:
   grids: "{{ meta.workdir }}/grids"
   levels: &levels [800, 1000]
