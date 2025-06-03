@@ -42,10 +42,8 @@ def test_times_TimeCoords__no_leadtime(utc):
 
 
 def test_times_gen_cycles(config_data, utc):
-    assert times.gen_cycles(**config_data["cycles"]) == [
-        utc(2024, 12, 19, 18),
-        utc(2024, 12, 20, 6),
-    ]
+    cycles = [utc(2024, 12, 19, 18), utc(2024, 12, 20, 6)]
+    assert times.gen_cycles(**config_data["cycles"]) == cycles
 
 
 def test_times_gen_leadtimes(config_data):
@@ -124,4 +122,4 @@ def test_times__enumerate_stop_precedes_start(utc):
     ],
 )
 def test_times__timedelta(step, expected):
-    assert times._timedelta(step=step) == expected
+    assert times._timedelta(value=step) == expected

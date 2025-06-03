@@ -53,7 +53,7 @@ def test_Baseline(baseline, config_data):
 
 
 def test_Config(baseline, config_data, cycles, forecast, leadtimes):
-    obj = types.Config(config_data=config_data)
+    obj = types.Config(value=config_data)
     assert hash(obj)
     assert obj.baseline == baseline
     assert obj.cycles == cycles
@@ -63,7 +63,7 @@ def test_Config(baseline, config_data, cycles, forecast, leadtimes):
     assert obj.paths.grids_forecast == Path(config_data["paths"]["grids"]["forecast"])
     assert obj.paths.run == Path(config_data["paths"]["run"])
     assert obj.variables == config_data["variables"]
-    other = types.Config(config_data=config_data)
+    other = types.Config(value=config_data)
     assert obj == other
     other.variables = {}
     assert obj != other

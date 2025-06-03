@@ -74,6 +74,12 @@ def yyyymmdd(dt: datetime) -> str:
 # Private
 
 
+def _datetime(value: str | datetime) -> datetime:
+    if isinstance(value, datetime):
+        return value
+    return datetime.fromisoformat(value)
+
+
 @overload
 def _enumerate(start: datetime, step: timedelta, stop: datetime) -> list[datetime]: ...
 @overload
@@ -87,7 +93,9 @@ def _enumerate(start, step, stop):
     return xs
 
 
-def _timedelta(step: str) -> timedelta:
+def _timedelta(value: str | int) -> timedelta:
+    if isinstance(value, int):
+        return timedelta(hours=value)
     keys = ["hours", "minutes", "seconds"]
-    args = dict(zip(keys, map(int, step.split(":"))))
+    args = dict(zip(keys, map(int, value.split(":"))))
     return timedelta(**args)
