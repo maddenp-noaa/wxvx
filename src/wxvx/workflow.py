@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 import xarray as xr
-from iotaa import Node, asset, external, ref, task, tasks
+from iotaa import Node, asset, external, task, tasks
 
 from wxvx import variables
 from wxvx.metconf import render
@@ -327,7 +327,7 @@ def _meta(c: Config, varname: str) -> VarMeta:
 
 def _prepare_plot_data(reqs: Sequence[Node], stat: str, width: int | None) -> pd.DataFrame:
     linetype = LINETYPE[stat]
-    files = [str(ref(x)).replace(".stat", f"_{linetype}.txt") for x in reqs]
+    files = [str(x.ref).replace(".stat", f"_{linetype}.txt") for x in reqs]
     columns = ["MODEL", "FCST_LEAD", stat]
     if linetype in ["cts", "nbrcnt"]:
         columns.append("FCST_THRESH")

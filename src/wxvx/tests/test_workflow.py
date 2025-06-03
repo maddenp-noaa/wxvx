@@ -10,7 +10,7 @@ from textwrap import dedent
 from threading import Event
 from types import SimpleNamespace as ns
 from typing import cast
-from unittest.mock import ANY, patch
+from unittest.mock import ANY, Mock, patch
 
 import pandas as pd
 import xarray as xr
@@ -316,11 +316,9 @@ def test__meta(c):
 @mark.parametrize("dictkey", ["foo", "bar", "baz"])
 def test__prepare_plot_data(dictkey):
     varname, level, dfs, stat, width = TESTDATA[dictkey]
-    reqs = cast(Sequence[Node], ["node1", "node2"])
-    with (
-        patch("iotaa.ref", side_effect=lambda x: f"{x}.stat"),
-        patch("wxvx.workflow.pd.read_csv", side_effect=dfs),
-    ):
+    node = lambda x: Mock(ref=f"{x}.stat", taskname=x)
+    reqs = cast(Sequence[Node], [node("node1"), node("node2")])
+    with patch.object(workflow.pd, "read_csv", side_effect=dfs):
         tdf = workflow._prepare_plot_data(reqs=reqs, stat=stat, width=width)
     assert isinstance(tdf, pd.DataFrame)
     assert stat in tdf.columns
