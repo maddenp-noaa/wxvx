@@ -29,46 +29,46 @@ The activated virtual environment includes the [`met2go`](https://github.com/mad
 An overview of the content of the YAML configuration file specified via `-c` / `--config` is described in the table below. See the subsections below for more detailed information. Use the `-s` / `--show` CLI switch to show a pro-forma config with sample values for reference.
 
 ```
-┌────────────────────┬──────────────────────────────────────────────┐
-│ Key                │ Description                                  │
-├────────────────────┼──────────────────────────────────────────────┤
-│ baseline:          │ Description of the baseline dataset          │
-│   compare:         │   Verify and/or plot forecast?               │
-│   name:            │   Dataset descriptive name                   │
-│   template:        │   Template for baseline GRIB file URLs       │
-│ cycles:            │ Cycles to verify                             │
-│   start:           │   First cycle                                │
-│   step:            │   Interval between cycles as hh[:mm[:ss]]    │
-│   stop:            │   Last cycle                                 │
-│ forecast:          │ Description of the forecast dataset          │
-│   coords:          │   Names of coordinate variables              │
-│     latitude:      │     Latitude variable                        │
-│     level:         │     Level variable                           │
-│     longitude:     │     Longitude variable                       │
-│     time:          │     Names of time variables                  │
-│       inittime:    │       Forecast initialization time           │
-│       leadtime:    │       Forecast leadtime                      │
-│       validtime:   │       Forecast validtime                     │
-│   mask:            │   Sequence of [lat, lon] pairs (optional)    │
-│   name:            │   Dataset descriptive name                   │
-│   path:            │   Filesystem path to Zarr/netCDF dataset     │
-│   projection:      │   Projection information                     │
-│ leadtimes:         │ Leadtimes to verify                          │
-│   start:           │   First leadtime as hh[:mm[:ss]]             │
-│   step:            │   Interval between leadtimes as hh[:mm[:ss]] │
-│   stop:            │   Last leadtime as hh[:mm[:ss]]              │
-│ meta:              │ Optional free-form data section              │
-│ paths:             │ Paths                                        │
-│   grids:           │   Where to store grids                       │
-│     baseline:      │     Baseline grids                           │
-│     forecast:      │     Forecast grids                           │
-│   run:             │   Where to store run data                    │
-│ variables:         │ Mapping describing variables to verify       │
-│   VAR:             │   Forecast-dataset variable name             │
-│     level_type:    │     Generic level type                       │
-│     levels:        │     Sequence of level values                 │
-│     name:          │     Canonical variable name                  │
-└────────────────────┴──────────────────────────────────────────────┘
+┌────────────────────┬───────────────────────────────────────────┐
+│ Key                │ Description                               │
+├────────────────────┼───────────────────────────────────────────┤
+│ baseline:          │ Description of the baseline dataset       │
+│   compare:         │   Verify and/or plot forecast?            │
+│   name:            │   Dataset descriptive name                │
+│   template:        │   Template for baseline GRIB file URLs    │
+│ cycles:            │ Cycles to verify                          │
+│   start:           │   First cycle                             │
+│   step:            │   Interval between cycles                 │
+│   stop:            │   Last cycle                              │
+│ forecast:          │ Description of the forecast dataset       │
+│   coords:          │   Names of coordinate variables           │
+│     latitude:      │     Latitude variable                     │
+│     level:         │     Level variable                        │
+│     longitude:     │     Longitude variable                    │
+│     time:          │     Names of time variables               │
+│       inittime:    │       Forecast initialization time        │
+│       leadtime:    │       Forecast leadtime                   │
+│       validtime:   │       Forecast validtime                  │
+│   mask:            │   Sequence of [lat, lon] pairs (optional) │
+│   name:            │   Dataset descriptive name                │
+│   path:            │   Filesystem path to Zarr/netCDF dataset  │
+│   projection:      │   Projection information                  │
+│ leadtimes:         │ Leadtimes to verify                       │
+│   start:           │   First leadtime                          │
+│   step:            │   Interval between leadtimes              │
+│   stop:            │   Last leadtime                           │
+│ meta:              │ Optional free-form data section           │
+│ paths:             │ Paths                                     │
+│   grids:           │   Where to store grids                    │
+│     baseline:      │     Baseline grids                        │
+│     forecast:      │     Forecast grids                        │
+│   run:             │   Where to store run data                 │
+│ variables:         │ Mapping describing variables to verify    │
+│   VAR:             │   Forecast-dataset variable name          │
+│     level_type:    │     Generic level type                    │
+│     levels:        │     Sequence of level values              │
+│     name:          │     Canonical variable name               │
+└────────────────────┴───────────────────────────────────────────┘
 ```
 
 ### baseline
@@ -81,11 +81,24 @@ Values should be in [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) year/month
 
 When using `start` / `step` / `stop` syntax, the final cycle is included in verification. That is, the range is inclusive of its upper bound.
 
-Alternatively, the cycles to verify may be specified as an arbitrary list of strings, e.g.
+Alternatively, the cycles to verify may be specified as an arbitrary list of ISO8601-formatted values, e.g.
 
 ``` yaml
-cycles: [
+cycles:
+  - 2025-06-01T06:00:00
+  - 2025-06-02T12:00:00
+  - 2025-06-03T18:00:00
 ```
+
+or
+
+``` yaml
+cycles: [2025-06-01T06:00:00, 2025-06-02T12:00:00, 2025-06-03T18:00:00]
+```
+
+### cycles.step
+
+Values should be in the form `hh[:mm[:ss]]`.
 
 ### forecast.coords.time
 
@@ -106,6 +119,33 @@ The `forecast.mask` value may be omitted, or set to the YAML value `null`, in wh
 Values should be in `hours:minutes:seconds` form, where each of the colon-separated components can be an arbitrary, possibly zero-padded, integer.
 
 When using `start` / `step` / `stop` syntax, the final leadtime is included in verification. That is, the range is inclusive of its upper bound.
+
+Alternatively, the leadtimes to verify may be specified as an arbitrary list of `hh[:mm[:ss]]`-formatted values, e.g.
+
+``` yaml
+leadtimes:
+  - 03:00:00
+  - 06:00:00
+  - 09:00:00
+```
+
+or
+
+``` yaml
+cycles: [3, 6, 9]
+```
+
+### leadtimes.start
+
+Values should be in the form `hh[:mm[:ss]]`.
+
+### leadtimes.step
+
+Values should be in the form `hh[:mm[:ss]]`.
+
+### leadtimes.stop
+
+Values should be in the form `hh[:mm[:ss]]`.
 
 ### meta
 

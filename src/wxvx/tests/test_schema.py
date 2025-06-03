@@ -48,6 +48,7 @@ def test_schema_defs_datetime(fs):
 
 def test_schema_defs_timedelta(fs):
     ok = validator(fs, "$defs", "timedelta")
+    # Value may be hh[:mm[:ss]]:
     assert ok("14:13:27")
     assert ok("14:13")
     assert ok("14")
