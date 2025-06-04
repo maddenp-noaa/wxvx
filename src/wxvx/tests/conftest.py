@@ -202,9 +202,9 @@ def tc(da_with_leadtime):
 
 @fixture
 def utc():
-    def datetime_utc(*args, **kwargs) -> datetime:
+    def utc(*args, **kwargs) -> datetime:
         # See https://github.com/python/mypy/issues/6799
         dt = datetime(*args, **kwargs, tzinfo=timezone.utc)  # type: ignore[misc]
         return dt.replace(tzinfo=None)
 
-    return datetime_utc
+    return utc
