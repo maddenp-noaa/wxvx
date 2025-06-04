@@ -77,7 +77,7 @@ The `baseline` URL template may include `{yyyymmdd}` (cycle date), `{hh}` (cycle
 
 ### cycles
 
-Values should be in [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) year/month/date/hour/minute/second form, e.g. `2025-06-03T12:00:00`.
+The `start` and `stop` values should be in optionally quoted [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) year/month/date/hour/minute/second form, e.g. `2025-06-03T12:00:00`. The `step` value should be either an `int` specifying the number of hours, or a quoted string of the form `hours[:minutes[:seconds]]` specifying hours and, optionally, minutes and seconds.
 
 When using `start` / `step` / `stop` syntax, the final cycle is included in verification. That is, the range is inclusive of its upper bound.
 
@@ -96,10 +96,6 @@ or
 cycles: [2025-06-01T06:00:00, 2025-06-02T12:00:00, 2025-06-03T18:00:00]
 ```
 
-### cycles.step
-
-Values should be in the form `hh[:mm[:ss]]`.
-
 ### forecast.coords.time
 
 Specify values under `forecast.coords.time` as follows:
@@ -116,11 +112,11 @@ The `forecast.mask` value may be omitted, or set to the YAML value `null`, in wh
 
 ### leadtimes
 
-Values should be in `hours:minutes:seconds` form, where each of the colon-separated components can be an arbitrary, possibly zero-padded, integer.
+Each value should be either an `int` specifying the number of hours, or a quoted string of the form `hours[:minutes[:seconds]]` specifying hours and, optionally, minutes and seconds.
 
 When using `start` / `step` / `stop` syntax, the final leadtime is included in verification. That is, the range is inclusive of its upper bound.
 
-Alternatively, the leadtimes to verify may be specified as an arbitrary list of `hh[:mm[:ss]]`-formatted values, e.g.
+Alternatively, the leadtimes to verify may be specified as an arbitrary list of values, e.g.
 
 ``` yaml
 leadtimes:
@@ -134,18 +130,6 @@ or
 ``` yaml
 cycles: [3, 6, 9]
 ```
-
-### leadtimes.start
-
-Values should be in the form `hh[:mm[:ss]]`.
-
-### leadtimes.step
-
-Values should be in the form `hh[:mm[:ss]]`.
-
-### leadtimes.stop
-
-Values should be in the form `hh[:mm[:ss]]`.
 
 ### meta
 
@@ -179,9 +163,9 @@ usage: wxvx -c FILE [-t [TASK]] [-d] [-h] [-k] [-n N] [-s] [-v]
 wxvx
 
 Required arguments:
-  -c FILE, --config FILE
+  -c, --config FILE
       Configuration file
-  -t [TASK], --task [TASK]
+  -t, --task [TASK]
       Execute task (no argument => list available tasks)
 
 Optional arguments:
@@ -191,8 +175,8 @@ Optional arguments:
       Show help and exit
   -k, --check
       Check config and exit
-  -n N, --threads N
-      Threads
+  -n, --threads N
+      Number of threads
   -s, --show
       Show a pro-forma config and exit
   -v, --version
@@ -210,7 +194,7 @@ baseline:
   template: https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.{yyyymmdd}/conus/hrrr.t{hh}z.wrfprsf{fh:02}.grib2
 cycles:
   start: 2025-03-01T00:00:00
-  step: 01:00:00
+  step: 1
   stop: 2025-03-01T23:00:00
 forecast:
   coords:
@@ -235,10 +219,7 @@ forecast:
     lat_2: 38.5
     lon_0: 262.5
     proj: lcc
-leadtimes:
-  start: 03:00:00
-  step: 03:00:00
-  stop: 09:00:00
+leadtimes: [3, 6, 9]
 meta:
   grids: "{{ meta.workdir }}/grids"
   levels: &levels [800, 1000]

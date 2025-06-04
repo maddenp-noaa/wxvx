@@ -30,13 +30,13 @@ requirements:
 test:
   requires:
     - docformatter 1.7.*
-    - jq 1.7.*
+    - jq 1.8.*
     - make 4.4.*
-    - mypy 1.15.*
+    - mypy 1.16.*
     - pyfakefs 5.7.*
-    - pytest 8.3.*
+    - pytest 8.4.*
     - pytest-cov 6.1.*
-    - pytest-xdist 3.6.*
+    - pytest-xdist 3.7.*
     - ruff 0.11.*
     - {{ python }}
 about:
