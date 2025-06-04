@@ -38,7 +38,7 @@ class TimeCoords:
 
 
 def gen_validtimes(cycles: Cycles, leadtimes: Leadtimes) -> Iterator[TimeCoords]:
-    for cycle, leadtime in product(cycles.cycles, leadtimes.leadtimes):
+    for cycle, leadtime in product(cycles.values, leadtimes.values):
         yield TimeCoords(cycle=cycle, leadtime=leadtime)
 
 

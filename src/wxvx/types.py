@@ -66,27 +66,27 @@ class Coords:
 
 
 class Cycles:
-    def __init__(self, value: dict[str, str | int | datetime] | list[str | datetime]):
-        self.value = value
+    def __init__(self, raw: dict[str, str | int | datetime] | list[str | datetime]):
+        self.raw = raw
 
     def __eq__(self, other):
-        return self.cycles == other.cycles
+        return self.values == other.values
 
     def __hash__(self):
-        return hash(tuple(self.cycles))
+        return hash(tuple(self.values))
 
     def __repr__(self):
-        return "%s(%s)" % (self.__class__.__name__, self.value)
+        return "%s(%s)" % (self.__class__.__name__, self.raw)
 
     @cached_property
-    def cycles(self) -> list[datetime]:
-        if isinstance(self.value, dict):
+    def values(self) -> list[datetime]:
+        if isinstance(self.raw, dict):
             dt_start, dt_stop = [
-                to_datetime(cast(_DatetimeT, self.value[x])) for x in ("start", "stop")
+                to_datetime(cast(_DatetimeT, self.raw[x])) for x in ("start", "stop")
             ]
-            td_step = to_timedelta(cast(_TimedeltaT, self.value["step"]))
+            td_step = to_timedelta(cast(_TimedeltaT, self.raw["step"]))
             return expand(dt_start, td_step, dt_stop)
-        return list(map(to_datetime, self.value))
+        return list(map(to_datetime, self.raw))
 
 
 @dataclass(frozen=True)
@@ -112,26 +112,26 @@ class Forecast:
 
 
 class Leadtimes:
-    def __init__(self, value: dict[str, str | int] | list[str | int]):
-        self.value = value
+    def __init__(self, raw: dict[str, str | int] | list[str | int]):
+        self.raw = raw
 
     def __eq__(self, other):
-        return self.leadtimes == other.leadtimes
+        return self.values == other.values
 
     def __hash__(self):
-        return hash(tuple(self.leadtimes))
+        return hash(tuple(self.values))
 
     def __repr__(self):
-        return "%s(%s)" % (self.__class__.__name__, self.value)
+        return "%s(%s)" % (self.__class__.__name__, self.raw)
 
     @cached_property
-    def leadtimes(self) -> list[timedelta]:
-        if isinstance(self.value, dict):
+    def values(self) -> list[timedelta]:
+        if isinstance(self.raw, dict):
             td_start, td_step, td_stop = [
-                to_timedelta(cast(_TimedeltaT, self.value[x])) for x in ("start", "step", "stop")
+                to_timedelta(cast(_TimedeltaT, self.raw[x])) for x in ("start", "step", "stop")
             ]
             return expand(td_start, td_step, td_stop)
-        return list(map(to_timedelta, self.value))
+        return list(map(to_timedelta, self.raw))
 
 
 @dataclass(frozen=True)

@@ -100,7 +100,7 @@ def test_workflow_grids_forecast(c, n_grids, noop):
 def test_workflow_plots(c, noop):
     with patch.object(workflow, "_plot", noop):
         val = workflow.plots(c=c)
-    assert len(val.ref) == len(c.cycles.cycles) * sum(
+    assert len(val.ref) == len(c.cycles.values) * sum(
         len(list(workflow._stats_and_widths(c, varname)))
         for varname, _ in workflow._varnames_and_levels(c)
     )
@@ -247,7 +247,7 @@ def test_workflow__plot(c, dictkey, fakefs, fs):
         _prepare_plot_data.side_effect = dfs
         os.environ["MPLCONFIGDIR"] = str(fakefs)
         val = workflow._plot(
-            c=c, varname=varname, level=level, cycle=c.cycles.cycles[0], stat=stat, width=width
+            c=c, varname=varname, level=level, cycle=c.cycles.values[0], stat=stat, width=width
         )
     path = val.ref
     assert ready(val)
