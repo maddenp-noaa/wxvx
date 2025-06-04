@@ -2,9 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 from itertools import product
-from typing import TYPE_CHECKING, overload
-
-from wxvx.util import WXVXError
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -39,22 +37,8 @@ class TimeCoords:
         return self.validtime.isoformat()
 
 
-def gen_cycles(start: str, step: str, stop: str) -> list[datetime]:
-    dt_start, dt_stop = [datetime.fromisoformat(x) for x in (start, stop)]
-    td_step = _timedelta(step)
-    return _enumerate(dt_start, td_step, dt_stop)
-
-
-def gen_leadtimes(start: str, step: str, stop: str) -> list[timedelta]:
-    td_start, td_step, td_stop = [_timedelta(x) for x in (start, step, stop)]
-    return _enumerate(td_start, td_step, td_stop)
-
-
 def gen_validtimes(cycles: Cycles, leadtimes: Leadtimes) -> Iterator[TimeCoords]:
-    for cycle, leadtime in product(
-        gen_cycles(start=cycles.start, step=cycles.step, stop=cycles.stop),
-        gen_leadtimes(leadtimes.start, leadtimes.step, leadtimes.stop),
-    ):
+    for cycle, leadtime in product(cycles.values, leadtimes.values):
         yield TimeCoords(cycle=cycle, leadtime=leadtime)
 
 
@@ -69,25 +53,3 @@ def tcinfo(tc: TimeCoords, leadtime_digits: int = 3) -> tuple[str, str, str]:
 
 def yyyymmdd(dt: datetime) -> str:
     return dt.strftime("%Y%m%d")
-
-
-# Private
-
-
-@overload
-def _enumerate(start: datetime, step: timedelta, stop: datetime) -> list[datetime]: ...
-@overload
-def _enumerate(start: timedelta, step: timedelta, stop: timedelta) -> list[timedelta]: ...
-def _enumerate(start, step, stop):
-    if stop < start:
-        raise WXVXError("Stop time %s precedes start time %s" % (stop, start))
-    xs = [start]
-    while (x := xs[-1]) < stop:
-        xs.append(x + step)
-    return xs
-
-
-def _timedelta(step: str) -> timedelta:
-    keys = ["hours", "minutes", "seconds"]
-    args = dict(zip(keys, map(int, step.split(":"))))
-    return timedelta(**args)

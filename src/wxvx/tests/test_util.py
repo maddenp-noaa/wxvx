@@ -3,6 +3,7 @@ Tests for wxvx.util.
 """
 
 import logging
+from datetime import timedelta
 from pathlib import Path
 from unittest.mock import patch
 
@@ -13,7 +14,7 @@ from wxvx import util
 # Tests
 
 
-def test_atomic(fakefs):
+def test_util_atomic(fakefs):
     greeting, recipient = [fakefs / f"out.{x}" for x in ("greeting", "recipient")]
     assert not greeting.is_file()
     assert not recipient.is_file()
@@ -31,7 +32,35 @@ def test_atomic(fakefs):
     assert recipient.read_text() == s2
 
 
-def test_fail(caplog):
+def test_util_expand_basic(utc):
+    start = utc(2024, 12, 19, 12, 0)
+    step = timedelta(hours=6)
+    stop = utc(2024, 12, 20, 6, 0)
+    assert util.expand(start=start, stop=stop, step=step) == [
+        utc(2024, 12, 19, 12, 0),
+        utc(2024, 12, 19, 18, 0),
+        utc(2024, 12, 20, 0, 0),
+        utc(2024, 12, 20, 6, 0),
+    ]
+
+
+def test_util_expand_degenerate_one(utc):
+    start = utc(2024, 12, 19, 12, 0)
+    step = timedelta(hours=6)
+    stop = utc(2024, 12, 19, 12, 0)
+    assert util.expand(start=start, step=step, stop=stop) == [utc(2024, 12, 19, 12, 0)]
+
+
+def test_util_expand_stop_precedes_start(utc):
+    start = utc(2024, 12, 19, 12, 0)
+    step = timedelta(hours=6)
+    stop = utc(2024, 12, 19, 6, 0)
+    with raises(util.WXVXError) as e:
+        util.expand(start=start, step=step, stop=stop)
+    assert str(e.value) == "Stop time 2024-12-19 06:00:00 precedes start time 2024-12-19 12:00:00"
+
+
+def test_util_fail(caplog):
     caplog.set_level(logging.INFO)
     with raises(SystemExit) as e:
         util.fail()
@@ -62,3 +91,14 @@ def test_util_resource(fs):
 
 def test_util_resource_path():
     assert str(util.resource_path("foo")).endswith("%s/resources/foo" % util.pkgname)
+
+
+def test_util_to_datetime(utc):
+    expected = utc(2025, 6, 4, 12)
+    assert util.to_datetime(value="2025-06-04T12:00:00") == expected
+    assert util.to_datetime(value=expected) == expected
+
+
+def test_util_to_timedelta():
+    assert util.to_timedelta(value="01:02:03") == timedelta(hours=1, minutes=2, seconds=3)
+    assert util.to_timedelta(value="168:00:00") == timedelta(days=7)

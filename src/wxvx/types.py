@@ -2,11 +2,17 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 from enum import Enum, auto
+from functools import cached_property
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
-from wxvx.util import LINETYPE
+from wxvx.util import LINETYPE, expand, to_datetime, to_timedelta
+
+_DatetimeT = str | datetime
+_TimedeltaT = str | int
+
 
 Source = Enum("Source", [("BASELINE", auto()), ("FORECAST", auto())])
 
@@ -19,15 +25,15 @@ class Baseline:
 
 
 class Config:
-    def __init__(self, config_data: dict):
-        paths = config_data["paths"]
+    def __init__(self, raw: dict):
+        paths = raw["paths"]
         grids = paths["grids"]
-        self.baseline = Baseline(**config_data["baseline"])
-        self.cycles = Cycles(**config_data["cycles"])
-        self.forecast = Forecast(**config_data["forecast"])
-        self.leadtimes = Leadtimes(**config_data["leadtimes"])
+        self.baseline = Baseline(**raw["baseline"])
+        self.cycles = Cycles(raw["cycles"])
+        self.forecast = Forecast(**raw["forecast"])
+        self.leadtimes = Leadtimes(raw["leadtimes"])
         self.paths = Paths(grids["baseline"], grids["forecast"], paths["run"])
-        self.variables = config_data["variables"]
+        self.variables = raw["variables"]
 
     KEYS = ("baseline", "cycles", "forecast", "leadtimes", "paths", "variables")
 
@@ -59,11 +65,28 @@ class Coords:
             _force(self, "time", Time(**self.time))
 
 
-@dataclass(frozen=True)
 class Cycles:
-    start: str
-    step: str
-    stop: str
+    def __init__(self, raw: dict[str, str | int | datetime] | list[str | datetime]):
+        self.raw = raw
+
+    def __eq__(self, other):
+        return self.values == other.values
+
+    def __hash__(self):
+        return hash(tuple(self.values))
+
+    def __repr__(self):
+        return "%s(%s)" % (self.__class__.__name__, self.raw)
+
+    @cached_property
+    def values(self) -> list[datetime]:
+        if isinstance(self.raw, dict):
+            dt_start, dt_stop = [
+                to_datetime(cast(_DatetimeT, self.raw[x])) for x in ("start", "stop")
+            ]
+            td_step = to_timedelta(cast(_TimedeltaT, self.raw["step"]))
+            return expand(dt_start, td_step, dt_stop)
+        return sorted(map(to_datetime, self.raw))
 
 
 @dataclass(frozen=True)
@@ -88,11 +111,27 @@ class Forecast:
         _force(self, "path", Path(self.path))
 
 
-@dataclass(frozen=True)
 class Leadtimes:
-    start: str
-    step: str
-    stop: str
+    def __init__(self, raw: dict[str, str | int] | list[str | int]):
+        self.raw = raw
+
+    def __eq__(self, other):
+        return self.values == other.values
+
+    def __hash__(self):
+        return hash(tuple(self.values))
+
+    def __repr__(self):
+        return "%s(%s)" % (self.__class__.__name__, self.raw)
+
+    @cached_property
+    def values(self) -> list[timedelta]:
+        if isinstance(self.raw, dict):
+            td_start, td_step, td_stop = [
+                to_timedelta(cast(_TimedeltaT, self.raw[x])) for x in ("start", "step", "stop")
+            ]
+            return expand(td_start, td_step, td_stop)
+        return sorted(map(to_timedelta, self.raw))
 
 
 @dataclass(frozen=True)

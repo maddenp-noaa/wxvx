@@ -18,7 +18,7 @@ from iotaa import Node, asset, external, ready
 from pytest import fixture, mark
 
 from wxvx import variables, workflow
-from wxvx.times import TimeCoords, gen_cycles, gen_validtimes
+from wxvx.times import TimeCoords, gen_validtimes
 from wxvx.types import Source
 from wxvx.variables import Var
 
@@ -98,10 +98,9 @@ def test_workflow_grids_forecast(c, n_grids, noop):
 
 
 def test_workflow_plots(c, noop):
-    cycles = gen_cycles(start=c.cycles.start, step=c.cycles.step, stop=c.cycles.stop)
     with patch.object(workflow, "_plot", noop):
         val = workflow.plots(c=c)
-    assert len(val.ref) == len(cycles) * sum(
+    assert len(val.ref) == len(c.cycles.values) * sum(
         len(list(workflow._stats_and_widths(c, varname)))
         for varname, _ in workflow._varnames_and_levels(c)
     )
@@ -238,7 +237,6 @@ def test_workflow__plot(c, dictkey, fakefs, fs):
         yield asset(fakefs / f"{x}.stat", lambda: True)
 
     fs.add_real_directory(os.environ["CONDA_PREFIX"])
-    cycles = gen_cycles(start=c.cycles.start, step=c.cycles.step, stop=c.cycles.stop)
     varname, level, dfs, stat, width = TESTDATA[dictkey]
     with (
         patch.object(workflow, "_statreqs") as _statreqs,
@@ -248,9 +246,8 @@ def test_workflow__plot(c, dictkey, fakefs, fs):
         _statreqs.return_value = [_stat("model1"), _stat("model2")]
         _prepare_plot_data.side_effect = dfs
         os.environ["MPLCONFIGDIR"] = str(fakefs)
-        val = workflow._plot(
-            c=c, varname=varname, level=level, cycle=cycles[0], stat=stat, width=width
-        )
+        cycle = c.cycles.values[0]  # noqa: PD011
+        val = workflow._plot(c=c, varname=varname, level=level, cycle=cycle, stat=stat, width=width)
     path = val.ref
     assert ready(val)
     assert path.is_file()

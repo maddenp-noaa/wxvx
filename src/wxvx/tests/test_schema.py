@@ -34,7 +34,10 @@ def test_schema(logged, config_data, fs):
     assert not ok(with_set(config, 42, "n"))
     assert logged("'n' was unexpected")
     # Some keys have object values:
-    for key in ["cycles", "leadtimes", "paths", "variables"]:
+    for key in ["cycles", "leadtimes"]:
+        assert not ok(with_set(config, None, key))
+        assert logged("is not valid")
+    for key in ["paths", "variables"]:
         assert not ok(with_set(config, None, key))
         assert logged("None is not of type 'object'")
 
@@ -48,8 +51,11 @@ def test_schema_defs_datetime(fs):
 
 def test_schema_defs_timedelta(fs):
     ok = validator(fs, "$defs", "timedelta")
+    # Value may be hh[:mm[:ss]]:
     assert ok("14:13:27")
-    assert ok("240:00:00")
+    assert ok("14:13")
+    assert ok("14")
+    # The following three timedeltas are all the same:
     assert ok("2:0:0")
     assert ok("0:120:0")
     assert ok("0:0:7200")
@@ -77,7 +83,7 @@ def test_schema_baseline(logged, config_data, fs):
         assert logged("None is not of type 'string'")
 
 
-def test_schema_cycles(logged, config_data, fs):
+def test_schema_cycles(logged, config_data, fs, utc):
     ok = validator(fs, "properties", "cycles")
     config = config_data["cycles"]
     # Basic correctness:
@@ -85,14 +91,17 @@ def test_schema_cycles(logged, config_data, fs):
     # Certain top-level keys are required:
     for key in ["start", "step", "stop"]:
         assert not ok(with_del(config, key))
-        assert logged(f"'{key}' is a required property")
+        assert logged("is not valid")
     # Additional keys are not allowed:
     assert not ok(with_set(config, 42, "n"))
-    assert logged("'n' was unexpected")
-    # Some keys must match a certain regex:
+    assert logged("is not valid")
+    # Some keys must match a certain pattern:
     for key in ["start", "step", "stop"]:
         assert not ok(with_set(config, "foo", key))
-        assert logged("'foo' does not match")
+        assert logged("is not valid")
+    # Alternate short form:
+    assert ok(["2025-06-03T03:00:00", "2025-06-03T06:00:00", "2025-06-03T12:00:00"])
+    assert ok([utc(2025, 6, 3, 3), utc(2025, 6, 3, 6), utc(2025, 6, 3, 12)])
 
 
 def test_schema_forecast(logged, config_data, fs):
@@ -201,14 +210,17 @@ def test_schema_leadtimes(logged, config_data, fs):
     # Certain top-level keys are required:
     for key in ["start", "step", "stop"]:
         assert not ok(with_del(config, key))
-        assert logged(f"'{key}' is a required property")
+        assert logged("is not valid")
     # Additional keys are not allowed:
     assert not ok(with_set(config, 42, "n"))
-    assert logged("'n' was unexpected")
-    # Some keys must match a certain regex:
+    assert logged("is not valid")
+    # Some keys must match a certain pattern:
     for key in ["start", "step", "stop"]:
         assert not ok(with_set(config, "foo", key))
-        assert logged("'foo' does not match")
+        assert logged("is not valid")
+    # Alternate short form:
+    assert ok(["01:00:00", "02:00:00", "03:00:00", "12:00:00", "24:00:00"])
+    assert ok([1, 2, 3, 12, 24])
 
 
 def test_schema_meta(config_data, fs, logged):
