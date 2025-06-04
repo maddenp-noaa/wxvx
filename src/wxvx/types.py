@@ -86,7 +86,7 @@ class Cycles:
             ]
             td_step = to_timedelta(cast(_TimedeltaT, self.raw["step"]))
             return expand(dt_start, td_step, dt_stop)
-        return list(map(to_datetime, self.raw))
+        return sorted(map(to_datetime, self.raw))
 
 
 @dataclass(frozen=True)
@@ -131,7 +131,7 @@ class Leadtimes:
                 to_timedelta(cast(_TimedeltaT, self.raw[x])) for x in ("start", "step", "stop")
             ]
             return expand(td_start, td_step, td_stop)
-        return list(map(to_timedelta, self.raw))
+        return sorted(map(to_timedelta, self.raw))
 
 
 @dataclass(frozen=True)

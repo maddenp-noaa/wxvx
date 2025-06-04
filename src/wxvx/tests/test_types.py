@@ -1,4 +1,5 @@
 import re
+from datetime import datetime
 from pathlib import Path
 
 from pytest import fixture, mark, raises
@@ -86,17 +87,24 @@ def test_Coords(config_data, coords):
     assert obj != other2
 
 
-@mark.skip()
-def test_Cycles(config_data, cycles):
-    obj = cycles
-    assert obj.start == "2024-12-19T18:00:00"
-    assert obj.step == "12:00:00"
-    assert obj.stop == "2024-12-20T06:00:00"
-    cfg = config_data["cycles"]
-    other1 = types.Cycles(**cfg)
-    assert obj == other1
-    other2 = types.Cycles(**{**cfg, "step": "24:00:00"})
-    assert obj != other2
+def test_Cycles():
+    ts1, ts2, ts3, td = "2024-06-04T00", "2024-06-04T06", "2024-06-04T12", "6"
+    ts2dt = lambda s: datetime.fromisoformat(s)
+    expected = [ts2dt(x) for x in (ts1, ts2, ts3)]
+    c1 = types.Cycles([ts1, ts2, ts3])
+    c2 = types.Cycles({"start": ts1, "step": td, "stop": ts3})
+    c3 = types.Cycles({"start": ts1, "step": int(td), "stop": ts3})
+    assert c1.values == expected
+    assert c1.values == expected  # order invariant
+    assert types.Cycles([ts2dt(ts1), ts2dt(ts2), ts2dt(ts3)]).values == expected
+    assert c2.values == expected
+    assert c3.values == expected
+    assert c1 == c2 == c3
+    assert c1 == types.Cycles([ts1, ts2, ts3])
+    assert c1 != types.Cycles(["1970-01-01T00"])
+    assert str(c1) == repr(c1)
+    assert repr(c1) == "Cycles(['%s', '%s', '%s'])" % (ts1, ts2, ts3)
+    assert repr(c2) == "Cycles({'start': '%s', 'step': '%s', 'stop': '%s'})" % (ts1, td, ts3)
 
 
 def test_Forecast(config_data, forecast):
