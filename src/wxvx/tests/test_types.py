@@ -1,8 +1,8 @@
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
-from pytest import fixture, mark, raises
+from pytest import fixture, raises
 
 from wxvx import types
 
@@ -91,20 +91,22 @@ def test_Cycles():
     ts1, ts2, ts3, td = "2024-06-04T00", "2024-06-04T06", "2024-06-04T12", "6"
     ts2dt = lambda s: datetime.fromisoformat(s)
     expected = [ts2dt(x) for x in (ts1, ts2, ts3)]
-    c1 = types.Cycles([ts1, ts2, ts3])
-    c2 = types.Cycles({"start": ts1, "step": td, "stop": ts3})
-    c3 = types.Cycles({"start": ts1, "step": int(td), "stop": ts3})
-    assert c1.values == expected
-    assert c1.values == expected  # order invariant
+    x1 = types.Cycles([ts1, ts2, ts3])
+    x2 = types.Cycles({"start": ts1, "step": td, "stop": ts3})
+    x3 = types.Cycles({"start": ts1, "step": int(td), "stop": ts3})
+    assert x1.values == expected
+    assert types.Cycles([ts2, ts3, ts1]).values == expected  # order invariant
     assert types.Cycles([ts2dt(ts1), ts2dt(ts2), ts2dt(ts3)]).values == expected
-    assert c2.values == expected
-    assert c3.values == expected
-    assert c1 == c2 == c3
-    assert c1 == types.Cycles([ts1, ts2, ts3])
-    assert c1 != types.Cycles(["1970-01-01T00"])
-    assert str(c1) == repr(c1)
-    assert repr(c1) == "Cycles(['%s', '%s', '%s'])" % (ts1, ts2, ts3)
-    assert repr(c2) == "Cycles({'start': '%s', 'step': '%s', 'stop': '%s'})" % (ts1, td, ts3)
+    assert types.Cycles([ts1, ts2dt(ts2), ts3]).values == expected  # mixed types ok
+    assert x2.values == expected
+    assert x3.values == expected
+    assert x1 == x2 == x3
+    assert x1 == types.Cycles([ts1, ts2, ts3])
+    assert x1 != types.Cycles(["1970-01-01T00"])
+    assert str(x1) == repr(x1)
+    assert repr(x1) == "Cycles(['%s', '%s', '%s'])" % (ts1, ts2, ts3)
+    assert repr(x2) == "Cycles({'start': '%s', 'step': '%s', 'stop': '%s'})" % (ts1, td, ts3)
+    assert repr(x3) == "Cycles({'start': '%s', 'step': %s, 'stop': '%s'})" % (ts1, td, ts3)
 
 
 def test_Forecast(config_data, forecast):
@@ -124,17 +126,29 @@ def test_Forecast(config_data, forecast):
     assert obj != other2
 
 
-@mark.skip()
-def test_Leadtimes(config_data, leadtimes):
-    obj = leadtimes
-    assert obj.start == "00:00:00"
-    assert obj.step == "06:00:00"
-    assert obj.stop == "12:00:00"
-    cfg = config_data["leadtimes"]
-    other1 = types.Leadtimes(**cfg)
-    assert obj == other1
-    other2 = types.Leadtimes(**{**cfg, "start": "01:00:00"})
-    assert obj != other2
+def test_Leadtimes():
+    lt1, lt2, lt3, td = "3", "6", "9", "3"
+    expected = [timedelta(hours=int(x)) for x in (lt1, lt2, lt3)]
+    x1 = types.Leadtimes([lt1, lt2, lt3])
+    x2 = types.Leadtimes({"start": lt1, "step": td, "stop": lt3})
+    x3 = types.Leadtimes({"start": int(lt1), "step": int(td), "stop": int(lt3)})
+    assert x1.values == expected
+    assert types.Leadtimes([lt2, lt3, lt1]).values == expected  # order invariant
+    assert types.Leadtimes([int(lt1), int(lt2), int(lt3)]).values == expected
+    assert types.Leadtimes([lt1, int(lt2), lt3]).values == expected  # mixed types ok
+    assert x2.values == expected
+    assert x3.values == expected
+    assert x1 == x2 == x3
+    assert x1 == types.Leadtimes([lt1, lt2, lt3])
+    assert x1 != types.Leadtimes([0])
+    assert str(x1) == repr(x1)
+    assert repr(x1) == "Leadtimes(['%s', '%s', '%s'])" % (lt1, lt2, lt3)
+    assert repr(x2) == "Leadtimes({'start': '%s', 'step': '%s', 'stop': '%s'})" % (lt1, td, lt3)
+    assert repr(x3) == "Leadtimes({'start': %s, 'step': %s, 'stop': %s})" % (lt1, td, lt3)
+    assert (
+        types.Leadtimes(["2:60", "5:59:60", "0:0:32400"]).values == expected
+    )  # but why would you?
+    assert types.Leadtimes(["0:360", "0:480:3600", 3]).values == expected  # order invariant
 
 
 def test_Time(config_data, time):
