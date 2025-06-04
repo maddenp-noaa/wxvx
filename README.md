@@ -213,6 +213,13 @@ cycles:
   step: 01:00:00
   stop: 2025-03-01T23:00:00
 forecast:
+  coords:
+    latitude: latitude
+    level: level
+    longitude: longitude
+    time:
+      inittime: time
+      leadtime: lead_time
   mask:
     - [52.61564933, 225.90452027]
     - [52.61564933, 299.08280723]
@@ -255,9 +262,23 @@ variables:
     name: 2t
 ```
 
-This config directs `wxvx` to find forecast data, in Zarr format and on a Lambert Conformal grid with the given specification, under `/path/to/forecast.zarr`. Verification will be limited to points within the bounding box given by `mask`. The forecast will be called `ML` in MET `.stat` files and in plots. It will be verified against `HRRR` analysis, which can be found in GRIB files in an AWS bucket at URLs given as the `baseline.template` value, where `yyyymmdd`, `hh`, and `fh` will be filled in by `wxvx`. (The `yyyymmdd` and `hh` values are strings like `20250523` and `06`, while `fh` is an `int` value to be formatted as needed.) 24 hourly cycles starting at 2025-03-01 00Z, each with forecast leadtimes 3, 6, and 9, will be verified. Variable grids extracted from baseline datasets will be written to `/path/to/workdir/baseline`, forecast dataset to `/path/to/workdir/forecast`, and run output to `/path/to/workdir/run`: The [Jinja2](https://jinja.palletsprojects.com/en/stable/) expressions inside `{{ }}` markers will be processed by [`uwtools`](https://uwtools.readthedocs.io/en/stable/) and may use any features it supports. Three variables -- geopotential height, composite reflectivity, and 2-meter temperature, will be verified. The keys under `variables` map the names of the variables as they appear in the forecast dataset to a canonical description of the variable using ECMWF variable names and level-type descriptions (see the notes in the _Configuration_ section for links). Note that some variables do not support a "level" concept. So, the full verification task-graph will comprise: cycles x leadtimes x variables x levels.
+This config directs `wxvx` to find forecast data, in Zarr format and on a Lambert Conformal grid with the given specification, under `/path/to/forecast.zarr`.
 
-Invoking `wxvx -c config.yaml -t grids` would stage the forecast and baseline grids on disk, only; `-t stats` would produce statistics via MET tools, but also stage grids if they are not already available; and `-t plots` would plot statistics, but also _produce_ statistics (and stage grids) if they are not already available.
+In the forecast dataset, coordinate variables (or attributes) representing latitude, longitude, and vertical level will be named, unsurprisingly, `latitude`, `longitude`, and `level`. Forecast validtime is represented by a combination of initialization time and leadtime, and coordinate variables (or attributes) called `time` and `lead_time`, respectively, provide these values. (Alternatively, a forecast dataset might provide validtime instead of leadtime, with the `wxvx` YAML key `validtime` used instead of `leadtime`.)
+
+Verification will be limited to points within the bounding box given by `mask`.
+
+The forecast will be called `ML` in MET `.stat` files and in plots.
+
+It will be verified against `HRRR` analysis, which can be found in GRIB files in an AWS bucket at URLs given as the `baseline.template` value, where `yyyymmdd`, `hh`, and `fh` will be filled in by `wxvx`. (The `yyyymmdd` and `hh` values are strings like `20250523` and `06`, while `fh` is an `int` value to be formatted as needed.)
+
+24 1-hourly cycles starting at 2025-03-01 00Z, each with forecast leadtimes 3, 6, and 9, will be verified.
+
+Variable grids extracted from baseline datasets will be written to `/path/to/workdir/baseline`, forecast dataset to `/path/to/workdir/forecast`, and run output to `/path/to/workdir/run`. The [Jinja2](https://jinja.palletsprojects.com/en/stable/) expressions inside `{{ }}` markers will be processed by [`uwtools`](https://uwtools.readthedocs.io/en/stable/) and may use any features it supports.
+
+Three variables -- geopotential height, composite reflectivity, and 2-meter temperature, will be verified. The keys under `variables` map the names of the variables as they appear in the forecast dataset to a canonical description of the variable using ECMWF variable names and level-type descriptions (see the notes in the _Configuration_ section for links). (Note that some variables do not support a "level" concept.) The full verification task-graph will comprise: cycles x leadtimes x variables x levels.
+
+Invoking `wxvx -c config.yaml -t grids_baseline` would stage the baseline grids to disk, only; `-t grids_forecast` would stage the forecast grids; `-t grids` would stage both. Specifying `-t stats` would produce statistics via MET tools, but also stage grids if they are not already available, since the grids are required by the MET processes. Specifying `-t plots` would plot statistics, but also _produce_ statistics (and stage grids) if they are not already available.
 
 ## Miscellaneous
 
