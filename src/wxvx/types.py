@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from enum import Enum, auto
+from functools import cached_property
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
@@ -75,12 +76,26 @@ class Cycles:
 
 class Cycles2:
     def __init__(self, value: dict[str, str | int | datetime] | list[str | datetime]):
-        if isinstance(value, dict):
-            dt_start, dt_stop = [to_datetime(cast(_DatetimeT, value[x])) for x in ("start", "stop")]
-            td_step = to_timedelta(cast(_TimedeltaT, value["step"]))
-            self.cycles = expand(dt_start, td_step, dt_stop)
-        else:
-            self.cycles = list(map(to_datetime, value))
+        self.value = value
+
+    def __eq__(self, other):
+        return self.cycles == other.cycles
+
+    def __hash__(self):
+        return hash(self.cycles)
+
+    def __repr__(self):
+        return "%s(%s)" % (self.__class__.__name__, self.value)
+
+    @cached_property
+    def cycles(self) -> list[datetime]:
+        if isinstance(self.value, dict):
+            dt_start, dt_stop = [
+                to_datetime(cast(_DatetimeT, self.value[x])) for x in ("start", "stop")
+            ]
+            td_step = to_timedelta(cast(_TimedeltaT, self.value["step"]))
+            return expand(dt_start, td_step, dt_stop)
+        return list(map(to_datetime, self.value))
 
 
 @dataclass(frozen=True)
