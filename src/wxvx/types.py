@@ -2,18 +2,16 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum, auto
 from functools import cached_property
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, cast
+from typing import Any, cast
 
 from wxvx.util import LINETYPE, expand, to_datetime, to_timedelta
 
-if TYPE_CHECKING:
-    from datetime import datetime
-
-    _DatetimeT = str | datetime
-    _TimedeltaT = str | int
+_DatetimeT = str | datetime
+_TimedeltaT = str | int
 
 
 Source = Enum("Source", [("BASELINE", auto()), ("FORECAST", auto())])
@@ -31,7 +29,7 @@ class Config:
         paths = value["paths"]
         grids = paths["grids"]
         self.baseline = Baseline(**value["baseline"])
-        self.cycles = Cycles(**value["cycles"])
+        self.cycles = Cycles(value["cycles"])
         self.forecast = Forecast(**value["forecast"])
         self.leadtimes = Leadtimes(**value["leadtimes"])
         self.paths = Paths(grids["baseline"], grids["forecast"], paths["run"])
@@ -67,14 +65,14 @@ class Coords:
             _force(self, "time", Time(**self.time))
 
 
-@dataclass(frozen=True)
+# @dataclass(frozen=True)
+# class Cycles:
+#     start: str
+#     step: str
+#     stop: str
+
+
 class Cycles:
-    start: str
-    step: str
-    stop: str
-
-
-class Cycles2:
     def __init__(self, value: dict[str, str | int | datetime] | list[str | datetime]):
         self.value = value
 
@@ -82,7 +80,7 @@ class Cycles2:
         return self.cycles == other.cycles
 
     def __hash__(self):
-        return hash(self.cycles)
+        return hash(tuple(self.cycles))
 
     def __repr__(self):
         return "%s(%s)" % (self.__class__.__name__, self.value)

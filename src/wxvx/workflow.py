@@ -24,7 +24,7 @@ from iotaa import Node, asset, external, task, tasks
 from wxvx import variables
 from wxvx.metconf import render
 from wxvx.net import fetch
-from wxvx.times import TimeCoords, gen_cycles, gen_leadtimes, gen_validtimes, hh, tcinfo, yyyymmdd
+from wxvx.times import TimeCoords, gen_leadtimes, gen_validtimes, hh, tcinfo, yyyymmdd
 from wxvx.types import Cycles, Source
 from wxvx.util import LINETYPE, atomic, mpexec
 from wxvx.variables import VARMETA, Var, da_construct, da_select, ds_construct, metlevel
@@ -76,7 +76,7 @@ def plots(c: Config):
     yield taskname
     yield [
         _plot(c, cycle, varname, level, stat, width)
-        for cycle in gen_cycles(start=c.cycles.start, step=c.cycles.step, stop=c.cycles.stop)
+        for cycle in c.cycles.cycles
         for varname, level in _varnames_and_levels(c)
         for stat, width in _stats_and_widths(c, varname)
     ]
@@ -348,11 +348,13 @@ def _prepare_plot_data(reqs: Sequence[Node], stat: str, width: int | None) -> pd
 def _statargs(
     c: Config, varname: str, level: float | None, source: Source, cycle: datetime | None = None
 ) -> Iterator:
-    cycles = (
-        Cycles(start := cycle.strftime("%Y-%m-%dT%H:%M:%S"), step="00:00:00", stop=start)
-        if isinstance(cycle, datetime)
-        else c.cycles
-    )
+    if isinstance(cycle, datetime):
+        start = cycle.strftime("%Y-%m-%dT%H:%M:%S")
+        step = "00:00:00"
+        stop = start
+        cycles = Cycles(dict(start=start, step=step, stop=stop))
+    else:
+        cycles = c.cycles
     name = (c.baseline if source == Source.BASELINE else c.forecast).name.lower()
     prefix = lambda var: "%s_%s" % (name, str(var).replace("-", "_"))
     args = [
