@@ -4,7 +4,7 @@ baseline:
   template: https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.{yyyymmdd}/conus/hrrr.t{hh}z.wrfprsf{fh:02}.grib2
 cycles:
   start: 2024-04-01T02:00:00
-  step: 01:00:00
+  step: 1
   stop: 2024-04-07T23:00:00
 forecast:
   coords:
@@ -23,10 +23,10 @@ forecast:
   path: /path/to/forecast.zarr
   projection:
     proj: latlon
-leadtimes:
-  start: 01:00:00
-  step: 01:00:00
-  stop: 01:00:00
+leadtimes: 
+  start: "01:00:00"
+  step: "01:00:00"
+  stop: "24:00:00"
 meta:
   grids: "{{ meta.workdir }}/grids"
   levels: &levels [200, 300, 475, 800, 825, 850, 875, 900, 925, 950, 975, 1000]
