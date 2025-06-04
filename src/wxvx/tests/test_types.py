@@ -21,7 +21,7 @@ def coords(config_data):
 
 @fixture
 def cycles(config_data):
-    return types.Cycles(config_data["cycles"])
+    return types.Cycles(raw=config_data["cycles"])
 
 
 @fixture
@@ -31,7 +31,7 @@ def forecast(config_data):
 
 @fixture
 def leadtimes(config_data):
-    return types.Leadtimes(config_data["leadtimes"])
+    return types.Leadtimes(raw=config_data["leadtimes"])
 
 
 @fixture
@@ -91,18 +91,18 @@ def test_Cycles():
     ts1, ts2, ts3, td = "2024-06-04T00", "2024-06-04T06", "2024-06-04T12", "6"
     ts2dt = lambda s: datetime.fromisoformat(s)
     expected = [ts2dt(x) for x in (ts1, ts2, ts3)]
-    x1 = types.Cycles([ts1, ts2, ts3])
-    x2 = types.Cycles({"start": ts1, "step": td, "stop": ts3})
-    x3 = types.Cycles({"start": ts1, "step": int(td), "stop": ts3})
+    x1 = types.Cycles(raw=[ts1, ts2, ts3])
+    x2 = types.Cycles(raw={"start": ts1, "step": td, "stop": ts3})
+    x3 = types.Cycles(raw={"start": ts1, "step": int(td), "stop": ts3})
     assert x1.values == expected
-    assert types.Cycles([ts2, ts3, ts1]).values == expected  # order invariant
-    assert types.Cycles([ts2dt(ts1), ts2dt(ts2), ts2dt(ts3)]).values == expected
-    assert types.Cycles([ts1, ts2dt(ts2), ts3]).values == expected  # mixed types ok
+    assert types.Cycles(raw=[ts2, ts3, ts1]).values == expected  # order invariant
+    assert types.Cycles(raw=[ts2dt(ts1), ts2dt(ts2), ts2dt(ts3)]).values == expected
+    assert types.Cycles(raw=[ts1, ts2dt(ts2), ts3]).values == expected  # mixed types ok
     assert x2.values == expected
     assert x3.values == expected
     assert x1 == x2 == x3
-    assert x1 == types.Cycles([ts1, ts2, ts3])
-    assert x1 != types.Cycles(["1970-01-01T00"])
+    assert x1 == types.Cycles(raw=[ts1, ts2, ts3])
+    assert x1 != types.Cycles(raw=["1970-01-01T00"])
     assert str(x1) == repr(x1)
     assert repr(x1) == "Cycles(['%s', '%s', '%s'])" % (ts1, ts2, ts3)
     assert repr(x2) == "Cycles({'start': '%s', 'step': '%s', 'stop': '%s'})" % (ts1, td, ts3)
@@ -129,26 +129,26 @@ def test_Forecast(config_data, forecast):
 def test_Leadtimes():
     lt1, lt2, lt3, td = "3", "6", "9", "3"
     expected = [timedelta(hours=int(x)) for x in (lt1, lt2, lt3)]
-    x1 = types.Leadtimes([lt1, lt2, lt3])
-    x2 = types.Leadtimes({"start": lt1, "step": td, "stop": lt3})
-    x3 = types.Leadtimes({"start": int(lt1), "step": int(td), "stop": int(lt3)})
+    x1 = types.Leadtimes(raw=[lt1, lt2, lt3])
+    x2 = types.Leadtimes(raw={"start": lt1, "step": td, "stop": lt3})
+    x3 = types.Leadtimes(raw={"start": int(lt1), "step": int(td), "stop": int(lt3)})
     assert x1.values == expected
-    assert types.Leadtimes([lt2, lt3, lt1]).values == expected  # order invariant
-    assert types.Leadtimes([int(lt1), int(lt2), int(lt3)]).values == expected
-    assert types.Leadtimes([lt1, int(lt2), lt3]).values == expected  # mixed types ok
+    assert types.Leadtimes(raw=[lt2, lt3, lt1]).values == expected  # order invariant
+    assert types.Leadtimes(raw=[int(lt1), int(lt2), int(lt3)]).values == expected
+    assert types.Leadtimes(raw=[lt1, int(lt2), lt3]).values == expected  # mixed types ok
     assert x2.values == expected
     assert x3.values == expected
     assert x1 == x2 == x3
-    assert x1 == types.Leadtimes([lt1, lt2, lt3])
-    assert x1 != types.Leadtimes([0])
+    assert x1 == types.Leadtimes(raw=[lt1, lt2, lt3])
+    assert x1 != types.Leadtimes(raw=[0])
     assert str(x1) == repr(x1)
     assert repr(x1) == "Leadtimes(['%s', '%s', '%s'])" % (lt1, lt2, lt3)
     assert repr(x2) == "Leadtimes({'start': '%s', 'step': '%s', 'stop': '%s'})" % (lt1, td, lt3)
     assert repr(x3) == "Leadtimes({'start': %s, 'step': %s, 'stop': %s})" % (lt1, td, lt3)
     assert (
-        types.Leadtimes(["2:60", "5:59:60", "0:0:32400"]).values == expected
+        types.Leadtimes(raw=["2:60", "5:59:60", "0:0:32400"]).values == expected
     )  # but why would you?
-    assert types.Leadtimes(["0:360", "0:480:3600", 3]).values == expected  # order invariant
+    assert types.Leadtimes(raw=["0:360", "0:480:3600", 3]).values == expected  # order invariant
 
 
 def test_Time(config_data, time):

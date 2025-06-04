@@ -44,7 +44,8 @@ def test_times_gen_validtimes(config_data, utc):
     actual = {
         vt.validtime
         for vt in times.gen_validtimes(
-            cycles=Cycles(config_data["cycles"]), leadtimes=Leadtimes(config_data["leadtimes"])
+            cycles=Cycles(raw=config_data["cycles"]),
+            leadtimes=Leadtimes(raw=config_data["leadtimes"]),
         )
     }
     expected = {
