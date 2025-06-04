@@ -246,9 +246,8 @@ def test_workflow__plot(c, dictkey, fakefs, fs):
         _statreqs.return_value = [_stat("model1"), _stat("model2")]
         _prepare_plot_data.side_effect = dfs
         os.environ["MPLCONFIGDIR"] = str(fakefs)
-        val = workflow._plot(
-            c=c, varname=varname, level=level, cycle=c.cycles.values[0], stat=stat, width=width
-        )
+        cycle = c.cycles.values[0]  # noqa: PD011
+        val = workflow._plot(c=c, varname=varname, level=level, cycle=cycle, stat=stat, width=width)
     path = val.ref
     assert ready(val)
     assert path.is_file()

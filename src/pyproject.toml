@@ -60,7 +60,6 @@ ignore = [
   "FLY002",  # static-join-to-f-string
   "LOG015",  # root-logger-call
   "N813",    # camelcase-imported-as-lowercase
-  "PD",      # pandas
   "PLR0911", # too-many-return-statements
   "PLR0912", # too-many-branches
   "PLR0913", # too-many-arguments

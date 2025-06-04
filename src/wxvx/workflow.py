@@ -76,7 +76,7 @@ def plots(c: Config):
     yield taskname
     yield [
         _plot(c, cycle, varname, level, stat, width)
-        for cycle in c.cycles.values
+        for cycle in c.cycles.values  # noqa: PD011
         for varname, level in _varnames_and_levels(c)
         for stat, width in _stats_and_widths(c, varname)
     ]
@@ -212,7 +212,7 @@ def _plot(
     yield asset(plot_fn, plot_fn.is_file)
     reqs = _statreqs(c, varname, level, cycle)
     yield reqs
-    leadtimes = ["%03d" % (td.total_seconds() // 3600) for td in c.leadtimes.values]
+    leadtimes = ["%03d" % (td.total_seconds() // 3600) for td in c.leadtimes.values]  # noqa: PD011
     plot_data = _prepare_plot_data(reqs, stat, width)
     sns.set(style="darkgrid")
     plt.figure(figsize=(10, 6), constrained_layout=True)
