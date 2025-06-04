@@ -24,7 +24,7 @@ from iotaa import Node, asset, external, task, tasks
 from wxvx import variables
 from wxvx.metconf import render
 from wxvx.net import fetch
-from wxvx.times import TimeCoords, gen_leadtimes, gen_validtimes, hh, tcinfo, yyyymmdd
+from wxvx.times import TimeCoords, gen_validtimes, hh, tcinfo, yyyymmdd
 from wxvx.types import Cycles, Source
 from wxvx.util import LINETYPE, atomic, mpexec
 from wxvx.variables import VARMETA, Var, da_construct, da_select, ds_construct, metlevel
@@ -212,12 +212,7 @@ def _plot(
     yield asset(plot_fn, plot_fn.is_file)
     reqs = _statreqs(c, varname, level, cycle)
     yield reqs
-    leadtimes = [
-        "%03d" % (td.total_seconds() // 3600)
-        for td in gen_leadtimes(
-            start=c.leadtimes.start, step=c.leadtimes.step, stop=c.leadtimes.stop
-        )
-    ]
+    leadtimes = ["%03d" % (td.total_seconds() // 3600) for td in c.leadtimes.leadtimes]
     plot_data = _prepare_plot_data(reqs, stat, width)
     sns.set(style="darkgrid")
     plt.figure(figsize=(10, 6), constrained_layout=True)

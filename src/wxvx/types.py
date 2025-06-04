@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import Enum, auto
 from functools import cached_property
 from pathlib import Path
@@ -31,7 +31,7 @@ class Config:
         self.baseline = Baseline(**value["baseline"])
         self.cycles = Cycles(value["cycles"])
         self.forecast = Forecast(**value["forecast"])
-        self.leadtimes = Leadtimes(**value["leadtimes"])
+        self.leadtimes = Leadtimes(value["leadtimes"])
         self.paths = Paths(grids["baseline"], grids["forecast"], paths["run"])
         self.variables = value["variables"]
 
@@ -111,11 +111,27 @@ class Forecast:
         _force(self, "path", Path(self.path))
 
 
-@dataclass(frozen=True)
 class Leadtimes:
-    start: str
-    step: str
-    stop: str
+    def __init__(self, value: dict[str, str | int] | list[str | int]):
+        self.value = value
+
+    def __eq__(self, other):
+        return self.leadtimes == other.leadtimes
+
+    def __hash__(self):
+        return hash(tuple(self.leadtimes))
+
+    def __repr__(self):
+        return "%s(%s)" % (self.__class__.__name__, self.value)
+
+    @cached_property
+    def leadtimes(self) -> list[timedelta]:
+        if isinstance(self.value, dict):
+            td_start, td_step, td_stop = [
+                to_timedelta(cast(_TimedeltaT, self.value[x])) for x in ("start", "step", "stop")
+            ]
+            return expand(td_start, td_step, td_stop)
+        return list(map(to_timedelta, self.value))
 
 
 @dataclass(frozen=True)

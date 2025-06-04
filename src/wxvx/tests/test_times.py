@@ -40,17 +40,11 @@ def test_times_TimeCoords__no_leadtime(utc):
     assert tc.yyyymmdd == "20250128"
 
 
-def test_times_gen_leadtimes(config_data):
-    assert times.gen_leadtimes(**config_data["leadtimes"]) == [
-        timedelta(hours=n) for n in (0, 6, 12)
-    ]
-
-
 def test_times_gen_validtimes(config_data, utc):
     actual = {
         vt.validtime
         for vt in times.gen_validtimes(
-            cycles=Cycles(config_data["cycles"]), leadtimes=Leadtimes(**config_data["leadtimes"])
+            cycles=Cycles(config_data["cycles"]), leadtimes=Leadtimes(config_data["leadtimes"])
         )
     }
     expected = {

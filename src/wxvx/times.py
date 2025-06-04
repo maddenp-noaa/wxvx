@@ -4,8 +4,6 @@ from datetime import datetime, timedelta
 from itertools import product
 from typing import TYPE_CHECKING
 
-from wxvx.util import expand, to_timedelta
-
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
@@ -39,16 +37,8 @@ class TimeCoords:
         return self.validtime.isoformat()
 
 
-def gen_leadtimes(start: str, step: str, stop: str) -> list[timedelta]:
-    td_start, td_step, td_stop = [to_timedelta(x) for x in (start, step, stop)]
-    return expand(td_start, td_step, td_stop)
-
-
 def gen_validtimes(cycles: Cycles, leadtimes: Leadtimes) -> Iterator[TimeCoords]:
-    for cycle, leadtime in product(
-        cycles.cycles,
-        gen_leadtimes(leadtimes.start, leadtimes.step, leadtimes.stop),
-    ):
+    for cycle, leadtime in product(cycles.cycles, leadtimes.leadtimes):
         yield TimeCoords(cycle=cycle, leadtime=leadtime)
 
 
