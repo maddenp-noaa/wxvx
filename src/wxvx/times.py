@@ -39,12 +39,6 @@ class TimeCoords:
         return self.validtime.isoformat()
 
 
-# def gen_cycles(start: str, step: str, stop: str) -> list[datetime]:
-#     dt_start, dt_stop = [to_datetime(x) for x in (start, stop)]
-#     td_step = to_timedelta(step)
-#     return expand(dt_start, td_step, dt_stop)
-
-
 def gen_leadtimes(start: str, step: str, stop: str) -> list[timedelta]:
     td_start, td_step, td_stop = [to_timedelta(x) for x in (start, step, stop)]
     return expand(td_start, td_step, td_stop)
@@ -69,6 +63,3 @@ def tcinfo(tc: TimeCoords, leadtime_digits: int = 3) -> tuple[str, str, str]:
 
 def yyyymmdd(dt: datetime) -> str:
     return dt.strftime("%Y%m%d")
-
-
-# Private

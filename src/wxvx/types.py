@@ -65,13 +65,6 @@ class Coords:
             _force(self, "time", Time(**self.time))
 
 
-# @dataclass(frozen=True)
-# class Cycles:
-#     start: str
-#     step: str
-#     stop: str
-
-
 class Cycles:
     def __init__(self, value: dict[str, str | int | datetime] | list[str | datetime]):
         self.value = value
