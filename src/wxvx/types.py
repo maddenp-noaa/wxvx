@@ -25,15 +25,15 @@ class Baseline:
 
 
 class Config:
-    def __init__(self, value: dict):
-        paths = value["paths"]
+    def __init__(self, raw: dict):
+        paths = raw["paths"]
         grids = paths["grids"]
-        self.baseline = Baseline(**value["baseline"])
-        self.cycles = Cycles(value["cycles"])
-        self.forecast = Forecast(**value["forecast"])
-        self.leadtimes = Leadtimes(value["leadtimes"])
+        self.baseline = Baseline(**raw["baseline"])
+        self.cycles = Cycles(raw["cycles"])
+        self.forecast = Forecast(**raw["forecast"])
+        self.leadtimes = Leadtimes(raw["leadtimes"])
         self.paths = Paths(grids["baseline"], grids["forecast"], paths["run"])
-        self.variables = value["variables"]
+        self.variables = raw["variables"]
 
     KEYS = ("baseline", "cycles", "forecast", "leadtimes", "paths", "variables")
 
