@@ -39,7 +39,13 @@ if TYPE_CHECKING:
 
 @tasks
 def grids(c: Config, baseline: bool = True, forecast: bool = True):
-    taskname = "Grids for %s vs %s" % (c.forecast.name, c.baseline.name)
+    if baseline and not forecast:
+        suffix = "{b}"
+    elif forecast and not baseline:
+        suffix = "{f}"
+    else:
+        suffix = "{f} vs {b}"
+    taskname = "Grids for %s" % suffix.format(b=c.baseline.name, f=c.forecast.name)
     yield taskname
     reqs: list[Node] = []
     for var, varname in _vxvars(c).items():
