@@ -118,7 +118,7 @@ def test_Forecast(config_data, forecast):
     assert obj.coords.time.inittime == "time"
     assert obj.coords.time.leadtime == "lead_time"
     assert obj.name == "Forecast"
-    assert obj.path == Path("/path/to/forecast")
+    assert obj.path == "/path/to/forecast"
     cfg = config_data["forecast"]
     other1 = types.Forecast(**cfg)
     assert obj == other1

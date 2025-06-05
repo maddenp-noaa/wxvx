@@ -93,7 +93,7 @@ class Cycles:
 class Forecast:
     coords: Coords
     name: str
-    path: Path
+    path: str
     projection: dict
     mask: tuple[tuple[float, float]] | None = None
 
@@ -108,7 +108,6 @@ class Forecast:
             _force(self, "coords", coords)
         if self.mask:
             _force(self, "mask", tuple(tuple(x) for x in self.mask))
-        _force(self, "path", Path(self.path))
 
 
 class Leadtimes:

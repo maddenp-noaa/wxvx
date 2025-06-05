@@ -39,7 +39,7 @@ if TYPE_CHECKING:
 
 @tasks
 def grids(c: Config, baseline: bool = True, forecast: bool = True):
-    taskname = "Grids for %s" % c.forecast.path
+    taskname = "Grids for %s vs %s" % (c.forecast.name, c.baseline.name)
     yield taskname
     reqs: list[Node] = []
     for var, varname in _vxvars(c).items():
@@ -58,21 +58,21 @@ def grids(c: Config, baseline: bool = True, forecast: bool = True):
 
 @tasks
 def grids_baseline(c: Config):
-    taskname = "Baseline grids for %s" % c.forecast.path
+    taskname = "Baseline grids for %s" % c.baseline.name
     yield taskname
     yield grids(c, baseline=True, forecast=False)
 
 
 @tasks
 def grids_forecast(c: Config):
-    taskname = "Forecast grids for %s" % c.forecast.path
+    taskname = "Forecast grids for %s" % c.forecast.name
     yield taskname
     yield grids(c, baseline=False, forecast=True)
 
 
 @tasks
 def plots(c: Config):
-    taskname = "Plots for %s" % c.forecast.path
+    taskname = "Plots for %s vs %s" % (c.forecast.name, c.baseline.name)
     yield taskname
     yield [
         _plot(c, cycle, varname, level, stat, width)
@@ -84,7 +84,7 @@ def plots(c: Config):
 
 @tasks
 def stats(c: Config):
-    taskname = "Stats for %s" % c.forecast.path
+    taskname = "Stats for %s vs %s" % (c.forecast.name, c.baseline.name)
     yield taskname
     reqs: list[Node] = []
     for varname, level in _varnames_and_levels(c):
@@ -177,7 +177,7 @@ def _grid_nc(c: Config, varname: str, tc: TimeCoords, var: Var):
     taskname = "Forecast grid %s" % path
     yield taskname
     yield asset(path, path.is_file)
-    fd = _forecast_dataset(c.forecast.path)
+    fd = _forecast_dataset(Path(c.forecast.path.format(yyyymmdd=yyyymmdd, hh=hh, fh=int(leadtime))))
     yield fd
     src = da_select(c, fd.ref, varname, tc, var)
     da = da_construct(c, src)
