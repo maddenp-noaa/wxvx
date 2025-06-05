@@ -73,7 +73,7 @@ An overview of the content of the YAML configuration file specified via `-c` / `
 
 ### baseline.url
 
-The `baseline.url` value may include Jinja2 expressions involving `wxvx`-supplied  variables `yyyymmdd` (cycle date, a `str`), `hh` (cycle time, a `str`), and `fh` (forecast hour, aka leadtime, an `int`). The expressions will be processed, the variables replaced with appropriate values at run time.
+The `baseline.url` value may include Python string-template expressions, processed at run-time with [`str.format()`](https://docs.python.org/3/library/stdtypes.html#str.format). Variables `yyyymmdd` (cycle date, a `str`), `hh` (cycle time, a `str`), and `fh` (forecast hour, aka leadtime, an `int`) will be supplied by `wxvx`.
 
 ### cycles
 
@@ -112,7 +112,7 @@ The `forecast.mask` value may be omitted, or set to the YAML value `null`, in wh
 
 ### forecast.path
 
-The `forecast.path` value may include Jinja2 expressions involving `wxvx`-supplied  variables `yyyymmdd` (cycle date, a `str`), `hh` (cycle time, a `str`), and `fh` (forecast hour, aka leadtime, an `int`). The expressions will be processed, the variables replaced with appropriate values at run time.
+The `forecast.path` value may include Python string-template expressions, processed at run-time with [`str.format()`](https://docs.python.org/3/library/stdtypes.html#str.format). Variables `yyyymmdd` (cycle date, a `str`), `hh` (cycle time, a `str`), and `fh` (forecast hour, aka leadtime, an `int`) will be supplied by `wxvx`.
 
 ### leadtimes
 
