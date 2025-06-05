@@ -76,7 +76,7 @@ def config_data():
                 [21.138123, 225.90452027],
             ],
             "name": "Forecast",
-            "path": "/path/to/forecast",
+            "path": "/path/to/forecast-{yyyymmdd}-{hh}-{fh:03}.nc",
             "projection": {
                 "a": 6371229,
                 "b": 6371229,
