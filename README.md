@@ -35,7 +35,7 @@ An overview of the content of the YAML configuration file specified via `-c` / `
 │ baseline:          │ Description of the baseline dataset       │
 │   compare:         │   Verify and/or plot forecast?            │
 │   name:            │   Dataset descriptive name                │
-│   template:        │   Template for baseline GRIB file URLs    │
+│   url:             │   Template for baseline GRIB file URLs    │
 │ cycles:            │ Cycles to verify                          │
 │   start:           │   First cycle                             │
 │   step:            │   Interval between cycles                 │
@@ -71,9 +71,9 @@ An overview of the content of the YAML configuration file specified via `-c` / `
 └────────────────────┴───────────────────────────────────────────┘
 ```
 
-### baseline.template
+### baseline.url
 
-The `baseline.template` value may include Jinja2 expressions involving `wxvx`-supplied  variables `yyyymmdd` (cycle date, a `str`), `hh` (cycle time, a `str`), and `fh` (forecast hour, aka leadtime, an `int`). The expressions will be processed, the variables replaced with appropriate values at run time.
+The `baseline.url` value may include Jinja2 expressions involving `wxvx`-supplied  variables `yyyymmdd` (cycle date, a `str`), `hh` (cycle time, a `str`), and `fh` (forecast hour, aka leadtime, an `int`). The expressions will be processed, the variables replaced with appropriate values at run time.
 
 ### cycles
 
@@ -195,7 +195,7 @@ Consider a `config.yaml`
 baseline:
   compare: true
   name: HRRR
-  template: https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.{yyyymmdd}/conus/hrrr.t{hh}z.wrfprsf{fh:02}.grib2
+  url: https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.{yyyymmdd}/conus/hrrr.t{hh}z.wrfprsf{fh:02}.grib2
 cycles:
   start: 2025-03-01T00:00:00
   step: 1
@@ -255,7 +255,7 @@ Verification will be limited to points within the bounding box given by `mask`.
 
 The forecast will be called `ML` in MET `.stat` files and in plots.
 
-It will be verified against `HRRR` analysis, which can be found in GRIB files in an AWS bucket at URLs given as the `baseline.template` value, where `yyyymmdd`, `hh`, and `fh` will be filled in by `wxvx`. (The `yyyymmdd` and `hh` values are strings like `20250523` and `06`, while `fh` is an `int` value to be formatted as needed.)
+It will be verified against `HRRR` analysis, which can be found in GRIB files in an AWS bucket at URLs given as the `baseline.url` value, where `yyyymmdd`, `hh`, and `fh` will be filled in by `wxvx`. (The `yyyymmdd` and `hh` values are strings like `20250523` and `06`, while `fh` is an `int` value to be formatted as needed.)
 
 24 1-hourly cycles starting at 2025-03-01 00Z, each with forecast leadtimes 3, 6, and 9, will be verified.
 

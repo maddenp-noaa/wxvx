@@ -145,7 +145,7 @@ def test_workflow__grib_index_data(c, tc):
 
     with patch.object(workflow, "_grib_index_file", mock):
         val = workflow._grib_index_data(
-            c=c, outdir=c.paths.grids_baseline, tc=tc, url=c.baseline.template
+            c=c, outdir=c.paths.grids_baseline, tc=tc, url=c.baseline.url
         )
     assert val.ref == {
         "gh-isobaricInhPa-0900": variables.HRRR(
@@ -155,7 +155,7 @@ def test_workflow__grib_index_data(c, tc):
 
 
 def test_workflow__grib_index_file(c):
-    url = f"{c.baseline.template}.idx"
+    url = f"{c.baseline.url}.idx"
     val = workflow._grib_index_file(outdir=c.paths.grids_baseline, url=url)
     path: Path = val.ref
     assert not path.exists()

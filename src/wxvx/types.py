@@ -21,7 +21,7 @@ Source = Enum("Source", [("BASELINE", auto()), ("FORECAST", auto())])
 class Baseline:
     compare: bool
     name: str
-    template: str
+    url: str
 
 
 class Config:

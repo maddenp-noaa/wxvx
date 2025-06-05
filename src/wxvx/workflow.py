@@ -160,7 +160,7 @@ def _grid_grib(c: Config, tc: TimeCoords, var: Var):
     taskname = "Baseline grid %s" % path
     yield taskname
     yield asset(path, path.is_file)
-    url = c.baseline.template.format(yyyymmdd=yyyymmdd, hh=hh, fh=int(leadtime))
+    url = c.baseline.url.format(yyyymmdd=yyyymmdd, hh=hh, fh=int(leadtime))
     idxdata = _grib_index_data(c, outdir, tc, url=f"{url}.idx")
     yield idxdata
     var_idxdata = idxdata.ref[str(var)]
