@@ -7,7 +7,7 @@ A workflow tool for weather-model verification, leveraging [`uwtools`](https://g
 1. Download, install, and activate [Miniforge](https://github.com/conda-forge/miniforge), the [conda-forge](https://conda-forge.org/) project's implementation of [Miniconda](https://docs.anaconda.com/miniconda/). This step can be skipped if you already have a conda installation you want to use. Linux `aarch64` and `x86_64` systems are currently supported. The example shown below is for a Linux `aarch64` system, so if your system is Intel/AMD, download the `x86_64` installer.
 
 ``` bash
-wget https://github.com/conda-forge/miniforge/releases/download/24.11.3-0/Miniforge3-Linux-aarch64.sh
+wget https://github.com/conda-forge/miniforge/releases/download/25.3.0-3/Miniforge3-Linux-aarch64.sh
 bash Miniforge3-Linux-aarch64.sh -bfp conda
 rm Miniforge3-Linux-aarch64.sh
 . conda/etc/profile.d/conda.sh
@@ -35,7 +35,7 @@ An overview of the content of the YAML configuration file specified via `-c` / `
 │ baseline:          │ Description of the baseline dataset       │
 │   compare:         │   Verify and/or plot forecast?            │
 │   name:            │   Dataset descriptive name                │
-│   template:        │   Template for baseline GRIB file URLs    │
+│   url:             │   Template for baseline GRIB file URLs    │
 │ cycles:            │ Cycles to verify                          │
 │   start:           │   First cycle                             │
 │   step:            │   Interval between cycles                 │
@@ -71,9 +71,9 @@ An overview of the content of the YAML configuration file specified via `-c` / `
 └────────────────────┴───────────────────────────────────────────┘
 ```
 
-### baseline
+### baseline.url
 
-The `baseline` URL template may include `{yyyymmdd}` (cycle date), `{hh}` (cycle time), and `{fh}` (forecast hour, aka leadtime) Jinja2 expressions, which will be replaced with appropriate values at run time. `yyyymmdd` and `hh` are Python `str` values, and `fh` is an `int`.
+The `baseline.url` value may include Python string-template expressions, processed at run-time with [`str.format()`](https://docs.python.org/3/library/stdtypes.html#str.format). Variables `yyyymmdd` (cycle date, a `str`), `hh` (cycle time, a `str`), and `fh` (forecast hour, aka leadtime, an `int`) will be supplied by `wxvx`.
 
 ### cycles
 
@@ -109,6 +109,10 @@ If a `forecast.coords.time` specifies the name of a coordinate dimension variabl
 ### forecast.mask
 
 The `forecast.mask` value may be omitted, or set to the YAML value `null`, in which case no masking will be applied.
+
+### forecast.path
+
+The `forecast.path` value may include Python string-template expressions, processed at run-time with [`str.format()`](https://docs.python.org/3/library/stdtypes.html#str.format). Variables `yyyymmdd` (cycle date, a `str`), `hh` (cycle time, a `str`), and `fh` (forecast hour, aka leadtime, an `int`) will be supplied by `wxvx`.
 
 ### leadtimes
 
@@ -191,7 +195,7 @@ Consider a `config.yaml`
 baseline:
   compare: true
   name: HRRR
-  template: https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.{yyyymmdd}/conus/hrrr.t{hh}z.wrfprsf{fh:02}.grib2
+  url: https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.{yyyymmdd}/conus/hrrr.t{hh}z.wrfprsf{fh:02}.grib2
 cycles:
   start: 2025-03-01T00:00:00
   step: 1
@@ -251,7 +255,7 @@ Verification will be limited to points within the bounding box given by `mask`.
 
 The forecast will be called `ML` in MET `.stat` files and in plots.
 
-It will be verified against `HRRR` analysis, which can be found in GRIB files in an AWS bucket at URLs given as the `baseline.template` value, where `yyyymmdd`, `hh`, and `fh` will be filled in by `wxvx`. (The `yyyymmdd` and `hh` values are strings like `20250523` and `06`, while `fh` is an `int` value to be formatted as needed.)
+It will be verified against `HRRR` analysis, which can be found in GRIB files in an AWS bucket at URLs given as the `baseline.url` value, where `yyyymmdd`, `hh`, and `fh` will be filled in by `wxvx`. (The `yyyymmdd` and `hh` values are strings like `20250523` and `06`, while `fh` is an `int` value to be formatted as needed.)
 
 24 1-hourly cycles starting at 2025-03-01 00Z, each with forecast leadtimes 3, 6, and 9, will be verified.
 

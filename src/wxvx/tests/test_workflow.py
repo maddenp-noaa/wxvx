@@ -145,7 +145,7 @@ def test_workflow__grib_index_data(c, tc):
 
     with patch.object(workflow, "_grib_index_file", mock):
         val = workflow._grib_index_data(
-            c=c, outdir=c.paths.grids_baseline, tc=tc, url=c.baseline.template
+            c=c, outdir=c.paths.grids_baseline, tc=tc, url=c.baseline.url
         )
     assert val.ref == {
         "gh-isobaricInhPa-0900": variables.HRRR(
@@ -155,7 +155,7 @@ def test_workflow__grib_index_data(c, tc):
 
 
 def test_workflow__grib_index_file(c):
-    url = f"{c.baseline.template}.idx"
+    url = f"{c.baseline.url}.idx"
     val = workflow._grib_index_file(outdir=c.paths.grids_baseline, url=url)
     path: Path = val.ref
     assert not path.exists()
@@ -207,7 +207,7 @@ def test_workflow__grid_nc(c_real_fs, check_cf_metadata, da_with_leadtime, tc):
     var = variables.Var(name="gh", level_type="isobaricInhPa", level=level)
     path = Path(c_real_fs.paths.grids_forecast, "a.nc")
     da_with_leadtime.to_netcdf(path)
-    object.__setattr__(c_real_fs.forecast, "path", path)
+    object.__setattr__(c_real_fs.forecast, "path", str(path))
     val = workflow._grid_nc(c=c_real_fs, varname="HGT", tc=tc, var=var)
     assert ready(val)
     check_cf_metadata(ds=xr.open_dataset(val.ref, decode_timedelta=True), name="HGT", level=level)
