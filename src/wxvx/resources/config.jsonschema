@@ -34,14 +34,14 @@
         "name": {
           "type": "string"
         },
-        "template": {
+        "url": {
           "type": "string"
         }
       },
       "required": [
         "compare",
         "name",
-        "template"
+        "url"
       ],
       "type": "object"
     },

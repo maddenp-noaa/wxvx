@@ -67,7 +67,7 @@ def test_schema_baseline(logged, config_data, fs):
     # Basic correctness:
     assert ok(config)
     # Certain top-level keys are required:
-    for key in ["compare", "name", "template"]:
+    for key in ["compare", "name", "url"]:
         assert not ok(with_del(config, key))
         assert logged(f"'{key}' is a required property")
     # Additional keys are not allowed:
@@ -78,7 +78,7 @@ def test_schema_baseline(logged, config_data, fs):
         assert not ok(with_set(config, None, key))
         assert logged("None is not of type 'boolean'")
     # Some keys have string values:
-    for key in ["name", "template"]:
+    for key in ["name", "url"]:
         assert not ok(with_set(config, None, key))
         assert logged("None is not of type 'string'")
 

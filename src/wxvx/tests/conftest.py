@@ -52,7 +52,7 @@ def config_data():
         "baseline": {
             "compare": True,
             "name": "GFS",
-            "template": "https://some.url/{yyyymmdd}/{hh}/{fh:02}/a.grib2",
+            "url": "https://some.url/{yyyymmdd}/{hh}/{fh:02}/a.grib2",
         },
         "cycles": {
             "start": "2024-12-19T18:00:00",
@@ -76,7 +76,7 @@ def config_data():
                 [21.138123, 225.90452027],
             ],
             "name": "Forecast",
-            "path": "/path/to/forecast",
+            "path": "/path/to/forecast-{yyyymmdd}-{hh}-{fh:03}.nc",
             "projection": {
                 "a": 6371229,
                 "b": 6371229,
