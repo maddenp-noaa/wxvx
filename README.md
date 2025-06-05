@@ -7,7 +7,7 @@ A workflow tool for weather-model verification, leveraging [`uwtools`](https://g
 1. Download, install, and activate [Miniforge](https://github.com/conda-forge/miniforge), the [conda-forge](https://conda-forge.org/) project's implementation of [Miniconda](https://docs.anaconda.com/miniconda/). This step can be skipped if you already have a conda installation you want to use. Linux `aarch64` and `x86_64` systems are currently supported. The example shown below is for a Linux `aarch64` system, so if your system is Intel/AMD, download the `x86_64` installer.
 
 ``` bash
-wget https://github.com/conda-forge/miniforge/releases/download/24.11.3-0/Miniforge3-Linux-aarch64.sh
+wget https://github.com/conda-forge/miniforge/releases/download/25.3.0-3/Miniforge3-Linux-aarch64.sh
 bash Miniforge3-Linux-aarch64.sh -bfp conda
 rm Miniforge3-Linux-aarch64.sh
 . conda/etc/profile.d/conda.sh
