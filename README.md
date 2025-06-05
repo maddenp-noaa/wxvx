@@ -71,9 +71,9 @@ An overview of the content of the YAML configuration file specified via `-c` / `
 └────────────────────┴───────────────────────────────────────────┘
 ```
 
-### baseline
+### baseline.template
 
-The `baseline` URL template may include `{yyyymmdd}` (cycle date), `{hh}` (cycle time), and `{fh}` (forecast hour, aka leadtime) Jinja2 expressions, which will be replaced with appropriate values at run time. `yyyymmdd` and `hh` are Python `str` values, and `fh` is an `int`.
+The `baseline.template` value may include Jinja2 expressions involving `wxvx`-supplied  variables `yyyymmdd` (cycle date, a `str`), `hh` (cycle time, a `str`), and `fh` (forecast hour, aka leadtime, an `int`). The expressions will be processed, the variables replaced with appropriate values at run time.
 
 ### cycles
 
@@ -109,6 +109,10 @@ If a `forecast.coords.time` specifies the name of a coordinate dimension variabl
 ### forecast.mask
 
 The `forecast.mask` value may be omitted, or set to the YAML value `null`, in which case no masking will be applied.
+
+### forecast.path
+
+The `forecast.path` value may include Jinja2 expressions involving `wxvx`-supplied  variables `yyyymmdd` (cycle date, a `str`), `hh` (cycle time, a `str`), and `fh` (forecast hour, aka leadtime, an `int`). The expressions will be processed, the variables replaced with appropriate values at run time.
 
 ### leadtimes
 
