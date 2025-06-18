@@ -304,14 +304,14 @@ def test_workflow__grid_stat_config(c, fakefs):
     assert path.is_file()
 
 
-def test__meta(c):
+def test_workflow__meta(c):
     meta = workflow._meta(c=c, varname="HGT")
     assert meta.cf_standard_name == "geopotential_height"
     assert meta.level_type == "isobaricInhPa"
 
 
 @mark.parametrize("dictkey", ["foo", "bar", "baz"])
-def test__prepare_plot_data(dictkey):
+def test_workflow__prepare_plot_data(dictkey):
     varname, level, dfs, stat, width = TESTDATA[dictkey]
     node = lambda x: Mock(ref=f"{x}.stat", taskname=x)
     reqs = cast(Sequence[Node], [node("node1"), node("node2")])
@@ -330,8 +330,29 @@ def test__prepare_plot_data(dictkey):
         assert tdf["INTERP_PNTS"].eq(width**2).all()
 
 
+def test_workflow__proxy(tmp_path):
+    assetpath = tmp_path / "foo"
+    var = "DATABASE"
+    assert not assetpath.is_file()
+    with patch.object(workflow, var, None):
+        assert workflow._proxy(assetpath).__name__ == "is_file"
+    dbpath = tmp_path / "db.sqlite"
+    assert not dbpath.is_file()
+    with patch.object(workflow, var, dbpath):
+        ready = workflow._proxy(assetpath)
+        assert ready.__name__ == "proxy"
+        assert not dbpath.is_file()
+        assert not ready()
+        with workflow.dbm.sqlite3.open(dbpath, "r") as db:
+            assert bool(int(db[str(assetpath)])) is False
+        assetpath.touch()
+        assert ready()
+        with workflow.dbm.sqlite3.open(dbpath, "r") as db:
+            assert bool(int(db[str(assetpath)])) is True
+
+
 @mark.parametrize("cycle", [datetime(2024, 12, 19, 18, tzinfo=timezone.utc), None])
-def test__statargs(c, statkit, cycle):
+def test_workflow__statargs(c, statkit, cycle):
     with (
         patch.object(workflow, "_vxvars", return_value={statkit.var: statkit.varname}),
         patch.object(workflow, "gen_validtimes", return_value=[statkit.tc]),
@@ -349,7 +370,7 @@ def test__statargs(c, statkit, cycle):
 
 
 @mark.parametrize("cycle", [datetime(2024, 12, 19, 18, tzinfo=timezone.utc), None])
-def test__statreqs(c, statkit, cycle):
+def test_workflow__statreqs(c, statkit, cycle):
     with (
         patch.object(workflow, "_stat") as _stat,
         patch.object(workflow, "_vxvars", return_value={statkit.var: statkit.varname}),
@@ -371,7 +392,7 @@ def test__statreqs(c, statkit, cycle):
     )
 
 
-def test__stats_and_widths(c):
+def test_workflow__stats_and_widths(c):
     assert list(workflow._stats_and_widths(c=c, varname="REFC")) == [
         ("FSS", 3),
         ("FSS", 5),
@@ -384,11 +405,11 @@ def test__stats_and_widths(c):
     ]
 
 
-def test__var(c):
+def test_workflow__var(c):
     assert workflow._var(c=c, varname="HGT", level=900) == Var("gh", "isobaricInhPa", 900)
 
 
-def test__varnames_and_levels(c):
+def test_workflow__varnames_and_levels(c):
     assert list(workflow._varnames_and_levels(c=c)) == [
         ("HGT", 900),
         ("REFC", None),
@@ -398,7 +419,7 @@ def test__varnames_and_levels(c):
     ]
 
 
-def test__vxvars(c):
+def test_workflow__vxvars(c):
     assert workflow._vxvars(c=c) == {
         Var("2t", "heightAboveGround", 2): "T2M",
         Var("gh", "isobaricInhPa", 900): "HGT",
