@@ -52,31 +52,20 @@ def _db() -> MutableMapping:
 
 
 def proxy(path: Path) -> Callable[..., bool]:
-    calls: int = 0
-    checks: int = 0
-
     def proxy() -> bool:
-        nonlocal calls, checks
-        calls = calls + 1
-        key = str(path)
         db = _db()
-        print("@@@ [ in] calls %s checks %s %s is %s" % (calls, checks, key, db.get(key)))
+        key = str(path)
         try:
             val = db[key]
         except KeyError:
             exists = False
-            db[key] = int(exists)
+            db[key] = exists
         else:
             exists = bool(int(val))
             if not exists:
                 exists = path.is_file()
-                checks += 1
                 if exists:
-                    db[key] = int(exists)
-        print(
-            "@@@ [out] calls %s checks %s %s is %s %s"
-            % (calls, checks, key, db.get(key), bool(int(db[key])))
-        )
+                    db[key] = exists
         return exists
 
     return proxy
