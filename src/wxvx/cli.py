@@ -18,6 +18,7 @@ from wxvx.util import fail, pkgname, resource, resource_path
 
 def main() -> None:
     args = _parse_args(sys.argv)
+    workflow.DATABASE = args.database
     use_uwtools_logger(verbose=args.debug)
     if not args.task:
         _show_tasks_and_exit(0)
@@ -62,17 +63,17 @@ def _parse_args(argv: list[str]) -> Namespace:
     )
     optional = parser.add_argument_group("Optional arguments")
     optional.add_argument(
+        "-b",
+        "--database",
+        help="Database file",
+        metavar="FILE",
+        type=Path,
+    )
+    optional.add_argument(
         "-d",
         "--debug",
         action="store_true",
         help="Log all messages",
-    )
-    optional.add_argument(
-        "-f",
-        "--statefile",
-        help="State file",
-        metavar="FILE",
-        type=Path,
     )
     optional.add_argument(
         "-h",

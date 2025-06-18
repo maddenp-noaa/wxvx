@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import threading
 from collections.abc import Iterator
 from datetime import datetime
 from functools import cache
@@ -32,43 +33,12 @@ from wxvx.util import LINETYPE, atomic, mpexec
 from wxvx.variables import VARMETA, Var, da_construct, da_select, ds_construct, metlevel
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator, MutableMapping, Sequence
+    from collections.abc import Iterator, Sequence
 
     from wxvx.types import Config, VarMeta
 
-import threading
-
-thread_local_data = threading.local()
-
-
-def _db() -> MutableMapping:
-    db: MutableMapping
-    try:
-        db = thread_local_data.db
-    except AttributeError:
-        db = dbm.sqlite3.open("db.sqlite", "c")
-        thread_local_data.db = db
-    return db
-
-
-def proxy(path: Path) -> Callable[..., bool]:
-    def proxy() -> bool:
-        db = _db()
-        key = str(path)
-        try:
-            val = db[key]
-        except KeyError:
-            exists = False
-            db[key] = exists
-        else:
-            exists = bool(int(val))
-            if not exists:
-                exists = path.is_file()
-                if exists:
-                    db[key] = exists
-        return exists
-
-    return proxy
+DATABASE = None
+THREAD_LOCAL_DATA = threading.local()
 
 
 # Public tasks
@@ -189,7 +159,7 @@ def _grib_index_file(outdir: Path, url: str):
     path = outdir / Path(urlparse(url).path).name
     taskname = "GRIB index file %s" % path
     yield taskname
-    yield asset(path, proxy(path))
+    yield asset(path, _proxy(path))
     yield None
     fetch(taskname, url, path)
 
@@ -201,7 +171,7 @@ def _grid_grib(c: Config, tc: TimeCoords, var: Var):
     path = outdir / f"{var}.grib2"
     taskname = "Baseline grid %s" % path
     yield taskname
-    yield asset(path, proxy(path))
+    yield asset(path, _proxy(path))
     url = c.baseline.url.format(yyyymmdd=yyyymmdd, hh=hh, fh=int(leadtime))
     idxdata = _grib_index_data(c, outdir, tc, url=f"{url}.idx")
     yield idxdata
@@ -217,7 +187,7 @@ def _grid_nc(c: Config, varname: str, tc: TimeCoords, var: Var):
     path = c.paths.grids_forecast / yyyymmdd / hh / leadtime / f"{var}.nc"
     taskname = "Forecast grid %s" % path
     yield taskname
-    yield asset(path, proxy(path))
+    yield asset(path, _proxy(path))
     fd = _forecast_dataset(Path(c.forecast.path.format(yyyymmdd=yyyymmdd, hh=hh, fh=int(leadtime))))
     yield fd
     src = da_select(c, fd.ref, varname, tc, var)
@@ -232,7 +202,7 @@ def _grid_nc(c: Config, varname: str, tc: TimeCoords, var: Var):
 def _polyfile(path: Path, mask: tuple[tuple[float, float]]):
     taskname = "Poly file %s" % path
     yield taskname
-    yield asset(path, proxy(path))
+    yield asset(path, _proxy(path))
     yield None
     content = "MASK\n%s\n" % "\n".join(f"{lat} {lon}" for lat, lon in mask)
     with atomic(path) as tmp:
@@ -251,7 +221,7 @@ def _plot(
     yield taskname
     rundir = c.paths.run / "plots" / yyyymmdd(cycle) / hh(cycle)
     path = rundir / f"{var}-{stat}{'-width-' + str(width) if width else ''}-plot.png"
-    yield asset(path, proxy(path))
+    yield asset(path, _proxy(path))
     reqs = _statreqs(c, varname, level, cycle)
     yield reqs
     leadtimes = ["%03d" % (td.total_seconds() // 3600) for td in c.leadtimes.values]  # noqa: PD011
@@ -283,7 +253,7 @@ def _stat(c: Config, varname: str, tc: TimeCoords, var: Var, prefix: str, source
     yyyymmdd_valid, hh_valid, _ = tcinfo(TimeCoords(tc.validtime))
     template = "grid_stat_%s_%02d0000L_%s_%s0000V.stat"
     path = rundir / (template % (prefix, int(leadtime), yyyymmdd_valid, hh_valid))
-    yield asset(path, proxy(path))
+    yield asset(path, _proxy(path))
     baseline = _grid_grib(c, TimeCoords(cycle=tc.validtime, leadtime=0), var)
     forecast = _grid_nc(c, varname, tc, var)
     toverify = _grid_grib(c, tc, var) if source == Source.BASELINE else forecast
@@ -380,6 +350,31 @@ def _prepare_plot_data(reqs: Sequence[Node], stat: str, width: int | None) -> pd
     if "INTERP_PNTS" in columns and width is not None:
         plot_data = plot_data[plot_data["INTERP_PNTS"] == width**2]
     return plot_data
+
+
+def _proxy(path: Path) -> Callable[..., bool]:
+    def proxy() -> bool:
+        try:
+            db = THREAD_LOCAL_DATA.db
+        except AttributeError:
+            assert DATABASE
+            db = dbm.sqlite3.open(DATABASE, "c")
+            THREAD_LOCAL_DATA.db = db
+        key = str(path)
+        try:
+            val = db[key]
+        except KeyError:
+            exists = False
+            db[key] = exists
+        else:
+            exists = bool(int(val))
+            if not exists:
+                exists = path.is_file()
+                if exists:
+                    db[key] = exists
+        return exists
+
+    return proxy if DATABASE else path.is_file
 
 
 def _statargs(
