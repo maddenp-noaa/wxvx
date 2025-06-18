@@ -65,7 +65,7 @@ def _parse_args(argv: list[str]) -> Namespace:
     optional.add_argument(
         "-b",
         "--database",
-        help="Database file",
+        help="Database file (EXPERIMENTAL)",
         metavar="FILE",
         type=Path,
     )
