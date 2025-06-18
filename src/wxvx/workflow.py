@@ -191,8 +191,7 @@ def _grib_index_file(outdir: Path, url: str):
     yield taskname
     yield asset(path, proxy(path))
     yield None
-    with atomic(path) as tmp:
-        fetch(taskname, url, tmp)
+    fetch(taskname, url, path)
 
 
 @task
@@ -209,8 +208,7 @@ def _grid_grib(c: Config, tc: TimeCoords, var: Var):
     var_idxdata = idxdata.ref[str(var)]
     fb, lb = var_idxdata.firstbyte, var_idxdata.lastbyte
     headers = {"Range": "bytes=%s" % (f"{fb}-{lb}" if lb else fb)}
-    with atomic(path) as tmp:
-        fetch(taskname, url, tmp, headers)
+    fetch(taskname, url, path, headers)
 
 
 @task

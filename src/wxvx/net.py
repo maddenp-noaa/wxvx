@@ -5,6 +5,8 @@ from functools import cache
 from http import HTTPStatus
 from typing import TYPE_CHECKING
 
+from wxvx.util import atomic
+
 if TYPE_CHECKING:
     from pathlib import Path
 
@@ -20,9 +22,9 @@ def fetch(taskname: str, url: str, path: Path, headers: dict[str, str] | None = 
     expected = HTTPStatus.PARTIAL_CONTENT if headers and "Range" in headers else HTTPStatus.OK
     if response.status_code == expected:
         path.parent.mkdir(parents=True, exist_ok=True)
-        with path.open("wb") as f:
+        with atomic(path) as tmp, tmp.open("wb") as f:
             f.write(response.content)
-            logging.info("%s: Wrote %s", taskname, path)
+        logging.info("%s: Wrote %s", taskname, path)
         return True
     return False
 
