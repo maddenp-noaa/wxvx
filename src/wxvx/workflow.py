@@ -8,13 +8,15 @@ from itertools import chain, pairwise, product
 from pathlib import Path
 from stat import S_IEXEC
 from textwrap import dedent
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 from urllib.parse import urlparse
 from warnings import catch_warnings, simplefilter
 
 import matplotlib as mpl
 
 mpl.use("Agg")
+import dbm.sqlite3
+
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
@@ -30,9 +32,55 @@ from wxvx.util import LINETYPE, atomic, mpexec
 from wxvx.variables import VARMETA, Var, da_construct, da_select, ds_construct, metlevel
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator, Sequence
+    from collections.abc import Iterator, MutableMapping, Sequence
 
     from wxvx.types import Config, VarMeta
+
+import threading
+
+thread_local_data = threading.local()
+
+
+def _db() -> MutableMapping:
+    db: MutableMapping
+    try:
+        db = thread_local_data.db
+    except AttributeError:
+        db = dbm.sqlite3.open("db.sqlite", "c")
+        thread_local_data.db = db
+    return db
+
+
+def proxy(path: Path) -> Callable[..., bool]:
+    calls: int = 0
+    checks: int = 0
+
+    def proxy() -> bool:
+        nonlocal calls, checks
+        calls = calls + 1
+        key = str(path)
+        db = _db()
+        print("@@@ [ in] calls %s checks %s %s is %s" % (calls, checks, key, db.get(key)))
+        try:
+            val = db[key]
+        except KeyError:
+            exists = False
+            db[key] = int(exists)
+        else:
+            exists = bool(int(val))
+            if not exists:
+                exists = path.is_file()
+                checks += 1
+                if exists:
+                    db[key] = int(exists)
+        print(
+            "@@@ [out] calls %s checks %s %s is %s %s"
+            % (calls, checks, key, db.get(key), bool(int(db[key])))
+        )
+        return exists
+
+    return proxy
+
 
 # Public tasks
 
@@ -152,7 +200,7 @@ def _grib_index_file(outdir: Path, url: str):
     path = outdir / Path(urlparse(url).path).name
     taskname = "GRIB index file %s" % path
     yield taskname
-    yield asset(path, path.is_file)
+    yield asset(path, proxy(path))
     yield None
     with atomic(path) as tmp:
         fetch(taskname, url, tmp)
@@ -165,7 +213,7 @@ def _grid_grib(c: Config, tc: TimeCoords, var: Var):
     path = outdir / f"{var}.grib2"
     taskname = "Baseline grid %s" % path
     yield taskname
-    yield asset(path, path.is_file)
+    yield asset(path, proxy(path))
     url = c.baseline.url.format(yyyymmdd=yyyymmdd, hh=hh, fh=int(leadtime))
     idxdata = _grib_index_data(c, outdir, tc, url=f"{url}.idx")
     yield idxdata
@@ -182,7 +230,7 @@ def _grid_nc(c: Config, varname: str, tc: TimeCoords, var: Var):
     path = c.paths.grids_forecast / yyyymmdd / hh / leadtime / f"{var}.nc"
     taskname = "Forecast grid %s" % path
     yield taskname
-    yield asset(path, path.is_file)
+    yield asset(path, proxy(path))
     fd = _forecast_dataset(Path(c.forecast.path.format(yyyymmdd=yyyymmdd, hh=hh, fh=int(leadtime))))
     yield fd
     src = da_select(c, fd.ref, varname, tc, var)
@@ -195,8 +243,9 @@ def _grid_nc(c: Config, varname: str, tc: TimeCoords, var: Var):
 
 @task
 def _polyfile(path: Path, mask: tuple[tuple[float, float]]):
-    yield "Poly file %s" % path
-    yield asset(path, path.is_file)
+    taskname = "Poly file %s" % path
+    yield taskname
+    yield asset(path, proxy(path))
     yield None
     content = "MASK\n%s\n" % "\n".join(f"{lat} {lon}" for lat, lon in mask)
     with atomic(path) as tmp:
@@ -214,8 +263,8 @@ def _plot(
     taskname = f"Plot {desc}{' width ' + str(width) if width else ''} {stat} at {cyclestr}"
     yield taskname
     rundir = c.paths.run / "plots" / yyyymmdd(cycle) / hh(cycle)
-    plot_fn = rundir / f"{var}-{stat}{'-width-' + str(width) if width else ''}-plot.png"
-    yield asset(plot_fn, plot_fn.is_file)
+    path = rundir / f"{var}-{stat}{'-width-' + str(width) if width else ''}-plot.png"
+    yield asset(path, proxy(path))
     reqs = _statreqs(c, varname, level, cycle)
     yield reqs
     leadtimes = ["%03d" % (td.total_seconds() // 3600) for td in c.leadtimes.values]  # noqa: PD011
@@ -232,8 +281,8 @@ def _plot(
     plt.ylabel(f"{stat} ({meta.units})")
     plt.xticks(ticks=[int(lt) for lt in leadtimes], labels=leadtimes, rotation=90)
     plt.legend(title="Model", bbox_to_anchor=(1.02, 1), loc="upper left")
-    plot_fn.parent.mkdir(parents=True, exist_ok=True)
-    plt.savefig(plot_fn, bbox_inches="tight")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    plt.savefig(path, bbox_inches="tight")
     plt.close()
 
 
@@ -247,7 +296,7 @@ def _stat(c: Config, varname: str, tc: TimeCoords, var: Var, prefix: str, source
     yyyymmdd_valid, hh_valid, _ = tcinfo(TimeCoords(tc.validtime))
     template = "grid_stat_%s_%02d0000L_%s_%s0000V.stat"
     path = rundir / (template % (prefix, int(leadtime), yyyymmdd_valid, hh_valid))
-    yield asset(path, path.is_file)
+    yield asset(path, proxy(path))
     baseline = _grid_grib(c, TimeCoords(cycle=tc.validtime, leadtime=0), var)
     forecast = _grid_nc(c, varname, tc, var)
     toverify = _grid_grib(c, tc, var) if source == Source.BASELINE else forecast
