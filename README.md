@@ -267,7 +267,22 @@ Invoking `wxvx -c config.yaml -t grids_baseline` would stage the baseline grids 
 
 ## Miscellaneous
 
+### CF Metadata
+
 When `wxvx` extracts grids from the forecast dataset and writes them to netCDF files to be processed by MET, it decorates them with certain [CF Metadata](https://cfconventions.org/) as [required by MET](https://metplus.readthedocs.io/projects/met/en/main_v11.0/Users_Guide/data_io.html#requirements-for-cf-compliant-netcdf). See [this database](https://cfconventions.org/Data/cf-standard-names/current/build/cf-standard-name-table.html) for CF standard names and units.
+
+# Experimental Database Support
+
+Normally, `wxvx` treats the filesystem as its "database". For example, a task that stages a certain forecast grid as a netCDF file will first check if the file already exists, and take no action if so; if not, and if its prerequisites are satisfied, it will try to create the file. A downstream task that executes MET against this netCDF file will assess the readiness of the forecast-grid task, again checking the status of the netCDF file in the filesystem. For very large task graphs and/or very slow filesystems, this filesystem IO can represent noticeable overhead, especially when `wxvx` is executed for the first time for some configuration and it is "obvious" that none of the files to be created exist yet.
+
+To alleviate this, `wxvx` has experimental support for caching information about files in a SQLite database file, specified via the `-b` / `--database` CLI switch. When used, `wxvx` behaves as follows with respect to queries about the existence of files it would create:
+
+- Upon initial query, the file is assumed not to exist, and `wxvx` records in the database that a negative answer was given.
+- Upon subsequent queries, the database's last response is checked:
+  - If the last response was negative, `wxvx` will check the actual filesystem, record what it finds, and act on that.
+  - If the last response was positive, `wxvx` will assume that the file still exists and act on that.
+  
+Database use therefore optimizes filesystem access at the expense of accurate representation of the current state of the filesystem. Consider this feature an experimental work in progress. To recover from database inaccuracies, remove the database file, edit the SQLite database manually, or omit the `-b` / `--database` switch, which will let `wxvx` examine the actual filesystem state.
 
 ## Development
 
