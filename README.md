@@ -104,7 +104,7 @@ Specify values under `forecast.coords.time` as follows:
   - `leadtime`: The name of the variable or attribute providing the forecast leadtime. Exactly one of `leadtime` and `validtime` must be specified.
   - `validtime`: The name of the variable or attribute providing the forecast validtime. Exactly one of `validtime` and `leadtime` must be specified.
 
-If a `forecast.coords.time` specifies the name of a coordinate dimension variable, that variable will be used. If no such variable exists, `wxvx` will look for a dataset attribute with the given name and try to use it, coercing it to the expected type (e.g. `datetime` or `timedelta`) as needed.
+If a variable specified under `forecast.coords.time` names a coordinate dimension variable, that variable will be used. If no such variable exists, `wxvx` will look for a dataset attribute with the given name and try to use it, coercing it to the expected type (e.g. `datetime` or `timedelta`) as needed. For example, it will parse an ISO8601-formatted string to a Python `datetime` object.
 
 ### forecast.mask
 
@@ -116,7 +116,7 @@ The `forecast.path` value may include Python string-template expressions, proces
 
 ### leadtimes
 
-Each value should be either an `int` specifying the number of hours, or a quoted string of the form `hours[:minutes[:seconds]]` specifying hours and, optionally, minutes and seconds.
+Each value should be either an `int` specifying the number of hours, or a **quoted string** of the form `hours[:minutes[:seconds]]` specifying hours and, optionally, minutes and seconds. (See [this post](https://ruudvanasseldonk.com/2023/01/11/the-yaml-document-from-hell#sexagesimal-numbers) for a discussion on why these values must be quoted.)
 
 When using `start` / `step` / `stop` syntax, the final leadtime is included in verification. That is, the range is inclusive of its upper bound.
 
@@ -266,6 +266,8 @@ Three variables -- geopotential height, composite reflectivity, and 2-meter temp
 Invoking `wxvx -c config.yaml -t grids_baseline` would stage the baseline grids to disk, only; `-t grids_forecast` would stage the forecast grids; `-t grids` would stage both. Specifying `-t stats` would produce statistics via MET tools, but also stage grids if they are not already available, since the grids are required by the MET processes. Specifying `-t plots` would plot statistics, but also _produce_ statistics (and stage grids) if they are not already available.
 
 ## Miscellaneous
+
+### CF Metadata
 
 When `wxvx` extracts grids from the forecast dataset and writes them to netCDF files to be processed by MET, it decorates them with certain [CF Metadata](https://cfconventions.org/) as [required by MET](https://metplus.readthedocs.io/projects/met/en/main_v11.0/Users_Guide/data_io.html#requirements-for-cf-compliant-netcdf). See [this database](https://cfconventions.org/Data/cf-standard-names/current/build/cf-standard-name-table.html) for CF standard names and units.
 

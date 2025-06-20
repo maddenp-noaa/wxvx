@@ -193,7 +193,8 @@ def _grid_nc(c: Config, varname: str, tc: TimeCoords, var: Var):
 
 @task
 def _polyfile(path: Path, mask: tuple[tuple[float, float]]):
-    yield "Poly file %s" % path
+    taskname = "Poly file %s" % path
+    yield taskname
     yield asset(path, path.is_file)
     yield None
     content = "MASK\n%s\n" % "\n".join(f"{lat} {lon}" for lat, lon in mask)
@@ -212,8 +213,8 @@ def _plot(
     taskname = f"Plot {desc}{' width ' + str(width) if width else ''} {stat} at {cyclestr}"
     yield taskname
     rundir = c.paths.run / "plots" / yyyymmdd(cycle) / hh(cycle)
-    plot_fn = rundir / f"{var}-{stat}{'-width-' + str(width) if width else ''}-plot.png"
-    yield asset(plot_fn, plot_fn.is_file)
+    path = rundir / f"{var}-{stat}{'-width-' + str(width) if width else ''}-plot.png"
+    yield asset(path, path.is_file)
     reqs = _statreqs(c, varname, level, cycle)
     yield reqs
     leadtimes = ["%03d" % (td.total_seconds() // 3600) for td in c.leadtimes.values]  # noqa: PD011
@@ -230,8 +231,8 @@ def _plot(
     plt.ylabel(f"{stat} ({meta.units})")
     plt.xticks(ticks=[int(lt) for lt in leadtimes], labels=leadtimes, rotation=90)
     plt.legend(title="Model", bbox_to_anchor=(1.02, 1), loc="upper left")
-    plot_fn.parent.mkdir(parents=True, exist_ok=True)
-    plt.savefig(plot_fn, bbox_inches="tight")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    plt.savefig(path, bbox_inches="tight")
     plt.close()
 
 
