@@ -41,6 +41,9 @@ variables:
     level_type: isobaricInhPa
     levels: *levels
     name: gh
+  PRES:
+    level_type: surface
+    name: sp
   REFC:
     level_type: atmosphere
     name: refc
@@ -60,10 +63,18 @@ variables:
     level_type: isobaricInhPa
     levels: *levels
     name: u
+  UGRD10:
+    level_type: heightAboveGround
+    levels: *levels
+    name: u_10m
   VGRD:
     level_type: isobaricInhPa
     levels: *levels
     name: v
+  VGRD10:
+    level_type: heightAboveGround
+    levels: *levels
+    name: v_10m
   VVEL:
     level_type: isobaricInhPa
     levels: *levels
