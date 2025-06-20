@@ -170,7 +170,7 @@ class GFS(Var):
     def _canonicalize(name: str, level_type: str) -> str:
         return {
             ("HGT", "isobaricInhPa"): "gh",
-            ("PRES", "surface"): "sp"
+            ("PRES", "surface"): "sp",
             ("REFC", "atmosphere"): "refc",
             ("SPFH", "isobaricInhPa"): "q",
             ("TMP", "heightAboveGround"): "2t",
