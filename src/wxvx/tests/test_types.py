@@ -42,7 +42,7 @@ def time(config_data):
 # Tests
 
 
-def test_Baseline(baseline, config_data):
+def test_types_Baseline(baseline, config_data):
     obj = baseline
     assert obj.name == "GFS"
     assert obj.url == "https://some.url/{yyyymmdd}/{hh}/{fh:02}/a.grib2"
@@ -53,7 +53,7 @@ def test_Baseline(baseline, config_data):
     assert obj != other2
 
 
-def test_Config(baseline, config_data, cycles, forecast, leadtimes):
+def test_types_Config(baseline, config_data, cycles, forecast, leadtimes):
     obj = types.Config(raw=config_data)
     assert hash(obj)
     assert obj.baseline == baseline
@@ -72,7 +72,7 @@ def test_Config(baseline, config_data, cycles, forecast, leadtimes):
         assert re.match(r"^Config(.*)$", f(obj))
 
 
-def test_Coords(config_data, coords):
+def test_types_Coords(config_data, coords):
     obj = coords
     assert hash(obj)
     assert obj.latitude == "latitude"
@@ -87,7 +87,7 @@ def test_Coords(config_data, coords):
     assert obj != other2
 
 
-def test_Cycles():
+def test_types_Cycles():
     ts1, ts2, ts3, td = "2024-06-04T00", "2024-06-04T06", "2024-06-04T12", "6"
     ts2dt = lambda s: datetime.fromisoformat(s)
     expected = [ts2dt(x) for x in (ts1, ts2, ts3)]
@@ -109,7 +109,7 @@ def test_Cycles():
     assert repr(x3) == "Cycles({'start': '%s', 'step': %s, 'stop': '%s'})" % (ts1, td, ts3)
 
 
-def test_Forecast(config_data, forecast):
+def test_types_Forecast(config_data, forecast):
     obj = forecast
     assert hash(obj)
     assert obj.coords.latitude == "latitude"
@@ -126,7 +126,7 @@ def test_Forecast(config_data, forecast):
     assert obj != other2
 
 
-def test_Leadtimes():
+def test_types_Leadtimes():
     lt1, lt2, lt3, td = "3", "6", "9", "3"
     expected = [timedelta(hours=int(x)) for x in (lt1, lt2, lt3)]
     x1 = types.Leadtimes(raw=[lt1, lt2, lt3])
@@ -151,7 +151,7 @@ def test_Leadtimes():
     assert types.Leadtimes(raw=["0:360", "0:480:3600", 3]).values == expected  # order invariant
 
 
-def test_Time(config_data, time):
+def test_types_Time(config_data, time):
     obj = time
     assert hash(obj)
     assert obj.inittime == "time"
@@ -163,7 +163,7 @@ def test_Time(config_data, time):
     assert obj != other2
 
 
-def test_VarMeta():
+def test_types_VarMeta():
     def fails(k, v):
         with raises(AssertionError):
             types.VarMeta(**{**kwargs, k: type(v)()})
