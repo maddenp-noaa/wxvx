@@ -157,9 +157,12 @@ class GFS(Var):
             "gh": "HGT",
             "q": "SPFH",
             "refc": "REFC",
+            "sp": "PRES",
             "t": "TMP",
             "u": "UGRD",
+            "u_10m": "UGRD",
             "v": "VGRD",
+            "v_10m": "VGRD",
             "w": "VVEL",
         }.get(name, UNKNOWN)
 
@@ -167,11 +170,14 @@ class GFS(Var):
     def _canonicalize(name: str, level_type: str) -> str:
         return {
             ("HGT", "isobaricInhPa"): "gh",
+            ("PRES", "surface"): "sp",
             ("REFC", "atmosphere"): "refc",
             ("SPFH", "isobaricInhPa"): "q",
             ("TMP", "heightAboveGround"): "2t",
             ("TMP", "isobaricInhPa"): "t",
+            ("UGRD", "heightAboveGround"): "u_10m",
             ("UGRD", "isobaricInhPa"): "u",
+            ("VGRD", "heightAboveGround"): "v_10m",
             ("VGRD", "isobaricInhPa"): "v",
             ("VVEL", "isobaricInhPa"): "w",
         }.get((name, level_type), UNKNOWN)
