@@ -14,7 +14,9 @@ rm Miniforge3-Linux-aarch64.sh
 conda activate
 ```
 
-2. Create and activate a conda virtual environment providing the latest `wxvx`. Add the flags `-c conda-forge --override-channels` to the `conda create` command if you are using a non-conda-forge conda installation.
+**NOTE:** If you need a development environment in which to develop and test `wxvx` code, skip the following step and refer to the [Development](#development) section.
+
+2. Create and activate a conda virtual environment providing the latest `wxvx`. (Add the flags `-c conda-forge --override-channels` to the `conda create` command if you are using a non-conda-forge conda installation.)
 
 ``` bash
 conda create -y -n wxvx -c ufs-community -c paul.madden wxvx
@@ -273,7 +275,7 @@ When `wxvx` extracts grids from the forecast dataset and writes them to netCDF f
 
 ## Development
 
-1. In the `base` environment of a [Miniforge](https://github.com/conda-forge/miniforge) installation, install the [`condev`](https://github.com/maddenp/condev) package. Add the flags `-c conda-forge --override-channels` to the `conda create` command if using a non-conda-forge conda installation.
+1. In the `base` environment of a [Miniforge](https://github.com/conda-forge/miniforge) installation, install the [`condev`](https://github.com/maddenp/condev) package. (Add the flags `-c conda-forge --override-channels` to the `conda create` command if using a non-conda-forge conda installation.)
 
 ``` bash
 conda install -y -c maddenp condev
