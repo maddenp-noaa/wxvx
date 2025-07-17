@@ -78,11 +78,27 @@ VARMETA = {
             units="m s-1",
         ),
         VarMeta(
+            cf_standard_name="eastward_wind",
+            description="U-Component of Wind at 10m",
+            level_type="heightAboveGround",
+            met_stats=["ME", "RMSE"],
+            name="u_10m",
+            units="m s-1",
+        ),
+        VarMeta(
             cf_standard_name="northward_wind",
             description="V-Component of Wind at {level} mb",
             level_type="isobaricInhPa",
             met_stats=["ME", "RMSE"],
             name="v",
+            units="m s-1",
+        ),
+        VarMeta(
+            cf_standard_name="northward_wind",
+            description="V-Component of Wind at 10m",
+            level_type="heightAboveGround",
+            met_stats=["ME", "RMSE"],
+            name="v_10m",
             units="m s-1",
         ),
         VarMeta(
