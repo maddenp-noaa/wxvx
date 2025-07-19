@@ -18,12 +18,15 @@ TIMEOUT = 30
 def fetch(taskname: str, url: str, path: Path, headers: dict[str, str] | None = None) -> bool:
     suffix = " %s" % headers.get("Range", "") if headers else ""
     logging.info("%s: Fetching %s%s", taskname, url, suffix)
-    response = session().get(url, allow_redirects=True, timeout=TIMEOUT, headers=headers or {})
+    response = session().get(
+        url, allow_redirects=True, stream=True, timeout=TIMEOUT, headers=headers or {}
+    )
     expected = HTTPStatus.PARTIAL_CONTENT if headers and "Range" in headers else HTTPStatus.OK
     if response.status_code == expected:
         path.parent.mkdir(parents=True, exist_ok=True)
         with atomic(path) as tmp, tmp.open("wb") as f:
-            f.write(response.content)
+            for chunk in response.iter_content(chunk_size=8192):
+                f.write(chunk)
         logging.info("%s: Wrote %s", taskname, path)
         return True
     return False
