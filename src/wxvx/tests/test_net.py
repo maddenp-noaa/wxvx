@@ -21,14 +21,14 @@ URL = "https://some.url"
 def test_net_fetch_fail(code, fs, out, byterange, ret):
     response = Mock()
     response.status_code = code
-    response.content = bytes("foo", encoding="utf-8")
+    response.iter_content.return_value = iter([bytes(out, encoding="utf-8")])
     headers = {"Range": "bytes=1-2"} if byterange else {}
     path = Path(fs.create_file("f").path)
     with patch.object(net, "session") as session:
         session().get.return_value = response
         assert net.fetch(taskname="task", url=URL, path=path, headers=headers) is ret
     session().get.assert_called_once_with(
-        URL, allow_redirects=True, timeout=net.TIMEOUT, headers=headers
+        URL, allow_redirects=True, stream=True, timeout=net.TIMEOUT, headers=headers
     )
     assert path.read_text(encoding="utf-8") == out
 
