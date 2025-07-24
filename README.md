@@ -153,11 +153,11 @@ The `forecast.projection` value should be a mapping with at least a `proj` key i
 
 ### regrid.method
 
-Options are listed [here](https://metplus.readthedocs.io/projects/met/en/main_v11.0/Users_Guide/config_options.html#regrid). The default is `NEAREST`.
+Options are listed [here](https://metplus.readthedocs.io/projects/met/en/main_v11.0/Users_Guide/config_options.html#regrid) (default: `NEAREST`).
 
 ### regrid.to
 
-Options are `baseline` and `forecast`. The default is `forecast`.
+Options are `baseline` and `forecast` (default: `forecast`).
 
 ### variables
 
