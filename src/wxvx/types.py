@@ -148,8 +148,11 @@ class Paths:
 
 @dataclass(frozen=True)
 class Regrid:
-    method: str | None
-    to: str | None
+    method: str = "NEAREST"
+    to: str = "forecast"
+
+    def __post_init__(self):
+        _force(self, "to", {"baseline": "OBS", "forecast": "FCST"}[self.to])
 
 
 @dataclass(frozen=True)

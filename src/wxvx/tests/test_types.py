@@ -184,12 +184,13 @@ def test_types_Paths(paths, config_data):
 def test_types_Regrid(regrid, config_data):
     obj = regrid
     assert obj.method == "NEAREST"
-    assert obj.to == "forecast"
+    assert obj.to == "FCST"
     cfg = config_data["regrid"]
     other1 = types.Regrid(**cfg)
     assert obj == other1
     other2 = types.Regrid(**{**cfg, "to": "baseline"})
     assert obj != other2
+    assert other2.to == "OBS"
 
 
 def test_types_Time(config_data, time):

@@ -109,6 +109,8 @@ def _output_flag(k: str, v: str, level: int) -> list[str]:
 
 def _regrid(k: str, v: Any, level: int) -> list[str]:
     match k:
+        case "method":
+            return _kvpair(k, _bare(v), level)
         case "to_grid":
             return _kvpair(k, _bare(v), level)
     _fail(k)
