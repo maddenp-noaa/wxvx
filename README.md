@@ -66,8 +66,8 @@ An overview of the content of the YAML configuration file specified via `-c` / `
 │     forecast:      │     Forecast grids                        │
 │   run:             │   Where to store run data                 │
 │ regrid:            │ MET regrid options                        │
-│   method:          │   Regridding method to use                │
-│   to:              │   Grid to regrid to                       │
+│   method:          │   Regridding method                       │
+│   to:              │   Destination grid                        │
 │ variables:         │ Mapping describing variables to verify    │
 │   VAR:             │   Forecast-dataset variable name          │
 │     level_type:    │     Generic level type                    │
