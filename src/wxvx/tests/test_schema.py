@@ -270,6 +270,15 @@ def test_schema_paths_grids(config_data, fs, logged):
         assert logged("None is not of type 'string'")
 
 
+def test_schema_regrid(logged, config_data, fs):
+    assert logged  # PM FIXME
+    assert fs  # PM FIXME
+    ok = validator(fs, "properties", "regrid")
+    config = config_data["regrid"]
+    # Basic correctness:
+    assert ok(config)
+
+
 def test_schema_variables(logged, config_data, fs):
     ok = validator(fs, "properties", "variables")
     config = config_data["variables"]

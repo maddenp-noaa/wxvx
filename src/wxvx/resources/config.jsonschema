@@ -300,6 +300,39 @@
       ],
       "type": "object"
     },
+    "regrid": {
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "method": {
+          "enum": [
+            "AW_MEAN",
+            "BILIN",
+            "BUDGET",
+            "DW_MEAN",
+            "FORCE",
+            "LOWER_LEFT",
+            "LOWER_RIGHT",
+            "LS_FIT",
+            "MAX",
+            "MAXGAUSS",
+            "MEDIAN",
+            "MIN",
+            "NEAREST",
+            "UPPER_LEFT",
+            "UPPER_RIGHT",
+            "UW_MEAN"
+          ]
+        },
+        "to": {
+          "enum": [
+            "baseline",
+            "forecast"
+          ]
+        }
+      },
+      "type": "object"
+    },
     "variables": {
       "patternProperties": {
         "^.*$": {

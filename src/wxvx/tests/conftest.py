@@ -99,6 +99,10 @@ def config_data():
             },
             "run": "/path/to/run",
         },
+        "regrid": {
+            "method": "NEAREST",
+            "to": "forecast",
+        },
         "variables": {
             "HGT": {
                 "level_type": "isobaricInhPa",
