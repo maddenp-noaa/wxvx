@@ -33,6 +33,7 @@ class Config:
         self.forecast = Forecast(**raw["forecast"])
         self.leadtimes = Leadtimes(raw["leadtimes"])
         self.paths = Paths(grids["baseline"], grids["forecast"], paths["run"])
+        self.regrid = Regrid(**raw["regrid"])
         self.variables = raw["variables"]
 
     KEYS = ("baseline", "cycles", "forecast", "leadtimes", "paths", "variables")
@@ -143,6 +144,12 @@ class Paths:
         _force(self, "grids_baseline", Path(self.grids_baseline))
         _force(self, "grids_forecast", Path(self.grids_forecast))
         _force(self, "run", Path(self.run))
+
+
+@dataclass(frozen=True)
+class Regrid:
+    method: str | None
+    to: str | None
 
 
 @dataclass(frozen=True)
