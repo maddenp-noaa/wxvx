@@ -33,7 +33,7 @@ class Config:
         self.forecast = Forecast(**raw["forecast"])
         self.leadtimes = Leadtimes(raw["leadtimes"])
         self.paths = Paths(grids["baseline"], grids["forecast"], paths["run"])
-        self.regrid = Regrid(**raw["regrid"])
+        self.regrid = Regrid(**raw.get("regrid", {}))
         self.variables = raw["variables"]
 
     KEYS = ("baseline", "cycles", "forecast", "leadtimes", "paths", "variables")
