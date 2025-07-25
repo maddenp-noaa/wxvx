@@ -36,6 +36,9 @@ paths:
     baseline: "{{ meta.grids }}/baseline"
     forecast: "{{ meta.grids }}/forecast"
   run: "{{ meta.workdir }}/run"
+regrid:
+  method: NEAREST
+  to: forecast
 variables:
   HGT:
     level_type: isobaricInhPa

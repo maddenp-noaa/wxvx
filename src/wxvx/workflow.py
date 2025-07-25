@@ -312,7 +312,7 @@ def _grid_stat_config(
         "obtype": c.baseline.name,
         "output_flag": dict.fromkeys(sorted({LINETYPE[x] for x in meta.met_stats}), "BOTH"),
         "output_prefix": f"{prefix}",
-        "regrid": {"to_grid": "FCST"},
+        "regrid": {"method": c.regrid.method, "to_grid": c.regrid.to},
         "tmp_dir": rundir,
     }
     if nbrhd := {k: v for k, v in [("shape", meta.nbrhd_shape), ("width", meta.nbrhd_width)] if v}:

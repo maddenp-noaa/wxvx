@@ -65,6 +65,9 @@ An overview of the content of the YAML configuration file specified via `-c` / `
 │     baseline:      │     Baseline grids                        │
 │     forecast:      │     Forecast grids                        │
 │   run:             │   Where to store run data                 │
+│ regrid:            │ MET regrid options                        │
+│   method:          │   Regridding method                       │
+│   to:              │   Destination grid                        │
 │ variables:         │ Mapping describing variables to verify    │
 │   VAR:             │   Forecast-dataset variable name          │
 │     level_type:    │     Generic level type                    │
@@ -147,6 +150,14 @@ The `forecast.projection` value should be a mapping with at least a `proj` key i
 
   - When `proj` is [`latlon`](https://proj.org/en/stable/operations/conversions/latlon.html), specify no additional attributes.
   - When `proj` is [`lcc`](https://proj.org/en/stable/operations/projections/lcc.html), specify attributes `a`, `b`, `lat_0`, `lat_1`, `lat_2`, and `lon_0`.
+
+### regrid.method
+
+Options are listed [here](https://metplus.readthedocs.io/projects/met/en/main_v11.0/Users_Guide/config_options.html#regrid) (default: `NEAREST`).
+
+### regrid.to
+
+Options are `baseline` and `forecast` (default: `forecast`).
 
 ### variables
 

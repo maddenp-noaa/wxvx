@@ -270,6 +270,23 @@ def test_schema_paths_grids(config_data, fs, logged):
         assert logged("None is not of type 'string'")
 
 
+def test_schema_regrid(logged, config_data, fs):
+    ok = validator(fs, "properties", "regrid")
+    config = config_data["regrid"]
+    # Basic correctness:
+    assert ok(config)
+    # Must be an object:
+    assert not ok([])
+    assert logged("is not of type 'object'")
+    # Must have at least one property:
+    assert not ok({})
+    assert logged("should be non-empty")
+    # Properties must have expected values:
+    for x in ["method", "to"]:
+        assert not ok(with_set(config, "UNEXPECTED", x))
+        assert logged("'UNEXPECTED' is not one of")
+
+
 def test_schema_variables(logged, config_data, fs):
     ok = validator(fs, "properties", "variables")
     config = config_data["variables"]

@@ -35,6 +35,20 @@ def leadtimes(config_data):
 
 
 @fixture
+def paths(config_data):
+    return types.Paths(
+        grids_baseline=Path(config_data["paths"]["grids"]["baseline"]),
+        grids_forecast=Path(config_data["paths"]["grids"]["forecast"]),
+        run=Path(config_data["paths"]["run"]),
+    )
+
+
+@fixture
+def regrid(config_data):
+    return types.Regrid(**config_data["regrid"])
+
+
+@fixture
 def time(config_data):
     return types.Time(**config_data["forecast"]["coords"]["time"])
 
@@ -53,16 +67,15 @@ def test_types_Baseline(baseline, config_data):
     assert obj != other2
 
 
-def test_types_Config(baseline, config_data, cycles, forecast, leadtimes):
+def test_types_Config(baseline, config_data, cycles, forecast, leadtimes, paths, regrid):
     obj = types.Config(raw=config_data)
     assert hash(obj)
     assert obj.baseline == baseline
     assert obj.cycles == cycles
     assert obj.forecast == forecast
     assert obj.leadtimes == leadtimes
-    assert obj.paths.grids_baseline == Path(config_data["paths"]["grids"]["baseline"])
-    assert obj.paths.grids_forecast == Path(config_data["paths"]["grids"]["forecast"])
-    assert obj.paths.run == Path(config_data["paths"]["run"])
+    assert obj.paths == paths
+    assert obj.regrid == regrid
     assert obj.variables == config_data["variables"]
     other = types.Config(raw=config_data)
     assert obj == other
@@ -149,6 +162,35 @@ def test_types_Leadtimes():
         types.Leadtimes(raw=["2:60", "5:59:60", "0:0:32400"]).values == expected
     )  # but why would you?
     assert types.Leadtimes(raw=["0:360", "0:480:3600", 3]).values == expected  # order invariant
+
+
+def test_types_Paths(paths, config_data):
+    obj = paths
+    assert obj.grids_baseline == Path(config_data["paths"]["grids"]["baseline"])
+    assert obj.grids_forecast == Path(config_data["paths"]["grids"]["forecast"])
+    assert obj.run == Path(config_data["paths"]["run"])
+    cfg = {
+        "grids_baseline": Path(config_data["paths"]["grids"]["baseline"]),
+        "grids_forecast": Path(config_data["paths"]["grids"]["forecast"]),
+        "run": Path(config_data["paths"]["run"]),
+    }
+    other1 = types.Paths(**cfg)
+    assert obj == other1
+    cfg["run"] = Path("/other/path")
+    other2 = types.Paths(**cfg)
+    assert obj != other2
+
+
+def test_types_Regrid(regrid, config_data):
+    obj = regrid
+    assert obj.method == "NEAREST"
+    assert obj.to == "FCST"
+    cfg = config_data["regrid"]
+    other1 = types.Regrid(**cfg)
+    assert obj == other1
+    other2 = types.Regrid(**{**cfg, "to": "baseline"})
+    assert obj != other2
+    assert other2.to == "OBS"
 
 
 def test_types_Time(config_data, time):
